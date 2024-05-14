@@ -5,13 +5,7 @@ exploded_view_spacer = 20
 window_thickness = 1.25
 window_diameter  = 24
 
-reflector_thickness = 10.5
-reflector_outer_diameter = 23.5
-reflector_inner_diameter = 21.5
-reflector_depth_front = 7.15
-reflector_depth_rear = 1.8
-
-led_diameter = 5
+led_diameter = 4.8
 led_base_diameter = 5.3
 led_base_height = 1.0
 led_overall_height = 8.7
@@ -20,6 +14,13 @@ led_ring_diameter = 15.2
 
 led_pcb_thickness = 1.25
 led_pcb_diameter = 23.5
+
+reflector_led_hole = led_diameter + 0.2
+reflector_thickness = 10.5
+reflector_outer_diameter = 23.5
+reflector_inner_diameter = 21.5
+reflector_depth_front = 7.15
+reflector_depth_rear = 1.8
 
 color_clear_plastic = cq.Color(1,1,1,0.2)
 color_pcb = cq.Color(0,0.5,0)
@@ -46,12 +47,12 @@ def make_reflector():
 
     # Center LED
     r = r.faces("<Y")
-    r = r.hole(led_diameter, reflector_thickness)
+    r = r.hole(reflector_led_hole, reflector_thickness)
 
     # Perimeter LEDs
     r = r.faces("<Y")
     r = r.polygon(8,led_ring_diameter).vertices()
-    r = r.hole(led_diameter, reflector_thickness)
+    r = r.hole(reflector_led_hole, reflector_thickness)
 
     return r
 
@@ -82,7 +83,31 @@ def make_led_ring():
         name = "led_center",
         color = color_clear_plastic)
 
-    return lr
+    ring = cq.Assembly()
+    p = cq.Workplane("XZ")
+    p = p.polygon(8,led_ring_diameter, forConstruction=True)
+    p = p.vertices()
+    p = p.eachpoint(
+        lambda pos: (
+            ring.add(
+                make_led(),
+                loc = pos,
+                color = color_clear_plastic
+                )
+            )
+        )
+
+    lr = lr.add(
+        ring,
+        loc = cq.Location((0,0,0),(1,0,0),-90)
+        )
+
+    flip = cq.Assembly()
+    flip = flip.add(
+        lr,
+        loc = cq.Location((0,0,0),(1,0,0),180)
+        )
+    return flip
 
 la = cq.Assembly()
 offset_y = window_thickness
@@ -100,4 +125,12 @@ la = la.add(
     color = color_mirror_finish,
     loc = cq.Location((0,offset_y,0)))
 
-show_object(make_led_ring())
+offset_y += exploded_view_spacer
+
+la = la.add(
+    make_led_ring(),
+    name = "led_ring",
+    loc = cq.Location((0,offset_y,0))
+    )
+
+show_object(la)
