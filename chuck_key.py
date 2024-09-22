@@ -23,6 +23,10 @@ elif jaws == 4:
 else:
     raise ValueError("Unsupported configuration for 'jaws' variable")
 
+key_clearance = 0.2
+
+key_size -= key_clearance
+
 print_bed_adhesion_fillet = 5
 elephant_foot_compensation = 1.25
 
