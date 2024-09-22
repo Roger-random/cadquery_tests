@@ -68,7 +68,7 @@ combined = (
 labeled = (
     combined.faces("<Z")
     .workplane(origin=(0, key_length/2,0))
-    .text(label_text,10,-0.5)
+    .text(label_text,12,-0.5, kind='bold')
     )
 
 show_object(labeled)
