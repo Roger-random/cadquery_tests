@@ -37,7 +37,7 @@ base_thickness = 12
 square_drive = (1/2) * mm_per_inch + additional_clearance
 
 # Spacer to work around 3D printer issues (Optional, can be set to zero)
-spacer_thickness = 0.25
+spacer_thickness = 0
 spacer_width = 2.4
 
 tab = (

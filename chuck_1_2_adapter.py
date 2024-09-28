@@ -6,7 +6,7 @@ wrench_size = (1/2) * mm_per_inch * 1.05
 
 arm_width = 20
 arm_length = 18
-thickness = 17
+thickness = 12
 
 arm_move = arm_length/2
 
