@@ -23,11 +23,11 @@ mm_per_inch = 25.4
 
 # Give an additional 0.2mm of space on mating surface dimensions to account
 # for 3D printing inaccuracy
-additional_clearance = 0.2
+additional_clearance = 0.3
 
 # Top and bottom face chamfers
-top_face_chamfer_size = 1
-bottom_face_chamfer_size = 2
+top_face_chamfer_size = 0.5
+bottom_face_chamfer_size = 0.5
 
 # Size of each tab
 tab_thickness = 0.11 * mm_per_inch - additional_clearance
@@ -40,9 +40,17 @@ inner_radius = (2.45/2) * mm_per_inch + additional_clearance
 outer_radius = inner_radius + tab_depth + 4
 ring_length = tab_length
 
-# Dimensions for base
-base_thickness = 12
-square_drive = (1/2) * mm_per_inch + additional_clearance
+# Two modes: base that fits a 1/2" square drive wrench or a handle
+handle_not_square_drive = True
+
+if handle_not_square_drive:
+    # Add a handle
+    handle_width = 30
+    handle_length = 200
+else:
+    # Add a base for square drive wrench
+    base_thickness = 12
+    square_drive = (1/2) * mm_per_inch + additional_clearance
 
 tab = (
     cq.Workplane("XY")
@@ -62,16 +70,41 @@ adapter = ring
 for angle in range(0,360,int(360/tab_count)):
     adapter = adapter.union(tab.rotate((0,0,0),(0,0,1),angle))
 
-base = (
-    adapter.faces("<Z").workplane()
-    .circle(outer_radius)
-    .rect(square_drive, square_drive, centered=True)
-    .extrude(base_thickness)
-    )
-adapter = adapter.union(base)
+if handle_not_square_drive:
+    # Add a handle
+    handle = (
+        cq.Workplane("XY")
+        .center(inner_radius+handle_length/2,0)
+        .box(handle_length, handle_width, tab_length)
+        )
+    # Round off end of the handle
+    handle = (
+        handle.edges("|Z").edges(">X")
+        .fillet(handle_width/2 - 1)
+        )
+    adapter = adapter.union(handle)
+    # Round off where handle joins the ring
+    join_edges = (
+        adapter
+        .edges(cq.selectors.BoxSelector(
+            (inner_radius+1, handle_width, ring_length),
+            (outer_radius+1, -handle_width, -ring_length)
+            ))
+        )
+    adapter = join_edges.fillet(handle_width)
+
+    # Rotate to sit diagonally on print bed
+    adapter = adapter.rotate((0,0,0),(0,0,1),40)
+else:
+    base = (
+        adapter.faces("<Z").workplane()
+        .circle(outer_radius)
+        .rect(square_drive, square_drive, centered=True)
+        .extrude(base_thickness)
+        )
+    adapter = adapter.union(base)
 
 adapter = adapter.faces("<Z").chamfer(bottom_face_chamfer_size)
-
 adapter = adapter.faces(">Z").chamfer(top_face_chamfer_size)
 
 show_object(adapter)
