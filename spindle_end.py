@@ -2,10 +2,18 @@
 Spindle end adapter
 
 The old lathe came with some nonstandard attachment at the end of its spindle
-whose purpose is currently unknown.
+whose purpose is currently unknown and blocks gearbox access cover from
+swinging open. (Gearbox access cover can still be unbolted to access gears.)
 
 Whatever it is, it appears to be threaded onto the factory spindle so this
 is an effort at making something to help me take it off.
+
+Good news: it worked well gripping the thing.
+
+Bad news: it is more tightly installed than the chuck, which unthreaded before
+this guy would.
+
+Good news: it now works as a handle for swapping chucks.
 """
 
 import cadquery as cq
