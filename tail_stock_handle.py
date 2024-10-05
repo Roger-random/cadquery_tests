@@ -15,14 +15,14 @@ mm_per_inch = 25.4
 
 # Give an additional 0.2mm of space on mating surface dimensions to account
 # for 3D printing inaccuracy
-additional_clearance = 0.3
+additional_clearance = 0.25
 
 # Mitigate 3D printing elephant foot effect
 elephant_foot_compensation = 0.5
 
 # Wrench dimensions
 nut_size_inch = 7/8
-nut_size = 7/8 * mm_per_inch + additional_clearance
+nut_size = 7/8 * mm_per_inch + additional_clearance * 2 # Apply clearance distance twice for diameter
 
 wrench_width = nut_size + 15
 wrench_height = 15
@@ -30,7 +30,7 @@ wrench_length = 70
 
 handle_radius = 10
 handle_end_fillet = handle_radius - 1
-handle_join_fillet = 8
+handle_join_fillet = 6
 
 handle = (
     cq.Workplane("XZ")
@@ -42,7 +42,7 @@ handle = (
 
 socket = (
     cq.Workplane("XY")
-    .transformed(rotate=cq.Vector(10,0,0))
+    .transformed(rotate=cq.Vector(5,0,0))
     .circle(wrench_width/2)
     .extrude(wrench_height, both=True)
     )
