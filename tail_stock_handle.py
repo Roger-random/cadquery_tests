@@ -6,6 +6,10 @@ to tighten the tailstock holding nut. It is a 7/8" nut so I could use a
 normal wrench but a short handle would be more convenient in the tight
 space. It doesn't take a lot of torque to keep the tailstock in place so a
 3D printed replacement may suffice.
+
+This is designed upside-down in order to present a flat bottom surface for
+3D printing. There's probably a better way to approach the problem but it
+works for now.
 """
 
 import cadquery as cq
@@ -58,11 +62,10 @@ sliceoff = (
 wrench = wrench - sliceoff
 
 # Fillet edge where socket and handle join
-wrench = (
-    wrench.edges(cq.selectors.NearestToPointSelector(
-        (0, wrench_width/2, handle_radius)))
-    .fillet(handle_join_fillet)
-    )
+socket_handle_join_edge = wrench.edges(cq.selectors.NearestToPointSelector(
+    (0, wrench_width/2, handle_radius)))
+#show_object(socket_handle_join_edge)
+wrench = socket_handle_join_edge.fillet(handle_join_fillet)
 
 # Cut hole for nut
 wrench = (
@@ -71,6 +74,8 @@ wrench = (
     .cutThruAll()
     )
 
+# Unexpected behavior: fillet works here but chamfer does not. I don't understand
+# enough to know if this is my bug or a CadQuery bug.
 wrench = wrench.faces("<Z or >Z").fillet(elephant_foot_compensation)
 
 show_object(wrench)
