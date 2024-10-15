@@ -36,6 +36,8 @@ handle_radius = 10
 handle_end_fillet = handle_radius - 1
 handle_join_fillet = 6
 
+handle_to_socket_angle = 5
+
 handle = (
     cq.Workplane("XZ")
     .circle(handle_radius)
@@ -46,7 +48,7 @@ handle = (
 
 socket = (
     cq.Workplane("XY")
-    .transformed(rotate=cq.Vector(5,0,0))
+    .transformed(rotate=cq.Vector(handle_to_socket_angle,0,0))
     .circle(wrench_width/2)
     .extrude(wrench_height, both=True)
     )
@@ -54,12 +56,13 @@ socket = (
 wrench = socket + handle
 
 # slice off the unnecessary bottom part
-sliceoff = (
-    cq.Workplane("XY")
-    .transformed(offset=cq.Vector(0,0,-wrench_height-3))
-    .box(wrench_length*3, wrench_length*3, wrench_height*2)
+wrench = (
+    wrench.workplane()
+    .transformed(
+        rotate=cq.Vector(-handle_to_socket_angle,0,0),
+        offset=cq.Vector(0,0,-2))
+    .split(keepTop = True, keepBottom = False)
     )
-wrench = wrench - sliceoff
 
 # Fillet edge where socket and handle join
 socket_handle_join_edge = wrench.edges(cq.selectors.NearestToPointSelector(
