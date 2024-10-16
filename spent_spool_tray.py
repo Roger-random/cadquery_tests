@@ -36,6 +36,9 @@ base_height = 0.6
 ring_depth = 8 * 0.4
 ring_height = 5
 
+# Guide rail on the sides should be equal to or less than ring height
+rail_height = ring_height-2
+
 base = (
     cq.Workplane("XZ")
     .lineTo(inner_radius,0,True)
@@ -48,6 +51,36 @@ base = (
     .revolve(angle, (0,0,0), (0,1,0))
     )
 
+rail_1 = (
+    cq.Workplane("YZ")
+    .lineTo(0,rail_height)
+    .lineTo(rail_height,0)
+    .close()
+    .extrude(outer_radius)
+    )
+
+rail_2 = (
+    cq.Workplane("YZ")
+    .transformed(rotate=cq.Vector(0,angle,0))
+    .lineTo(0,rail_height)
+    .lineTo(-rail_height,0)
+    .close()
+    .extrude(outer_radius)
+    )
+
+base = base+rail_1+rail_2
+
+cleanup = (
+    cq.Workplane("XY")
+    .circle(outer_radius-additional_clearance)
+    .circle(inner_radius+additional_clearance)
+    .extrude(height*2,both=True)
+    )
+
+base = base.intersect(cleanup)
+
+show_object(base, options = {"alpha":0.5, "color":"green"})
+
 wedge = (
     cq.Workplane("XY")
     .lineTo(outer_radius,0)
@@ -55,8 +88,5 @@ wedge = (
     .close()
     .extrude(height)
     )
-
 show_object(wedge, options = {"alpha":0.9, "color":"blue"})
-
-show_object(base)
 
