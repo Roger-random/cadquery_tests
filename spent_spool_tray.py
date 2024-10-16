@@ -29,12 +29,9 @@ height = 56
 
 base_height = 0.6
 
-# Inner ring is sized to be even multiple of 0.4mm nozzle diameter
-ring_depth = 8 * 0.4
-ring_height = 5
-
-# Guide rail on the sides should be equal to or less than ring height
-rail_height = ring_height-2
+ring_depth = 6
+ring_height = 3
+ring_chamfer = 2 # Because spool inner corner is probably not perfectly square
 
 # Tray dimensions
 tray_edge_fillet = 3
@@ -63,8 +60,8 @@ base = (
 
 rail_1 = (
     cq.Workplane("YZ")
-    .lineTo(0,rail_height)
-    .lineTo(rail_height,0)
+    .lineTo(0,ring_height)
+    .lineTo(ring_height,0)
     .close()
     .extrude(outer_radius)
     )
@@ -72,8 +69,8 @@ rail_1 = (
 rail_2 = (
     cq.Workplane("YZ")
     .transformed(rotate=cq.Vector(0,angle,0))
-    .lineTo(0,rail_height)
-    .lineTo(-rail_height,0)
+    .lineTo(0,ring_height)
+    .lineTo(-ring_height,0)
     .close()
     .extrude(outer_radius)
     )
@@ -88,6 +85,7 @@ cleanup = (
     )
 
 base = base.intersect(cleanup)
+base = base.edges("<Z").edges("<X").chamfer(ring_chamfer)
 
 tray = (
     cq.Workplane("XZ")
