@@ -4,9 +4,6 @@ Spent spool tray
 import math
 import cadquery as cq
 
-# Old lathe made in 1951 measures in inches but CadQuery works in mm.
-mm_per_inch = 25.4
-
 # Give an additional 0.2mm of space on mating surface dimensions to account
 # for 3D printing inaccuracy
 additional_clearance = 0.25
@@ -39,14 +36,26 @@ ring_height = 5
 # Guide rail on the sides should be equal to or less than ring height
 rail_height = ring_height-2
 
+# Tray dimensions
+tray_edge_fillet = 2
+latch_height = 3
+latch_depth = 3
+handle_height = 10
+
+wedge = (
+    cq.Workplane("XY")
+    .lineTo(outer_radius,0)
+    .ellipseArc(outer_radius,outer_radius,0,angle,0)
+    .close()
+    .extrude(height)
+    )
+#show_object(wedge, options = {"alpha":0.9, "color":"blue"})
+
 base = (
     cq.Workplane("XZ")
-    .lineTo(inner_radius,0,True)
-    .lineTo(inner_radius,ring_height)
+    .lineTo(0,ring_height)
     .lineTo(inner_radius + ring_depth, ring_height)
-    .lineTo(inner_radius + ring_depth + ring_height - base_height, base_height)
-    .lineTo(outer_radius, base_height)
-    .lineTo(outer_radius,0)
+    .lineTo(inner_radius + ring_depth + ring_height, 0)
     .close()
     .revolve(angle, (0,0,0), (0,1,0))
     )
@@ -68,25 +77,33 @@ rail_2 = (
     .extrude(outer_radius)
     )
 
-base = base+rail_1+rail_2
+base = base + rail_1 + rail_2
 
 cleanup = (
     cq.Workplane("XY")
-    .circle(outer_radius-additional_clearance)
+    .circle(outer_radius)
     .circle(inner_radius+additional_clearance)
     .extrude(height*2,both=True)
     )
 
 base = base.intersect(cleanup)
 
-show_object(base, options = {"alpha":0.5, "color":"green"})
-
-wedge = (
-    cq.Workplane("XY")
-    .lineTo(outer_radius,0)
-    .ellipseArc(outer_radius,outer_radius,0,angle,0)
+tray = (
+    cq.Workplane("XZ")
+    .lineTo(inner_radius,height-additional_clearance,True)
+    .lineTo(outer_radius,height-additional_clearance)
+    .lineTo(outer_radius,latch_height + latch_depth)
+    .lineTo(outer_radius-latch_depth, latch_height)
+    .lineTo(outer_radius-latch_depth, 0)
+    .lineTo(inner_radius + ring_depth + ring_height, 0)
+    .lineTo(inner_radius, ring_depth+ring_height)
     .close()
-    .extrude(height)
+    .revolve(angle, (0,0,0), (0,1,0))
     )
-show_object(wedge, options = {"alpha":0.9, "color":"blue"})
+
+tray = tray-base
+tray = tray.edges("not >Z").edges("not <Z").fillet(tray_edge_fillet)
+
+show_object(tray, options = {"alpha":0.5, "color":"red"})
+show_object(base, options = {"alpha":0.5, "color":"green"})
 
