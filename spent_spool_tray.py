@@ -37,7 +37,8 @@ ring_height = 5
 rail_height = ring_height-2
 
 # Tray dimensions
-tray_edge_fillet = 2
+tray_edge_fillet = 3
+tray_top_chamfer = 2 # Adds a bit of structural strength
 latch_height = 3
 latch_depth = 3
 handle_height = 10
@@ -103,6 +104,7 @@ tray = (
 
 tray = tray-base
 tray = tray.edges("not >Z").edges("not <Z").fillet(tray_edge_fillet)
+tray = tray.edges(">Z").chamfer(tray_top_chamfer)
 
 show_object(tray, options = {"alpha":0.5, "color":"red"})
 show_object(base, options = {"alpha":0.5, "color":"green"})
