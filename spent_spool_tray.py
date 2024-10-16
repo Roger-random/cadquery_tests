@@ -30,11 +30,22 @@ outer_radius = spool_outer_radius + 10
 
 height = 56
 
+base_height = 0.6
+
+# Inner ring is sized to be even multiple of 0.4mm nozzle diameter
+ring_depth = 8 * 0.4
+ring_height = 5
+
 base = (
-    cq.Workplane("XY")
-    .circle(outer_radius)
-    .circle(inner_radius)
-    .extrude(1)
+    cq.Workplane("XZ")
+    .lineTo(inner_radius,0,True)
+    .lineTo(inner_radius,ring_height)
+    .lineTo(inner_radius + ring_depth, ring_height)
+    .lineTo(inner_radius + ring_depth + ring_height - base_height, base_height)
+    .lineTo(outer_radius, base_height)
+    .lineTo(outer_radius,0)
+    .close()
+    .revolve(angle, (0,0,0), (0,1,0))
     )
 
 wedge = (
@@ -45,5 +56,7 @@ wedge = (
     .extrude(height)
     )
 
-show_object(wedge+base)
+show_object(wedge, options = {"alpha":0.9, "color":"blue"})
+
+show_object(base)
 
