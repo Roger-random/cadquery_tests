@@ -46,9 +46,9 @@ handle_fillet = 1
 handle_protusion = handle_radius/2
 handle_profile_height = handle_height + handle_radius*4
 
-rib_radius = 2
-rib_offset = 1.5
-
+rib_spacing=7.5
+rib_size_bottom = 3
+rib_size_top = 1
 
 # Visualize the wedge-shaped volume we're working within
 
@@ -172,25 +172,21 @@ tray_handle = tray_handle.fillet(handle_fillet)
 tray = tray + tray_handle
 
 # Flat side of tray warps when printing in thin wall vase mode, add small ribs
-rib_span = outer_radius-inner_radius
-rib_count = math.floor(rib_span / 10)
+rib_span = outer_radius-beyond_edge-inner_radius
+rib_count = math.floor(rib_span / rib_spacing)
 rib_spacing = rib_span / rib_count
 
-for rib in range(1, rib_count, 1):
-    rib_1 = (
-        cq.Workplane("XY")
-        .transformed(offset = cq.Vector(inner_radius + rib*rib_spacing, -rib_offset, 0))
-        .circle(rib_radius)
-        .extrude(height)
-        )
-    tray = tray-rib_1
-    rib_2 = (
-        cq.Workplane("XY")
-        .transformed(rotate=cq.Vector(0,0,angle))
-        .transformed(offset = cq.Vector(inner_radius + rib*rib_spacing, rib_offset, 0))
-        .circle(rib_radius)
-        .extrude(height)
-        )
-    tray = tray-rib_2
+for rib_angle in (0,angle):
+    for rib_index in range(1, rib_count+1, 1):
+        rib = (
+            cq.Workplane("XY")
+            .transformed(rotate=cq.Vector(0,0,rib_angle))
+            .transformed(offset = cq.Vector(inner_radius + rib_index*rib_spacing, 0, 0))
+            .polygon(6, rib_size_bottom, circumscribed=True)
+            .workplane(offset=height)
+            .polygon(6, rib_size_top, circumscribed=True)
+            .loft()
+            )
+        tray = tray-rib
 
 show_object(tray, options = {"alpha":0.5, "color":"red"})
