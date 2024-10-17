@@ -12,7 +12,7 @@ additional_clearance = 0.25
 elephant_foot_compensation = 0.5
 
 # How big of a wedge we want in degrees
-angle = 60
+angle = 15
 
 # Calculate spool inner radius from measuring circumference of spool center
 spool_inner_circumference = 281
@@ -31,6 +31,9 @@ height = 54
 ring_depth = 6
 ring_height = 4
 ring_chamfer = 2 # Because spool inner corner is probably not perfectly square
+ring_tab_radius = ring_depth/4 # half of ring depth, and this is radius, so divide by by two again
+ring_tab_distance = 3 # Degrees
+ring_tab_arm_half = ring_tab_radius/2
 
 # Tray dimensions
 tray_edge_fillet = 2
@@ -61,8 +64,11 @@ wedge = (
     )
 #show_object(wedge, options = {"alpha":0.9, "color":"blue"})
 
+#######################################################################
+#
 # Build a base
 
+# Start with the ring root
 base = (
     cq.Workplane("XZ")
     .lineTo(0,ring_height)
@@ -72,6 +78,7 @@ base = (
     .revolve(angle, (0,0,0), (0,1,0))
     )
 
+# Add rails left and right to guide the tray
 for rail_index in (0,1):
     if rail_index == 0:
         mirror = 1
@@ -88,6 +95,8 @@ for rail_index in (0,1):
         )
     base = base + rail
 
+# Add latches at the end of those rails mounted on flexible arms.
+# The two latches are built in one piece then cut in the middle.
 flexture = (
     cq.Workplane("XZ")
     .lineTo(outer_radius-latch_depth+latch_gap,0,True)
@@ -123,6 +132,7 @@ flexture_cut = (
     )
 base = base - flexture_cut
 
+# Clean up the extraneous guilde rail segments
 cleanup = (
     cq.Workplane("XY")
     .circle(outer_radius)
@@ -131,12 +141,67 @@ cleanup = (
     )
 
 base = base.intersect(cleanup)
-base = base.edges("<Z").edges("<X").chamfer(ring_chamfer)
+
+# Add fetures to link segments together
+
+# First add the tab
+tab_position_radius = inner_radius+ring_depth/2
+tab = (
+    cq.Workplane("XY")
+    .transformed(rotate=cq.Vector(0,0,angle+ring_tab_distance))
+    .transformed(offset = cq.Vector(tab_position_radius, 0, 0))
+    .circle(ring_tab_radius)
+    .extrude(ring_height)
+    .chamfer(0.5)
+)
+tab_arm = (
+    cq.Workplane("XZ")
+    .transformed(rotate=cq.Vector(0,angle-2,0))
+    .lineTo(tab_position_radius-ring_tab_arm_half, 0, True)
+    .lineTo(tab_position_radius-ring_tab_arm_half, ring_height)
+    .lineTo(tab_position_radius+ring_tab_arm_half, ring_height)
+    .lineTo(tab_position_radius+ring_tab_arm_half, 0)
+    .close()
+    .revolve(ring_tab_distance+2)
+    .chamfer(0.5)
+    )
+base = base+tab_arm
+base = base+tab
+
+# Then cut the slot for the adjacent segment's tab
+slot = (
+    cq.Workplane("XY")
+    .transformed(rotate=cq.Vector(0,0,ring_tab_distance))
+    .transformed(offset = cq.Vector(tab_position_radius, 0, 0))
+    .circle(ring_tab_radius+additional_clearance)
+    .extrude(ring_height)
+)
+slot_arm = (
+    cq.Workplane("XZ")
+    .lineTo(tab_position_radius-ring_tab_arm_half-additional_clearance, 0, True)
+    .lineTo(tab_position_radius-ring_tab_arm_half-additional_clearance, ring_height)
+    .lineTo(tab_position_radius+ring_tab_arm_half+additional_clearance, ring_height)
+    .lineTo(tab_position_radius+ring_tab_arm_half+additional_clearance, 0)
+    .close()
+    .revolve(ring_tab_distance)
+    )
+slot = slot+slot_arm
+
+base = base - slot
+
+# Chamfer the inner bottom corner because corresponding spool interior is not perfectly square
+ring_chamfer_cut = (
+    cq.Workplane("XZ")
+    .lineTo(inner_radius+ring_chamfer, 0)
+    .lineTo(inner_radius             , ring_chamfer)
+    .close()
+    .revolve(angle)
+    )
+base = base - ring_chamfer_cut
 
 show_object(base, options = {"alpha":0.5, "color":"green"})
 
 # Build a tray
-
 tray = (
     cq.Workplane("XZ")
     .lineTo(inner_radius,height-tray_top_chamfer-additional_clearance,True)
