@@ -117,10 +117,10 @@ tray = (
     .revolve(angle, (0,0,0), (0,1,0))
     )
 
-tray = tray-base
-
 tray = tray.edges(">Z").edges(">X").chamfer(beyond_edge)
 tray = tray.edges("not >Z").edges("not <Z").fillet(tray_edge_fillet)
+
+tray = tray-base
 
 # Add a handle to the tray
 tray_handle_profile_starting_height = latch_height + latch_depth
