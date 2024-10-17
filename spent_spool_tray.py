@@ -151,23 +151,24 @@ tray_handle = tray_handle.fillet(handle_fillet)
 tray = tray + tray_handle
 
 # Flat side of tray warps when printing in thin wall vase mode, add small ribs
-rib_count = math.floor(height / 10)
-rib_height = height / rib_count
+rib_span = outer_radius-inner_radius
+rib_count = math.floor(rib_span / 10)
+rib_spacing = rib_span / rib_count
 
 for rib in range(1, rib_count, 1):
     rib_1 = (
-        cq.Workplane("YZ")
-        .transformed(offset = cq.Vector(-rib_offset, rib*rib_height, 0))
+        cq.Workplane("XY")
+        .transformed(offset = cq.Vector(inner_radius + rib*rib_spacing, -rib_offset, 0))
         .circle(rib_radius)
-        .extrude(outer_radius)
+        .extrude(height)
         )
     tray = tray-rib_1
     rib_2 = (
-        cq.Workplane("YZ")
-        .transformed(rotate=cq.Vector(0,angle,0))
-        .transformed(offset = cq.Vector(rib_offset, rib*rib_height, 0))
+        cq.Workplane("XY")
+        .transformed(rotate=cq.Vector(0,0,angle))
+        .transformed(offset = cq.Vector(inner_radius + rib*rib_spacing, rib_offset, 0))
         .circle(rib_radius)
-        .extrude(outer_radius)
+        .extrude(height)
         )
     tray = tray-rib_2
 
