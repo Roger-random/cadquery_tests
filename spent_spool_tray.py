@@ -45,6 +45,10 @@ handle_fillet = 1
 handle_protusion = handle_radius/2
 handle_profile_height = handle_height + handle_radius*4
 
+rib_radius = 2
+rib_offset = 1.5
+
+
 # Visualize the wedge-shaped volume we're working within
 
 wedge = (
@@ -118,7 +122,7 @@ tray = tray-base
 tray = tray.edges(">Z").edges(">X").chamfer(beyond_edge)
 tray = tray.edges("not >Z").edges("not <Z").fillet(tray_edge_fillet)
 
-# Add a handle
+# Add a handle to the tray
 tray_handle_profile_starting_height = latch_height + latch_depth
 
 tray_handle = (
@@ -142,9 +146,29 @@ tray_handle_profile = (
     )
 
 tray_handle = tray_handle.intersect(tray_handle_profile)
-
 tray_handle = tray_handle.fillet(handle_fillet)
 
 tray = tray + tray_handle
+
+# Flat side of tray warps when printing in thin wall vase mode, add small ribs
+rib_count = math.floor(height / 10)
+rib_height = height / rib_count
+
+for rib in range(1, rib_count, 1):
+    rib_1 = (
+        cq.Workplane("YZ")
+        .transformed(offset = cq.Vector(-rib_offset, rib*rib_height, 0))
+        .circle(rib_radius)
+        .extrude(outer_radius)
+        )
+    tray = tray-rib_1
+    rib_2 = (
+        cq.Workplane("YZ")
+        .transformed(rotate=cq.Vector(0,angle,0))
+        .transformed(offset = cq.Vector(rib_offset, rib*rib_height, 0))
+        .circle(rib_radius)
+        .extrude(outer_radius)
+        )
+    tray = tray-rib_2
 
 show_object(tray, options = {"alpha":0.5, "color":"red"})
