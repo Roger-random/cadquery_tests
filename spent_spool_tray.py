@@ -40,11 +40,8 @@ tray_top_chamfer = ring_chamfer
 latch_height = ring_height
 latch_depth = 3
 
-handle_radius = 5
-handle_height = 10
-handle_fillet = 1
-handle_protusion = handle_radius/2
-handle_profile_height = handle_height + handle_radius*4
+handle_sphere_size=15
+handle_cut_depth=5
 
 rib_spacing=7.5
 rib_size_bottom = 3
@@ -101,7 +98,7 @@ cleanup = (
 base = base.intersect(cleanup)
 base = base.edges("<Z").edges("<X").chamfer(ring_chamfer)
 
-#show_object(base, options = {"alpha":0.5, "color":"green"})
+show_object(base, options = {"alpha":0.5, "color":"green"})
 
 # Build a tray
 
@@ -144,32 +141,16 @@ tray = tray-tray_top_edge_2
 tray = tray-base
 
 # Add a handle to the tray
-tray_handle_profile_starting_height = latch_height + latch_depth
-
-tray_handle = (
-    cq.Workplane("XY")
-    .transformed(rotate=cq.Vector(0, 0, angle/2))
-    .transformed(offset = cq.Vector(outer_radius + handle_protusion, 0, tray_handle_profile_starting_height))
-    .circle(handle_radius)
-    .extrude(handle_profile_height)
-    )
-
-handle_inner = outer_radius - handle_radius + handle_protusion
-tray_handle_profile = (
+handle_cutout = (
     cq.Workplane("XZ")
-    .lineTo(handle_inner,                 tray_handle_profile_starting_height)
-    .lineTo(handle_inner+handle_radius*2, tray_handle_profile_starting_height + handle_radius*2)
-    .lineTo(handle_inner+handle_radius*2, tray_handle_profile_starting_height + handle_radius*2 + handle_height)
-    .lineTo(handle_inner,                 tray_handle_profile_starting_height + handle_profile_height)
-    .lineTo(inner_radius,                 tray_handle_profile_starting_height + handle_profile_height)
-    .close()
-    .revolve(angle, (0,0,0), (0,1,0))
+    .transformed(rotate=cq.Vector(0,angle/2,0))
+    .transformed(offset = cq.Vector(outer_radius+handle_sphere_size-handle_cut_depth, height/2, 0))
+    .sphere(handle_sphere_size)
+    .workplane(offset=-handle_cut_depth)
+    .transformed(rotate=cq.Vector(0,45,0))
+    .split(keepBottom=True)
     )
-
-tray_handle = tray_handle.intersect(tray_handle_profile)
-tray_handle = tray_handle.fillet(handle_fillet)
-
-tray = tray + tray_handle
+tray = tray-handle_cutout
 
 # Flat side of tray warps when printing in thin wall vase mode, add small ribs
 rib_span = outer_radius-beyond_edge-inner_radius
