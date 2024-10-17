@@ -31,12 +31,13 @@ height = 54
 base_height = 0.6
 
 ring_depth = 6
-ring_height = 3
+ring_height = 4
 ring_chamfer = 2 # Because spool inner corner is probably not perfectly square
 
 # Tray dimensions
-tray_edge_fillet = 3
-latch_height = 3
+tray_edge_fillet = 2
+tray_top_chamfer = ring_chamfer
+latch_height = ring_height
 latch_depth = 3
 
 handle_radius = 5
@@ -74,7 +75,7 @@ base = (
 rail_1 = (
     cq.Workplane("YZ")
     .lineTo(0,ring_height)
-    .lineTo(ring_height,0)
+    .lineTo(ring_height/2,0)
     .close()
     .extrude(outer_radius)
     )
@@ -83,7 +84,7 @@ rail_2 = (
     cq.Workplane("YZ")
     .transformed(rotate=cq.Vector(0,angle,0))
     .lineTo(0,ring_height)
-    .lineTo(-ring_height,0)
+    .lineTo(-ring_height/2,0)
     .close()
     .extrude(outer_radius)
     )
@@ -100,14 +101,16 @@ cleanup = (
 base = base.intersect(cleanup)
 base = base.edges("<Z").edges("<X").chamfer(ring_chamfer)
 
-show_object(base, options = {"alpha":0.5, "color":"green"})
+#show_object(base, options = {"alpha":0.5, "color":"green"})
 
 # Build a tray
 
 tray = (
     cq.Workplane("XZ")
-    .lineTo(inner_radius,height-additional_clearance,True)
-    .lineTo(outer_radius,height-additional_clearance)
+    .lineTo(inner_radius,height-tray_top_chamfer-additional_clearance,True)
+    .lineTo(inner_radius+tray_top_chamfer,height-additional_clearance)
+    .lineTo(outer_radius-beyond_edge,height-additional_clearance)
+    .lineTo(outer_radius,height-beyond_edge)
     .lineTo(outer_radius,latch_height + latch_depth)
     .lineTo(outer_radius-latch_depth, latch_height)
     .lineTo(outer_radius-latch_depth, 0)
@@ -117,9 +120,27 @@ tray = (
     .revolve(angle, (0,0,0), (0,1,0))
     )
 
-tray = tray.edges(">Z").edges(">X").chamfer(beyond_edge)
-tray = tray.edges("not >Z").edges("not <Z").fillet(tray_edge_fillet)
+tray = tray.edges("|Z").fillet(tray_edge_fillet)
 
+tray_top_edge_1 = (
+    cq.Workplane("YZ")
+    .lineTo(0,height-tray_top_chamfer,True)
+    .lineTo(0,height)
+    .lineTo(tray_top_chamfer/2,height)
+    .close()
+    .extrude(outer_radius)
+    )
+tray_top_edge_2 = (
+    cq.Workplane("YZ")
+    .transformed(rotate=cq.Vector(0,angle,0))
+    .lineTo(0,height-tray_top_chamfer,True)
+    .lineTo(0,height)
+    .lineTo(-tray_top_chamfer/2,height)
+    .close()
+    .extrude(outer_radius)
+    )
+tray = tray-tray_top_edge_1
+tray = tray-tray_top_edge_2
 tray = tray-base
 
 # Add a handle to the tray
