@@ -12,7 +12,7 @@ additional_clearance = 0.25
 elephant_foot_compensation = 0.5
 
 # How big of a wedge we want in degrees
-angle = 30
+angle = 15
 
 # Calculate spool inner radius from measuring circumference of spool center
 spool_inner_circumference = 281
@@ -23,9 +23,10 @@ spool_outer_diameter = 200
 spool_outer_radius = spool_outer_diameter / 2
 
 # Tray actually extends beyond edge of spool
-outer_radius = spool_outer_radius + 10
+beyond_edge = 10
+outer_radius = spool_outer_radius + beyond_edge
 
-height = 56
+height = 54
 
 base_height = 0.6
 
@@ -35,10 +36,16 @@ ring_chamfer = 2 # Because spool inner corner is probably not perfectly square
 
 # Tray dimensions
 tray_edge_fillet = 3
-tray_top_chamfer = 2 # Adds a bit of structural strength
 latch_height = 3
 latch_depth = 3
+
+handle_radius = 5
 handle_height = 10
+handle_fillet = 1
+handle_protusion = handle_radius/2
+handle_profile_height = handle_height + handle_radius*4
+
+# Visualize the wedge-shaped volume we're working within
 
 wedge = (
     cq.Workplane("XY")
@@ -48,6 +55,8 @@ wedge = (
     .extrude(height)
     )
 #show_object(wedge, options = {"alpha":0.9, "color":"blue"})
+
+# Build a base
 
 base = (
     cq.Workplane("XZ")
@@ -87,6 +96,10 @@ cleanup = (
 base = base.intersect(cleanup)
 base = base.edges("<Z").edges("<X").chamfer(ring_chamfer)
 
+show_object(base, options = {"alpha":0.5, "color":"green"})
+
+# Build a tray
+
 tray = (
     cq.Workplane("XZ")
     .lineTo(inner_radius,height-additional_clearance,True)
@@ -101,9 +114,37 @@ tray = (
     )
 
 tray = tray-base
+
+tray = tray.edges(">Z").edges(">X").chamfer(beyond_edge)
 tray = tray.edges("not >Z").edges("not <Z").fillet(tray_edge_fillet)
-tray = tray.edges(">Z").chamfer(tray_top_chamfer)
+
+# Add a handle
+tray_handle_profile_starting_height = latch_height + latch_depth
+
+tray_handle = (
+    cq.Workplane("XY")
+    .transformed(rotate=cq.Vector(0, 0, angle/2))
+    .transformed(offset = cq.Vector(outer_radius + handle_protusion, 0, tray_handle_profile_starting_height))
+    .circle(handle_radius)
+    .extrude(handle_profile_height)
+    )
+
+handle_inner = outer_radius - handle_radius + handle_protusion
+tray_handle_profile = (
+    cq.Workplane("XZ")
+    .lineTo(handle_inner,                 tray_handle_profile_starting_height)
+    .lineTo(handle_inner+handle_radius*2, tray_handle_profile_starting_height + handle_radius*2)
+    .lineTo(handle_inner+handle_radius*2, tray_handle_profile_starting_height + handle_radius*2 + handle_height)
+    .lineTo(handle_inner,                 tray_handle_profile_starting_height + handle_profile_height)
+    .lineTo(inner_radius,                 tray_handle_profile_starting_height + handle_profile_height)
+    .close()
+    .revolve(angle, (0,0,0), (0,1,0))
+    )
+
+tray_handle = tray_handle.intersect(tray_handle_profile)
+
+tray_handle = tray_handle.fillet(handle_fillet)
+
+tray = tray + tray_handle
 
 show_object(tray, options = {"alpha":0.5, "color":"red"})
-show_object(base, options = {"alpha":0.5, "color":"green"})
-
