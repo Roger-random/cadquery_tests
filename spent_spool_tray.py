@@ -12,7 +12,7 @@ additional_clearance = 0.25
 elephant_foot_compensation = 0.5
 
 # How big of a wedge we want in degrees
-angle = 15
+angle = 60
 
 # Calculate spool inner radius from measuring circumference of spool center
 spool_inner_circumference = 281
@@ -28,8 +28,6 @@ outer_radius = spool_outer_radius + beyond_edge
 
 height = 54
 
-base_height = 0.6
-
 ring_depth = 6
 ring_height = 4
 ring_chamfer = 2 # Because spool inner corner is probably not perfectly square
@@ -37,8 +35,13 @@ ring_chamfer = 2 # Because spool inner corner is probably not perfectly square
 # Tray dimensions
 tray_edge_fillet = 2
 tray_top_chamfer = ring_chamfer
-latch_height = ring_height
+
+latch_height = ring_height-1
 latch_depth = 3
+latch_gap = 0.5
+latch_flexture = 0.5
+latch_width = 1
+latch_angle = 5
 
 handle_sphere_size=15
 handle_cut_depth=5
@@ -69,24 +72,56 @@ base = (
     .revolve(angle, (0,0,0), (0,1,0))
     )
 
-rail_1 = (
-    cq.Workplane("YZ")
-    .lineTo(0,ring_height)
-    .lineTo(ring_height/2,0)
-    .close()
-    .extrude(outer_radius)
-    )
+for rail_index in (0,1):
+    if rail_index == 0:
+        mirror = 1
+    else:
+        mirror = -1
 
-rail_2 = (
-    cq.Workplane("YZ")
-    .transformed(rotate=cq.Vector(0,angle,0))
-    .lineTo(0,ring_height)
-    .lineTo(-ring_height/2,0)
-    .close()
-    .extrude(outer_radius)
-    )
+    rail = (
+        cq.Workplane("YZ")
+        .transformed(rotate=cq.Vector(0,angle*rail_index,0))
+        .lineTo(0,ring_height)
+        .lineTo((ring_height*mirror)/2,0)
+        .close()
+        .extrude(outer_radius)
+        )
+    base = base + rail
 
-base = base + rail_1 + rail_2
+flexture = (
+    cq.Workplane("XZ")
+    .lineTo(outer_radius-latch_depth+latch_gap,0,True)
+    .lineTo(outer_radius-latch_depth+latch_gap,latch_flexture)
+    .lineTo(outer_radius                      ,latch_flexture)
+    .lineTo(outer_radius                      ,0)
+    .close()
+    .revolve(angle, (0,0,0), (0,1,0))
+    )
+base = base+flexture
+
+latch = (
+    cq.Workplane("XZ")
+    .transformed(rotate=cq.Vector(0,latch_angle-latch_width,0))
+    .lineTo(outer_radius-latch_depth+latch_gap,0,True)
+    .lineTo(outer_radius-latch_depth+latch_gap,latch_height)
+    .lineTo(outer_radius                      ,latch_flexture)
+    .lineTo(outer_radius                      ,0)
+    .close()
+    .revolve(angle+latch_width*2-latch_angle*2, (0,0,0), (0,1,0))
+    )
+base = base + latch
+
+flexture_cut = (
+        cq.Workplane("XZ")
+        .transformed(rotate=cq.Vector(0,latch_angle,0))
+        .lineTo(outer_radius-latch_depth-latch_gap,0,True)
+        .lineTo(outer_radius-latch_depth-latch_gap,ring_height)
+        .lineTo(outer_radius                      ,ring_height)
+        .lineTo(outer_radius                      ,0)
+        .close()
+        .revolve(angle-latch_angle*2, (0,0,0), (0,1,0))
+    )
+base = base - flexture_cut
 
 cleanup = (
     cq.Workplane("XY")
@@ -108,8 +143,8 @@ tray = (
     .lineTo(inner_radius+tray_top_chamfer,height-additional_clearance)
     .lineTo(outer_radius-beyond_edge,height-additional_clearance)
     .lineTo(outer_radius,height-beyond_edge)
-    .lineTo(outer_radius,latch_height + latch_depth)
-    .lineTo(outer_radius-latch_depth, latch_height)
+    .lineTo(outer_radius,ring_height + latch_depth)
+    .lineTo(outer_radius-latch_depth, ring_height)
     .lineTo(outer_radius-latch_depth, 0)
     .lineTo(inner_radius + ring_depth + ring_height, 0)
     .lineTo(inner_radius, ring_depth+ring_height)
