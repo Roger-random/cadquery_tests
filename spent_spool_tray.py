@@ -39,12 +39,9 @@ ring_tab_arm_half = ring_tab_radius/2
 tray_edge_fillet = 2
 tray_top_chamfer = ring_chamfer
 
-latch_height = ring_height-1
 latch_depth = 3
-latch_gap = 0.5
-latch_flexture = 0.5
-latch_width = 1
-latch_angle = 5
+latch_gap = additional_clearance*2
+latch_angle = 1.5
 
 handle_sphere_size=15
 handle_width_half = 2
@@ -98,26 +95,14 @@ for rail_index in (0,1):
 
 # Add latches at the end of those rails mounted on flexible arms.
 # The two latches are built in one piece then cut in the middle.
-flexture = (
+latch = (
     cq.Workplane("XZ")
     .lineTo(outer_radius-latch_depth+latch_gap,0,True)
-    .lineTo(outer_radius-latch_depth+latch_gap,latch_flexture)
-    .lineTo(outer_radius                      ,latch_flexture)
+    .lineTo(outer_radius-latch_depth+latch_gap,ring_height)
+    .lineTo(outer_radius                      ,ring_height)
     .lineTo(outer_radius                      ,0)
     .close()
     .revolve(angle, (0,0,0), (0,1,0))
-    )
-base = base+flexture
-
-latch = (
-    cq.Workplane("XZ")
-    .transformed(rotate=cq.Vector(0,latch_angle-latch_width,0))
-    .lineTo(outer_radius-latch_depth+latch_gap,0,True)
-    .lineTo(outer_radius-latch_depth+latch_gap,latch_height)
-    .lineTo(outer_radius                      ,latch_flexture)
-    .lineTo(outer_radius                      ,0)
-    .close()
-    .revolve(angle+latch_width*2-latch_angle*2, (0,0,0), (0,1,0))
     )
 base = base + latch
 
