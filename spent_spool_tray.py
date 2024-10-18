@@ -197,34 +197,45 @@ tray = (
     .lineTo(outer_radius,ring_height + latch_depth)
     .lineTo(outer_radius-latch_depth, ring_height)
     .lineTo(outer_radius-latch_depth, 0)
-    .lineTo(inner_radius + ring_depth + ring_height, 0)
-    .lineTo(inner_radius, ring_depth+ring_height)
+    .lineTo(inner_radius + ring_depth + ring_height + additional_clearance, 0)
+    .lineTo(inner_radius + additional_clearance, ring_depth+ring_height)
     .close()
     .revolve(angle, (0,0,0), (0,1,0))
     )
 
+# Slice off a tiny bit for clearance
+tray = tray.faces("<Y").workplane(offset=-additional_clearance).split(keepBottom=True)
+
 tray = tray.edges("|Z").fillet(tray_edge_fillet)
 
-tray_top_edge_1 = (
-    cq.Workplane("YZ")
-    .lineTo(0,height-tray_top_chamfer,True)
-    .lineTo(0,height)
-    .lineTo(tray_top_chamfer/2,height)
-    .close()
-    .extrude(outer_radius)
-    )
-tray_top_edge_2 = (
-    cq.Workplane("YZ")
-    .transformed(rotate=cq.Vector(0,angle,0))
-    .lineTo(0,height-tray_top_chamfer,True)
-    .lineTo(0,height)
-    .lineTo(-tray_top_chamfer/2,height)
-    .close()
-    .extrude(outer_radius)
-    )
-tray = tray-tray_top_edge_1
-tray = tray-tray_top_edge_2
-tray = tray-base
+for edge_index in (0,1):
+    if edge_index == 0:
+        mirror = 1
+    else:
+        mirror = -1
+
+    # Cut top edge for a bit of added strength
+    top_edge = (
+        cq.Workplane("YZ")
+        .transformed(rotate=cq.Vector(0,angle*edge_index,0))
+        .lineTo(0,height-tray_top_chamfer,True)
+        .lineTo(0,height)
+        .lineTo(mirror*tray_top_chamfer/2,height)
+        .close()
+        .extrude(outer_radius)
+        )
+    tray = tray - top_edge
+
+    # Cut bottom edge to fit base
+    bottom_edge = (
+        cq.Workplane("YZ")
+        .transformed(rotate=cq.Vector(0,angle*edge_index,0))
+        .lineTo(0,(ring_height+additional_clearance))
+        .lineTo(((ring_height*mirror/2)+(mirror*additional_clearance)),0)
+        .close()
+        .extrude(outer_radius)
+        )
+    tray = tray - bottom_edge
 
 # Add a handle to the tray
 handle_cutout = (
@@ -250,9 +261,9 @@ handle_add = (
     cq.Workplane("XZ")
     .transformed(rotate=cq.Vector(0,angle/2,0))
     .transformed(offset = cq.Vector(outer_radius-handle_sphere_size+handle_cut_depth, height/2, 0))
-    .circle(handle_sphere_size)
-    .extrude(handle_width_half, both=True)
+    .sphere(handle_sphere_size)
     )
+handle_add = handle_add.intersect(handle_keep)
 tray = tray+handle_add
 
 # Flat side of tray warps when printing in thin wall vase mode, add small ribs
