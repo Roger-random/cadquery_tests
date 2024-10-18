@@ -15,18 +15,20 @@ elephant_foot_compensation = 0.5
 angle = 15
 
 # Calculate spool inner radius from measuring circumference of spool center
-spool_inner_circumference = 283
+#spool_inner_circumference = 283 # MH Build
+spool_inner_circumference = 347 # Filament PM
 inner_radius = spool_inner_circumference / (math.pi*2)
 
 # Outer spool diameter is easier to measure directly
-spool_outer_diameter = 200
+spool_outer_diameter = 200 # MH Build, Filament PM
 spool_outer_radius = spool_outer_diameter / 2
 
 # Tray actually extends beyond edge of spool
 beyond_edge = 10
 outer_radius = spool_outer_radius + beyond_edge
 
-height = 55
+#height = 55 # MH Build
+height = 68 # Filament PM
 
 ring_depth = 6
 ring_height = 4
@@ -40,8 +42,8 @@ tray_edge_fillet = 2
 tray_top_chamfer = ring_chamfer
 
 latch_depth = 3
-latch_gap = additional_clearance*2
-latch_angle = 1.5
+latch_gap = latch_depth-2
+latch_height = 1
 
 handle_sphere_size=15
 handle_width_half = 2
@@ -93,11 +95,10 @@ for rail_index in (0,1):
         )
     base = base + rail
 
-# Add latches at the end of those rails mounted on flexible arms.
-# The two latches are built in one piece then cut in the middle.
+# Add a short fence to keep tray from falling out too easily
 latch = (
     cq.Workplane("XZ")
-    .lineTo(outer_radius-latch_depth+latch_gap,0,True)
+    .lineTo(outer_radius-latch_depth+latch_gap*2,0,True)
     .lineTo(outer_radius-latch_depth+latch_gap,ring_height)
     .lineTo(outer_radius                      ,ring_height)
     .lineTo(outer_radius                      ,0)
@@ -106,17 +107,17 @@ latch = (
     )
 base = base + latch
 
-flexture_cut = (
-        cq.Workplane("XZ")
-        .transformed(rotate=cq.Vector(0,latch_angle,0))
-        .lineTo(outer_radius-latch_depth-latch_gap,0,True)
-        .lineTo(outer_radius-latch_depth-latch_gap,ring_height)
-        .lineTo(outer_radius                      ,ring_height)
-        .lineTo(outer_radius                      ,0)
-        .close()
-        .revolve(angle-latch_angle*2, (0,0,0), (0,1,0))
+# Taper towards the outer edge
+base_wedge = (
+    cq.Workplane("XZ")
+    .lineTo(inner_radius             , ring_height, True)
+    .lineTo(inner_radius + ring_depth, ring_height)
+    .lineTo(outer_radius             , latch_height)
+    .lineTo(outer_radius             , ring_height)
+    .close()
+    .revolve(angle, (0,0,0), (0,1,0))
     )
-base = base - flexture_cut
+base = base - base_wedge
 
 # Clean up the extraneous guilde rail segments
 cleanup = (
@@ -185,6 +186,9 @@ ring_chamfer_cut = (
     )
 base = base - ring_chamfer_cut
 
+# Slice off a tiny bit for clearance
+base = base.faces("<Y").workplane(offset=-additional_clearance).split(keepBottom=True)
+
 show_object(base, options = {"alpha":0.5, "color":"green"})
 
 # Build a tray
@@ -196,7 +200,7 @@ tray = (
     .lineTo(outer_radius,height-beyond_edge)
     .lineTo(outer_radius,ring_height + latch_depth)
     .lineTo(outer_radius-latch_depth, ring_height)
-    .lineTo(outer_radius-latch_depth, 0)
+    .lineTo(outer_radius-latch_depth+latch_gap, 0)
     .lineTo(inner_radius + ring_depth + ring_height + additional_clearance, 0)
     .lineTo(inner_radius + additional_clearance, ring_depth+ring_height)
     .close()
