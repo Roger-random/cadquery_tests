@@ -15,7 +15,7 @@ elephant_foot_compensation = 0.5
 angle = 15
 
 # Calculate spool inner radius from measuring circumference of spool center
-spool_inner_circumference = 281
+spool_inner_circumference = 283
 inner_radius = spool_inner_circumference / (math.pi*2)
 
 # Outer spool diameter is easier to measure directly
@@ -26,7 +26,7 @@ spool_outer_radius = spool_outer_diameter / 2
 beyond_edge = 10
 outer_radius = spool_outer_radius + beyond_edge
 
-height = 54
+height = 55
 
 ring_depth = 6
 ring_height = 4
@@ -47,6 +47,7 @@ latch_width = 1
 latch_angle = 5
 
 handle_sphere_size=15
+handle_width_half = 2
 handle_cut_depth=5
 
 rib_spacing=7.5
@@ -145,7 +146,7 @@ base = base.intersect(cleanup)
 # Add fetures to link segments together
 
 # First add the tab
-tab_position_radius = inner_radius+ring_depth/2
+tab_position_radius = inner_radius+ring_depth/2+ring_tab_radius/2
 tab = (
     cq.Workplane("XY")
     .transformed(rotate=cq.Vector(0,0,angle+ring_tab_distance))
@@ -246,11 +247,28 @@ handle_cutout = (
     .transformed(rotate=cq.Vector(0,angle/2,0))
     .transformed(offset = cq.Vector(outer_radius+handle_sphere_size-handle_cut_depth, height/2, 0))
     .sphere(handle_sphere_size)
-    .workplane(offset=-handle_cut_depth)
-    .transformed(rotate=cq.Vector(0,45,0))
-    .split(keepBottom=True)
     )
+handle_keep = (
+    cq.Workplane("XY")
+    .transformed(rotate=cq.Vector(0,0, angle/2))
+    .lineTo(outer_radius - handle_cut_depth,    handle_width_half, True)
+    .lineTo(outer_radius + handle_sphere_size,  handle_width_half)
+    .lineTo(outer_radius + handle_sphere_size, -handle_width_half)
+    .lineTo(outer_radius - handle_cut_depth,   -handle_width_half)
+    .close()
+    .extrude(height)
+    )
+handle_cutout = handle_cutout - handle_keep
 tray = tray-handle_cutout
+
+handle_add = (
+    cq.Workplane("XZ")
+    .transformed(rotate=cq.Vector(0,angle/2,0))
+    .transformed(offset = cq.Vector(outer_radius-handle_sphere_size+handle_cut_depth, height/2, 0))
+    .circle(handle_sphere_size)
+    .extrude(handle_width_half, both=True)
+    )
+tray = tray+handle_add
 
 # Flat side of tray warps when printing in thin wall vase mode, add small ribs
 rib_span = outer_radius-beyond_edge-inner_radius
