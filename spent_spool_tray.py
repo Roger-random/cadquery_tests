@@ -55,17 +55,6 @@ rib_spacing=7.5
 rib_size_bottom = 3
 rib_size_top = 1
 
-# Visualize the wedge-shaped volume we're working within
-
-wedge = (
-    cq.Workplane("XY")
-    .lineTo(outer_radius,0)
-    .ellipseArc(outer_radius,outer_radius,0,angle,0)
-    .close()
-    .extrude(height)
-    )
-#show_object(wedge, options = {"alpha":0.9, "color":"blue"})
-
 #######################################################################
 #
 # Build a base
