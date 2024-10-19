@@ -71,14 +71,16 @@ wedge = (
 # Build a base
 
 # Start with the ring root
-base = (
-    cq.Workplane("XZ")
-    .lineTo(0,ring_height)
-    .lineTo(inner_radius + ring_depth, ring_height)
-    .lineTo(inner_radius + ring_depth + ring_height, 0)
-    .close()
-    .revolve(angle, (0,0,0), (0,1,0))
-    )
+def ring_root_profile():
+    return (
+        cq.Workplane("XZ")
+        .lineTo(0,ring_height)
+        .lineTo(inner_radius + ring_depth, ring_height)
+        .lineTo(inner_radius + ring_depth + ring_height, 0)
+        .close()
+        )
+
+base = ring_root_profile().revolve(angle, (0,0,0), (0,1,0))
 
 # Add rails left and right to guide the tray
 for rail_index in (0,1):
@@ -199,6 +201,14 @@ base = base - ring_chamfer_cut
 base = base.faces("<Y").workplane(offset=-additional_clearance).split(keepBottom=True)
 
 show_object(base, options = {"alpha":0.5, "color":"green"})
+
+# Variation: just the center ring (with tab and slot) which can't hold a tray
+# Serves as placeholder for sections yet to be needed/printed.
+ring_root_keep = ring_root_profile().revolve(360, (0,0,0), (0,1,0))
+placeholder = base.intersect(ring_root_keep)
+placeholder = placeholder.translate((0,0,-ring_height*2))
+
+show_object(placeholder, options = {"alpha":0.5, "color":"aquamarine"})
 
 # Build a tray
 tray = (
