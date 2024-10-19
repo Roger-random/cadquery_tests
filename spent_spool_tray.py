@@ -27,8 +27,8 @@ spool_outer_radius = spool_outer_diameter / 2
 beyond_edge = 10
 outer_radius = spool_outer_radius + beyond_edge
 
-#height = 55 # MH Build
-height = 68 # Filament PM
+#spool_height = 55 # MH Build
+spool_height = 70 # Filament PM
 
 ring_depth = 6
 ring_height = 4
@@ -37,13 +37,15 @@ ring_tab_radius = ring_depth/4 # half of ring depth, and this is radius, so divi
 ring_tab_distance = 3 # Degrees
 ring_tab_arm_half = ring_tab_radius/2
 
+height = spool_height - ring_height
+
 # Tray dimensions
 tray_edge_fillet = 2
 tray_top_chamfer = ring_chamfer
 
-latch_depth = 3
-latch_gap = latch_depth-2
-latch_height = 1
+latch_depth = 5
+latch_radius = 1
+latch_gap = latch_radius+1
 
 handle_sphere_size=15
 handle_width_half = 2
@@ -98,7 +100,7 @@ for rail_index in (0,1):
 # Add a short fence to keep tray from falling out too easily
 latch = (
     cq.Workplane("XZ")
-    .lineTo(outer_radius-latch_depth+latch_gap*2,0,True)
+    .lineTo(outer_radius-latch_depth+latch_radius+latch_gap,0,True)
     .lineTo(outer_radius-latch_depth+latch_gap,ring_height)
     .lineTo(outer_radius                      ,ring_height)
     .lineTo(outer_radius                      ,0)
@@ -106,18 +108,6 @@ latch = (
     .revolve(angle, (0,0,0), (0,1,0))
     )
 base = base + latch
-
-# Taper towards the outer edge
-base_wedge = (
-    cq.Workplane("XZ")
-    .lineTo(inner_radius             , ring_height, True)
-    .lineTo(inner_radius + ring_depth, ring_height)
-    .lineTo(outer_radius             , latch_height)
-    .lineTo(outer_radius             , ring_height)
-    .close()
-    .revolve(angle, (0,0,0), (0,1,0))
-    )
-base = base - base_wedge
 
 # Clean up the extraneous guilde rail segments
 cleanup = (
@@ -200,7 +190,7 @@ tray = (
     .lineTo(outer_radius,height-beyond_edge)
     .lineTo(outer_radius,ring_height + latch_depth)
     .lineTo(outer_radius-latch_depth, ring_height)
-    .lineTo(outer_radius-latch_depth+latch_gap, 0)
+    .lineTo(outer_radius-latch_depth+latch_radius-additional_clearance, 0)
     .lineTo(inner_radius + ring_depth + ring_height + additional_clearance, 0)
     .lineTo(inner_radius + additional_clearance, ring_depth+ring_height)
     .close()
