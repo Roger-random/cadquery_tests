@@ -44,8 +44,8 @@ tray_edge_fillet = 2
 tray_top_chamfer = ring_chamfer
 
 latch_depth = 5
-latch_radius = 1
-latch_gap = latch_radius+1
+latch_protrude = 0.5
+latch_gap = latch_protrude+1
 
 handle_sphere_size=15
 handle_width_half = 2
@@ -97,18 +97,6 @@ for rail_index in (0,1):
         )
     base = base + rail
 
-# Add a short fence to keep tray from falling out too easily
-latch = (
-    cq.Workplane("XZ")
-    .lineTo(outer_radius-latch_depth+latch_radius+latch_gap,0,True)
-    .lineTo(outer_radius-latch_depth+latch_gap,ring_height)
-    .lineTo(outer_radius                      ,ring_height)
-    .lineTo(outer_radius                      ,0)
-    .close()
-    .revolve(angle, (0,0,0), (0,1,0))
-    )
-base = base + latch
-
 # Clean up the extraneous guilde rail segments
 cleanup = (
     cq.Workplane("XY")
@@ -116,8 +104,39 @@ cleanup = (
     .circle(inner_radius+additional_clearance)
     .extrude(height*2,both=True)
     )
-
 base = base.intersect(cleanup)
+
+# Add a short fence to keep tray from falling out too easily
+latch = (
+    cq.Workplane("XZ")
+    .lineTo(outer_radius-latch_depth+latch_protrude+latch_gap,0,True)
+    .lineTo(outer_radius-latch_depth+latch_gap,ring_height)
+    .lineTo(outer_radius                      ,ring_height)
+    .lineTo(outer_radius                      ,0)
+    .close()
+    .revolve(angle, (0,0,0), (0,1,0))
+    )
+
+# Tab for holding the latch down during tray removal
+latch_tab_ball = (
+    cq.Workplane("XZ")
+    .transformed(rotate=cq.Vector(0,angle/2,0))
+    .transformed(offset = cq.Vector(outer_radius-handle_sphere_size+handle_cut_depth, ring_height/2, 0))
+    .sphere(handle_sphere_size)
+    )
+latch_tab_keep = (
+    cq.Workplane("XZ")
+    .lineTo(outer_radius,0,True)
+    .lineTo(outer_radius,ring_height)
+    .lineTo(outer_radius + handle_sphere_size,ring_height)
+    .lineTo(outer_radius + handle_sphere_size,0)
+    .close()
+    .revolve(angle, (0,0,0), (0,1,0))
+    )
+latch = latch + latch_tab_ball.intersect(latch_tab_keep)
+
+base = base + latch
+
 
 # Add fetures to link segments together
 
@@ -190,7 +209,7 @@ tray = (
     .lineTo(outer_radius,height-beyond_edge)
     .lineTo(outer_radius,ring_height + latch_depth)
     .lineTo(outer_radius-latch_depth, ring_height)
-    .lineTo(outer_radius-latch_depth+latch_radius-additional_clearance, 0)
+    .lineTo(outer_radius-latch_depth+latch_protrude-additional_clearance, 0)
     .lineTo(inner_radius + ring_depth + ring_height + additional_clearance, 0)
     .lineTo(inner_radius + additional_clearance, ring_depth+ring_height)
     .close()
