@@ -77,6 +77,17 @@ spool_outer_radius = spool_outer_diameter / 2
 
 #######################################################################
 #
+#  Additional space between mating surfaces due to 3D printing inaccuracy.
+#  May require adjustment to fit specific combinations of printer,
+#  filment, print profile, etc.
+#
+#  If base segments don't fit into each other, increase this value.
+#  If they fit too loosely, decrease this value.
+#
+additional_clearance = 0.25
+
+#######################################################################
+#
 #  Dimensions of storage system components
 #
 
@@ -99,15 +110,10 @@ tray_top_chamfer = ring_chamfer
 
 latch_depth = 5
 latch_protrude = 0.5
-latch_gap = latch_protrude+1
+latch_gap = latch_protrude+additional_clearance
 
 handle_sphere_size=15
 handle_cut_depth=5
-
-#######################################################################
-#
-#  Additional space between mating surfaces due to 3D printing inaccuracy
-additional_clearance = 0.25
 
 #######################################################################
 #
