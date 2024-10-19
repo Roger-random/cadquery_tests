@@ -76,7 +76,8 @@ def ring_root_profile():
         cq.Workplane("XZ")
         .lineTo(0,ring_height)
         .lineTo(inner_radius + ring_depth, ring_height)
-        .lineTo(inner_radius + ring_depth + ring_height, 0)
+        .lineTo(inner_radius + ring_depth + ring_height/2, ring_height/2)
+        .lineTo(inner_radius + ring_depth + ring_height/2, 0)
         .close()
         )
 
