@@ -168,3 +168,38 @@ hsf_mount_holes = (
 adapter = adapter - hsf_mount_holes
 
 show_object(adapter, options = {"alpha":0.5, "color":"green"})
+
+# Representation of bent acrylic stand
+stand_height = 60
+stand = (
+    cq.Workplane("XY")
+    .transformed(offset=cq.Vector(0,0, hsf_mount_thickness/2))
+    .rect(overall_width, overall_width)
+    .extrude(-stand_height)
+     .edges("|Z")
+    .fillet(hsf_plate_tabs_fillet)
+    .faces("|Z")
+    .shell(-1.6) # Approx. 1/16" thick acrylic
+    )
+
+# Cut slots for aluminum piece to sit in
+hsf_openings = (
+    cq.Workplane("XY")
+    .rect(overall_width-hsf_mount_width,
+          overall_width-hsf_mount_width,
+          forConstruction = True)
+    .vertices()
+    .box(hsf_mount_width + 0.25,
+         hsf_mount_width + 0.25,
+         hsf_mount_thickness)
+    )
+stand = stand - hsf_openings
+
+stand_rear_opening = (
+    cq.Workplane("XZ")
+    .rect(overall_width/2, overall_width*2)
+    .extrude(-overall_width)
+    )
+stand = stand - stand_rear_opening
+
+show_object(stand, options = {"alpha":0.5, "color":"blue"})
