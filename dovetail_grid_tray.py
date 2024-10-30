@@ -13,8 +13,8 @@ tray_gap = 0.1 #mm
 cell_width = cell_grid_width * grid_unit_width
 cell_depth = cell_grid_depth * grid_unit_depth
 
-edge_chamfer = 1
-corner_fillet = 2
+edge_chamfer = 1.5
+corner_fillet = 1
 
 label_depth = 10 / math.sqrt(2)
 
@@ -72,7 +72,7 @@ def build_tray():
         .edges("|Y").chamfer(edge_chamfer+grid_unit_width/2)
         )
     tray = tray.intersect(intersect_volume)
-    tray = tray.edges("not (|X or |Y)").fillet(corner_fillet)
+    tray = tray.edges("not (>Z or <Z)").fillet(corner_fillet)
 
     dovetail_offset_y = grid_unit_width * 0.25 * 0.2
     dovetail_offset_x = grid_unit_depth * 0.25 * 0.2
@@ -110,6 +110,15 @@ def build_tray():
             .lineTo( label_depth, cell_height)
             .close()
             .extrude(cell_width, both=True))
+        label_edge_hack = (
+            cq.Workplane("XZ")
+            .lineTo(cell_width-edge_chamfer, cell_height, forConstruction=True)
+            .lineTo(cell_width, cell_height)
+            .lineTo(cell_width, cell_height-label_depth)
+            .lineTo(cell_width-edge_chamfer,cell_height-label_depth+grid_unit_width * 0.25 * 0.25)
+            .close()
+            .extrude(-label_depth))
+        tray = tray - label_edge_hack
 
     return tray
 
@@ -121,7 +130,7 @@ volume = (
     .close()
     .extrude(cell_height)
     )
-show_object(volume, options = {"alpha":0.9, "color":"green"})
+#show_object(volume, options = {"alpha":0.9, "color":"green"})
 
 show_object(build_tray(),
     options = {"alpha":0.5, "color":"blue"})
