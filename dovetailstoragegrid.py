@@ -24,7 +24,9 @@ class DovetailStorageGrid:
                  tray_gap = 0.1,
                  corner_fillet = 2,
                  chamfer_top = 1, chamfer_bottom=1.5,
-                 dovetail_protrusion = 2, dovetail_length_fraction = 0.5):
+                 dovetail_protrusion = 2,
+                 dovetail_length_fraction = 0.5,
+                 dovetail_gap = 0.1):
         if tray_gap < 0:
             raise ValueError("Trays with negative gaps will not fit together.")
 
@@ -37,6 +39,7 @@ class DovetailStorageGrid:
         self.chamfer_bottom = chamfer_bottom
         self.dovetail_protrusion = dovetail_protrusion
         self.dovetail_length_fraction = dovetail_length_fraction
+        self.dovetail_gap = dovetail_gap
 
     # Returns the nominal volume for size specified in number of grid cells.
     # Actual tray will extend beyond this volume for dovetail
@@ -88,7 +91,7 @@ class DovetailStorageGrid:
             cq.Workplane("XY").sketch()
             .trapezoid(
                 w = width,
-                h = self.dovetail_protrusion+self.tray_gap,
+                h = self.dovetail_protrusion+self.tray_gap+self.dovetail_gap*2,
                 a1 = 45)
             .finalize()
             .extrude(self.grid_z)
@@ -120,14 +123,14 @@ class DovetailStorageGrid:
         dovetail_y = self.dovetail_y()
         for x_index in range(x):
             x_position = self.grid_x/2 + x_index*self.grid_x
-            tray = tray + dovetail_y.translate((x_position, 0, 0))
-            tray = tray - dovetail_y.translate((x_position, tray_y, 0))
+            tray = tray + self.grow_xy_by(dovetail_y,-self.dovetail_gap).translate((x_position, 0,      0))
+            tray = tray - self.grow_xy_by(dovetail_y, self.dovetail_gap).translate((x_position, tray_y, 0))
 
         dovetail_x = self.dovetail_x()
         for y_index in range(y):
             y_position = self.grid_y/2 + y_index*self.grid_y
-            tray = tray + dovetail_x.translate((0, y_position,0))
-            tray = tray - dovetail_x.translate((tray_x, y_position,0))
+            tray = tray + self.grow_xy_by(dovetail_x,-self.dovetail_gap).translate((0,      y_position, 0))
+            tray = tray - self.grow_xy_by(dovetail_x, self.dovetail_gap).translate((tray_x, y_position, 0))
 
         tray = tray.intersect(self.bounding_volume(x,y))
 
@@ -138,7 +141,11 @@ class DovetailStorageGrid:
     # label and acting as a handle.
     def label_tray(self, x=1, y=1, label_limit=10):
         nozzle_diameter = 0.4
-        label_available_y = (self.grid_y * (1-self.dovetail_length_fraction))/2 - nozzle_diameter*2
+        label_available_y = (
+            (self.grid_y * (1-self.dovetail_length_fraction))/2
+            - self.dovetail_gap
+            - nozzle_diameter*2
+        )
         label_size = min(label_available_y, label_limit/math.sqrt(2))
 
         tray = self.tray(x,1)
