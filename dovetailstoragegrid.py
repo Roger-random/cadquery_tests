@@ -26,7 +26,7 @@ class DovetailStorageGrid:
                  chamfer_top = 1, chamfer_bottom=1.5,
                  dovetail_protrusion = 2,
                  dovetail_length_fraction = 0.5,
-                 dovetail_gap = 0.1):
+                 dovetail_gap = 0.05):
         if tray_gap < 0:
             raise ValueError("Trays with negative gaps will not fit together.")
 
@@ -148,7 +148,7 @@ class DovetailStorageGrid:
         )
         label_size = min(label_available_y, label_limit/math.sqrt(2))
 
-        tray = self.tray(x,1)
+        tray = self.tray(x,y)
 
         if label_size > 0:
             tray = tray - (
