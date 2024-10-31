@@ -15,7 +15,7 @@ Z-axis: -Z is the bottom, +Z is the top of an individual tray.
 Optional ledge for labeling is tilted towards -Y and +Z because user is
 expected to view the array from above and in front.
 """
-
+import math
 import cadquery as cq
 
 class DovetailStorageGrid:
@@ -23,7 +23,6 @@ class DovetailStorageGrid:
     def __init__(self, x, y, z,
                  tray_gap = 0.1,
                  corner_fillet = 2,
-                 label_ledge = 10,
                  chamfer_top = 1, chamfer_bottom=1.5,
                  dovetail_protrusion = 2, dovetail_length_fraction = 0.5):
         if tray_gap < 0:
@@ -34,7 +33,6 @@ class DovetailStorageGrid:
         self.grid_z = z
         self.tray_gap = tray_gap
         self.corner_fillet = corner_fillet
-        self.label_ledge = label_ledge
         self.chamfer_top = chamfer_top
         self.chamfer_bottom = chamfer_bottom
         self.dovetail_protrusion = dovetail_protrusion
@@ -94,7 +92,8 @@ class DovetailStorageGrid:
                 a1 = 45)
             .finalize()
             .extrude(self.grid_z)
-            .translate((0, -(self.dovetail_protrusion-self.tray_gap)/2,0)))
+            .translate((0, -(self.dovetail_protrusion-self.tray_gap)/2,0))
+            )
 
     # Create a trapezoidal volume for use as interlink dovetails on front
     # and back (+Y and -Y) faces
@@ -131,5 +130,27 @@ class DovetailStorageGrid:
             tray = tray - dovetail_x.translate((tray_x, y_position,0))
 
         tray = tray.intersect(self.bounding_volume(x,y))
+
+        return tray
+
+    # Create a tray with given size specified in number of grid cells
+    # Plus if there is room, cut a small area in the front suitable for a
+    # label and acting as a handle.
+    def label_tray(self, x=1, y=1, label_limit=10):
+        nozzle_diameter = 0.4
+        label_available_y = (self.grid_y * (1-self.dovetail_length_fraction))/2 - nozzle_diameter*2
+        label_size = min(label_available_y, label_limit/math.sqrt(2))
+
+        tray = self.tray(x,1)
+
+        if label_size > 0:
+            tray = tray - (
+                cq.Workplane("YZ")
+                .lineTo(  label_size,               self.grid_z, forConstruction = True)
+                .lineTo( -self.dovetail_protrusion, self.grid_z)
+                .lineTo( -self.dovetail_protrusion, self.grid_z - self.dovetail_protrusion - label_size)
+                .close()
+                .extrude(x*self.grid_x)
+            )
 
         return tray
