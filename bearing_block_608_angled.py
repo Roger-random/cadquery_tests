@@ -1,10 +1,10 @@
 """
-Generate a series of blocks for generic 608 bearings, combing
+Generate a series of blocks for generic 608 bearings, combining
 them together into a single test piece.
 
 Originally created to see if support material generation is
 good enough to allow bearings to be used at arbitrary angles
-in a 3D printed device.
+in a 3D printed project.
 """
 import cadquery as cq
 
