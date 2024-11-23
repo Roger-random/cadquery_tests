@@ -11,7 +11,7 @@ import cadquery as cq
 def bearing_block():
     return (
         cq.Workplane("XY")
-        .polygon(8, 30, circumscribed=True)
+        .polygon(4, 30, circumscribed=True)
         .circle(5)
         .extrude(20)
         .faces(">Z").workplane()
