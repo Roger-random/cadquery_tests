@@ -2,10 +2,10 @@ import cadquery as cq
 
 mm_per_inch = 25.4
 
-wrench_size = (1/2) * mm_per_inch * 1.05
+wrench_size = (1/2) * mm_per_inch * 1.1
 
-arm_width = 20
-arm_length = 18
+arm_width = 30
+arm_length = 20
 thickness = 12
 
 arm_move = arm_length/2
