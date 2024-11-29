@@ -33,3 +33,31 @@ for block in range(1,7):
         )
 
 show_object(big_block)
+
+def bearing_press_tool():
+    block = (
+        cq.Workplane("XZ")
+        .lineTo( -1,  0)
+        .lineTo( -2,  5)
+        .lineTo(-10,  5)
+        .lineTo(-10,-15)
+        .lineTo( 40,-15)
+        .lineTo( 40,  5)
+        .lineTo( 32,  5)
+        .lineTo( 31,  0)
+        .close()
+        .extrude(-28)
+        )
+    block = block.edges("|Y").fillet(2)
+    cutout = (
+        cq.Workplane("XY")
+        .polygon(8, 30, circumscribed=True)
+        .extrude(-8)
+        .translate((15,14,0))
+        )
+    block = block-cutout
+    return block.translate((0,1,0))
+
+#reorient_for_printing = bearing_press_tool().rotate((0,0,0),(1,0,0),90)
+
+show_object(bearing_press_tool())
