@@ -32,6 +32,20 @@ for block in range(1,7):
         .rotate((0,0,0),(0,1,0),block*-15)
         )
 
+adhesion_aid = (
+        cq.Workplane("XY")
+        .lineTo(-20,180)
+        .lineTo(-20,210)
+        .lineTo(-10,220)
+        .lineTo(  0,210)
+        .lineTo( 30, 30)
+        .lineTo(  0, 30)
+        .close()
+        .extrude(0.30)
+    )
+
+big_block = big_block + adhesion_aid
+
 show_object(big_block)
 
 def bearing_press_tool():
@@ -60,4 +74,4 @@ def bearing_press_tool():
 
 #reorient_for_printing = bearing_press_tool().rotate((0,0,0),(1,0,0),90)
 
-show_object(bearing_press_tool())
+#show_object(bearing_press_tool())
