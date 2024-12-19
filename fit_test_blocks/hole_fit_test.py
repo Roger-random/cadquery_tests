@@ -29,12 +29,12 @@ Designed for testing dimensional accuracy of specific 3D printers.
 import cadquery as cq
 
 starting_diameter = 3
-diameter_increment = 0.01
+diameter_increment = 0.02
 
 cell_size_x = 20
 cell_size_y = 20
 
-cell_count_x = 4
+cell_count_x = 5
 cell_count_y = 4
 
 cell_thickness = 10
@@ -58,7 +58,7 @@ text = (
     .transformed(
         offset = cq.Vector(0,0,block_size_y/2)
         )
-    .text("3+ mm", fontsize=8,distance=0.1, combine=False)
+    .text("3+ mm", fontsize=8,distance=0.2, combine=False)
     )
 
 for cell_y in range(cell_count_y):
@@ -77,7 +77,7 @@ for cell_y in range(cell_count_y):
                     center_y-(cell_size_y/3), block_size_z/2)
                 )
             .text("{:.2f}".format(hole_diameter), 
-                  fontsize=4, kind="bold", distance=0.2, combine=False)
+                  fontsize=5, kind="bold", distance=0.2, combine=False)
         )
         hole_diameter = hole_diameter + diameter_increment
 

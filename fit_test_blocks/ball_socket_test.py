@@ -30,20 +30,22 @@ Designed for testing dimensional accuracy of specific 3D printers.
 import cadquery as cq
 
 ball_radius = 5
-fastener_diameter = 3.13
+fastener_diameter = 3.2
 
 starting_gap = 0
-gap_increment = 0.01
+gap_increment = 0.005
 
 cell_size_x = 25
 cell_size_y = 25
 
-cell_count_x = 4
+cell_count_x = 5
 cell_count_y = 4
 
 cell_thickness = 4
 block_edge_bevel = 0.5
 block_corner_fillet = 5
+
+print_text_labels = True
 
 block_size_x = cell_size_x * cell_count_x
 block_size_y = cell_size_y * cell_count_y
@@ -55,7 +57,8 @@ block = (
     )
 block = block.edges("|Z").fillet(block_corner_fillet)
 
-texts = list()
+if print_text_labels:
+    texts = list()
 
 ball = (
     cq.Workplane("XY")
@@ -64,9 +67,12 @@ ball = (
 ball_slice = (
     cq.Workplane("XY")
     .box(cell_size_x, cell_size_y, cell_thickness)
+    .faces(">Z")
+    .workplane()
+    .hole(fastener_diameter)
+    .faces().chamfer(block_edge_bevel)
     )
 ball = ball.intersect(ball_slice)
-ball = ball.faces(">Z").hole(fastener_diameter)
 #show_object(ball)
 
 ball_list = list()
@@ -84,16 +90,17 @@ for cell_y in range(cell_count_y):
             .transformed(offset = cq.Vector(center_x, center_y))
             .sphere(ball_radius + current_gap)
             )
-        texts.append(
-            cq.Workplane("XY")
-            .transformed(
-                offset = cq.Vector(
-                    center_x,
-                    center_y-(cell_size_y/3), block_size_z/2)
-                )
-            .text("{:.2f}".format(current_gap),
-                  fontsize=4, kind="bold", distance=0.2, combine=False)
-        )
+        if print_text_labels:
+            texts.append(
+                cq.Workplane("XY")
+                .transformed(
+                    offset = cq.Vector(
+                        center_x,
+                        center_y-(cell_size_y/3), block_size_z/2)
+                    )
+                .text("{:.3f}".format(current_gap),
+                      fontsize=4, kind="bold", distance=0.2, combine=False)
+            )
 
         current_gap = current_gap + gap_increment
 
@@ -110,8 +117,8 @@ show_object(ball_array, options = {"alpha":0.5, "color":"green"})
 
 assembly = block
 
-
-for text in texts:
-    assembly = assembly + text
+if print_text_labels:
+    for text in texts:
+        assembly = assembly + text
 
 show_object(assembly, options = {"alpha":0.5, "color":"red"})
