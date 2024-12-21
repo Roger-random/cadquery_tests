@@ -28,7 +28,7 @@ Designed for testing dimensional accuracy of specific 3D printers.
 """
 import cadquery as cq
 
-starting_diameter = 3
+starting_diameter = 3.2
 diameter_increment = 0.02
 
 cell_size_x = 20
@@ -58,7 +58,7 @@ text = (
     .transformed(
         offset = cq.Vector(0,0,block_size_y/2)
         )
-    .text("3+ mm", fontsize=8,distance=0.2, combine=False)
+    .text("{:.2f} step {:.2f} mm".format(starting_diameter, diameter_increment), fontsize=8,distance=0.2, combine=False)
     )
 
 for cell_y in range(cell_count_y):
