@@ -28,8 +28,8 @@ Designed for testing dimensional accuracy of specific 3D printers.
 """
 import cadquery as cq
 
-starting_diameter = 3.2
-diameter_increment = 0.02
+starting_diameter = 3.0
+diameter_increment = 0.05
 
 cell_size_x = 20
 cell_size_y = 20
