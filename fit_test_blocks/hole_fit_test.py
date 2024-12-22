@@ -31,15 +31,15 @@ import cadquery as cq
 starting_diameter = 3.0
 diameter_increment = 0.05
 
-cell_size_x = 20
-cell_size_y = 20
+cell_size_x = 13
+cell_size_y = 13
 
 cell_count_x = 5
 cell_count_y = 4
 
 cell_thickness = 10
 block_edge_bevel = 0.5
-block_corner_fillet = 5
+block_corner_fillet = 3
 
 block_size_x = cell_size_x * cell_count_x
 block_size_y = cell_size_y * cell_count_y
@@ -58,7 +58,7 @@ text = (
     .transformed(
         offset = cq.Vector(0,0,block_size_y/2)
         )
-    .text("{:.2f} step {:.2f} mm".format(starting_diameter, diameter_increment), fontsize=8,distance=0.2, combine=False)
+    .text("{:.2f} step {:.2f}".format(starting_diameter, diameter_increment), fontsize=8,distance=0.2, combine=False)
     )
 
 for cell_y in range(cell_count_y):
@@ -66,7 +66,7 @@ for cell_y in range(cell_count_y):
         center_x = cell_size_x/2 - block_size_x/2 + cell_x * cell_size_x
         center_y = cell_size_y/2 - block_size_y/2 + cell_y * cell_size_y
         block = (
-            block.faces(">Z").workplane(origin = (center_x, center_y))
+            block.faces(">Z").workplane(origin = (center_x, center_y+hole_diameter*(2/3)))
             .hole(hole_diameter)
         )
         text = text + (
@@ -74,10 +74,12 @@ for cell_y in range(cell_count_y):
             .transformed(
                 offset = cq.Vector(
                     center_x,
-                    center_y-(cell_size_y/3), block_size_z/2)
+                    center_y-(cell_size_y/2)+(block_edge_bevel*2),
+                    block_size_z/2)
                 )
             .text("{:.2f}".format(hole_diameter), 
-                  fontsize=5, kind="bold", distance=0.2, combine=False)
+                  fontsize=5, kind="bold",
+                  valign="bottom", distance=0.2, combine=False)
         )
         hole_diameter = hole_diameter + diameter_increment
 
