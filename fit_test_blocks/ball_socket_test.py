@@ -29,21 +29,21 @@ Designed for testing dimensional accuracy of specific 3D printers.
 """
 import cadquery as cq
 
-ball_radius = 5
-fastener_diameter = 3.2
+ball_radius = 4
+fastener_diameter = 3.5
 
 starting_gap = 0
-gap_increment = 0.005
+gap_increment = 0.01
 
-cell_size_x = 25
-cell_size_y = 25
+cell_size_x = 15
+cell_size_y = 15
 
 cell_count_x = 5
 cell_count_y = 4
 
 cell_thickness = 4
 block_edge_bevel = 0.5
-block_corner_fillet = 5
+block_corner_fillet = 3
 
 print_text_labels = True
 
@@ -83,11 +83,11 @@ for cell_y in range(cell_count_y):
         center_x = cell_size_x/2 - block_size_x/2 + cell_x * cell_size_x
         center_y = cell_size_y/2 - block_size_y/2 + cell_y * cell_size_y
         ball_list.append(
-            ball.translate((center_x, center_y,0))
+            ball.translate((center_x, center_y+ball_radius/2,0))
             )
         block = block - (
             cq.Workplane("XY")
-            .transformed(offset = cq.Vector(center_x, center_y))
+            .transformed(offset = cq.Vector(center_x, center_y+ball_radius/2))
             .sphere(ball_radius + current_gap)
             )
         if print_text_labels:
@@ -96,10 +96,12 @@ for cell_y in range(cell_count_y):
                 .transformed(
                     offset = cq.Vector(
                         center_x,
-                        center_y-(cell_size_y/3), block_size_z/2)
+                        center_y-(cell_size_y/2)+block_edge_bevel*2,
+                        block_size_z/2)
                     )
-                .text("{:.3f}".format(current_gap),
-                      fontsize=4, kind="bold", distance=0.2, combine=False)
+                .text("{:.2f}".format(current_gap),
+                      fontsize=4, kind="bold",
+                      valign="bottom", distance=0.2, combine=False)
             )
 
         current_gap = current_gap + gap_increment
