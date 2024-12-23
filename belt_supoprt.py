@@ -30,22 +30,24 @@ import math
 import cadquery as cq
 
 width = 40
-height_diag = 40
+height_diag = 42
 
 height = height_diag/math.sqrt(2)
 brim_height = 0.4
 brim_width = 2
-bridged_thickness = 1.6*math.sqrt(2)
+bridged_thickness = 1.2
+bridged_thickness_diag = bridged_thickness*math.sqrt(2)
 side_thickness = 1.6
-support_air_gap = 0.3
+support_air_gap = 0.6
 support_air_gap_diag = support_air_gap * math.sqrt(2)
 
 support = (
     cq.Workplane("YZ")
-    .lineTo(height/2+brim_width, 0)
-    .lineTo(height/2+brim_width, brim_height)
-    .lineTo(height/2           , brim_height)
-    .lineTo(height             , height)
+    .lineTo(height + brim_width, 0)
+    .lineTo(height + brim_width, brim_height)
+    .lineTo(height             , brim_height)
+    .lineTo(height             , height-bridged_thickness_diag)
+    .lineTo(height - bridged_thickness, height-bridged_thickness)
     .lineTo(brim_height        , brim_height)
     .lineTo(-support_air_gap_diag , brim_height)
     .lineTo(-support_air_gap_diag , 0)
@@ -55,8 +57,8 @@ support = (
 
 support_hollow = (
     cq.Workplane("YZ")
-    .lineTo(bridged_thickness+brim_height, brim_height, forConstruction = True)
-    .lineTo(height, height-bridged_thickness)
+    .lineTo(bridged_thickness_diag+brim_height, brim_height, forConstruction = True)
+    .lineTo(height, height-bridged_thickness_diag)
     .lineTo(height, brim_height)
     .close()
     .extrude((width/2)-side_thickness, both=True)
