@@ -124,3 +124,55 @@ if print_text_labels:
         assembly = assembly + text
 
 show_object(assembly, options = {"alpha":0.5, "color":"red"})
+
+"""
+# Optional: support wedge for 3DPrintMill 45-degree printing
+import math
+support_margin = 2
+support_height = block_size_y / math.sqrt(2)
+support_width  = block_size_x + support_margin
+support_thickness = 0.4 * 4
+support_thickness_diag = support_thickness / math.sqrt(2)
+bridged_layers = 6 * 0.2
+support_air_gap = 0.2
+brim_height = 0.4
+
+assembly = assembly+ball_array
+assembly = assembly.translate((
+    0,
+    block_size_y/2-block_edge_bevel-support_air_gap,
+    block_size_z/2 + support_air_gap))
+assembly = assembly.rotate(
+    (0,0,0),
+    (1,0,0),
+    45
+    )
+
+wedge = (
+    cq.Workplane("YZ")
+    .lineTo(-support_air_gap*math.sqrt(2),0)
+    .lineTo(-support_air_gap*math.sqrt(2),brim_height)
+    .lineTo(brim_height,brim_height)
+    .lineTo(support_height, support_height)
+    .lineTo(support_height, support_height-bridged_layers)
+    .lineTo(support_thickness_diag+bridged_layers, support_thickness_diag)
+    .lineTo(support_height, support_thickness_diag)
+    .lineTo(support_height, 0)
+    .close()
+    .extrude(support_width/2,both=True)
+    )
+
+wedge_wall = (
+    cq.Workplane("YZ")
+    .lineTo(support_height, support_height)
+    .lineTo(support_height, 0)
+    .close()
+    .extrude(support_thickness/2,both=True)
+    )
+
+wedge = wedge + wedge_wall
+wedge = wedge + wedge_wall.translate((support_width/2-support_thickness/2,0,0))
+wedge = wedge + wedge_wall.translate((-support_width/2+support_thickness/2,0,0))
+
+show_object(assembly+wedge)
+"""
