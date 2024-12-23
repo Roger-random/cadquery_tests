@@ -33,11 +33,11 @@ width = 40
 height_diag = 40
 
 height = height_diag/math.sqrt(2)
-brim_height = 0.2
+brim_height = 0.4
 brim_width = 2
 bridged_thickness = 1.6*math.sqrt(2)
 side_thickness = 1.6
-support_air_gap = 0.4
+support_air_gap = 0.3
 support_air_gap_diag = support_air_gap * math.sqrt(2)
 
 support = (
@@ -74,17 +74,41 @@ object_z = 5
 object_fillet = 3
 object_chamfer = 1
 
+test_gap = 0.25
+
 test_object = (
     cq.Workplane("XY")
     .box(object_x, object_y, object_z)
-    .faces(">Z").workplane()
-    .hole(object_x/2)
     .edges("|Z").fillet(object_fillet)
-    .faces().chamfer(object_chamfer)
     )
+
+sphere_cutout = (
+    cq.Workplane("XY")
+    .sphere(test_gap + object_x/3)
+    )
+
+test_object = test_object - sphere_cutout
+
+ball = (
+    cq.Workplane("XY")
+    .sphere(object_x/3)
+    )
+ball_intersect = (
+    cq.Workplane("XY")
+    .box(object_x,object_y,object_z)
+    .faces(">Z").workplane()
+    .hole(8.25)
+    )
+
+ball = ball.intersect(ball_intersect)
+
+test_object = test_object.faces().chamfer(object_chamfer)
+
+test_object = test_object+ball
+
 test_object = test_object.translate((0,object_y/2-object_chamfer-support_air_gap,object_z/2+support_air_gap))
 test_object = test_object.rotate((0,0,0),(1,0,0),45)
-show_object(test_object)
+#show_object(test_object)
 
 assembly = support + test_object
 
