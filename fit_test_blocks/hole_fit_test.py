@@ -90,3 +90,30 @@ block = block.faces().chamfer(block_edge_bevel)
 
 assembly = block + text
 show_object(assembly)
+
+"""
+# Tilted print on 3DPrintMill
+raft_air_gap = 0.3
+brim_height = 0.5
+assembly = assembly.translate((
+    0,
+    block_size_y/2 - block_edge_bevel - raft_air_gap,
+    block_size_z/2 + raft_air_gap)).rotate(
+        (0,0,0),
+        (1,0,0),
+        45
+    )
+
+import math
+support = (
+    cq.Workplane("YZ")
+    .lineTo(-raft_air_gap*math.sqrt(2), 0)
+    .lineTo(-raft_air_gap*math.sqrt(2), brim_height)
+    .lineTo(brim_height, brim_height)
+    .lineTo(40,40)
+    .lineTo(40,0)
+    .close()
+    .extrude(35, both=True)
+    )
+show_object(assembly+support)
+"""
