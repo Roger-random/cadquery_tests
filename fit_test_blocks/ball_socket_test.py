@@ -32,7 +32,7 @@ import cadquery as cq
 ball_radius = 4
 fastener_diameter = 3.5
 
-starting_gap = 0
+starting_gap = 0.01
 gap_increment = 0.01
 
 cell_size_x = 15
