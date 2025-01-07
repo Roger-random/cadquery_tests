@@ -76,3 +76,45 @@ spinner_cut = (
 spinner_clip = spinner_clip-spinner_cut
 
 show_object(spinner_clip)
+
+prop_base_diameter = 15
+prop_base_height = 2
+prop_neck_diameter = 12
+prop_neck_height = 5
+prop_base_neck_transition = 1.5* (prop_base_diameter - prop_neck_diameter)
+prop_base_center_offset = 20
+prop_tip_offset = 10
+
+propeller_blade_base = (
+    cq.Workplane("XY")
+    .circle(prop_base_diameter/2)
+    .extrude(prop_base_height)
+    .faces(">Z").workplane()
+    .circle(prop_base_diameter/2)
+    .workplane(offset=prop_base_neck_transition)
+    .circle(prop_neck_diameter/2)
+    .loft()
+    .circle(prop_neck_diameter/2)
+    .workplane(offset=prop_base_neck_transition)
+    .circle(prop_base_diameter/2)
+    .loft()
+    )
+
+propeller_blade = (
+    propeller_blade_base.faces(">Z").workplane()
+    .circle(prop_base_diameter/2)
+    .workplane(offset=(prop_base_diameter-5)/2)
+    .circle(5)
+    .loft()
+    .faces(">Z").workplane()
+    .circle(5)
+    .workplane(offset=75)
+    .ellipse(2, 10, 25)
+    .workplane(offset=150)
+    .ellipse(2, 10, 15)
+    .loft()
+    )
+
+
+
+show_object(propeller_blade)
