@@ -80,10 +80,7 @@ show_object(spinner_clip)
 prop_base_diameter = 15
 prop_base_height = 2
 prop_neck_diameter = 12
-prop_neck_height = 5
-prop_base_neck_transition = 1.5* (prop_base_diameter - prop_neck_diameter)
-prop_base_center_offset = 20
-prop_tip_offset = 10
+prop_base_neck_transition = prop_base_diameter - prop_neck_diameter
 
 propeller_blade_base = (
     cq.Workplane("XY")
@@ -91,14 +88,17 @@ propeller_blade_base = (
     .extrude(prop_base_height)
     .faces(">Z").workplane()
     .circle(prop_base_diameter/2)
-    .workplane(offset=prop_base_neck_transition)
+    .workplane(prop_base_neck_transition)
     .circle(prop_neck_diameter/2)
     .loft()
     .circle(prop_neck_diameter/2)
-    .workplane(offset=prop_base_neck_transition)
+    .workplane(prop_base_neck_transition)
     .circle(prop_base_diameter/2)
     .loft()
     )
+
+prop_curve_2_distance = 50
+prop_curve_3_distance = 105
 
 propeller_blade = (
     propeller_blade_base.faces(">Z").workplane()
@@ -108,13 +108,22 @@ propeller_blade = (
     .loft()
     .faces(">Z").workplane()
     .circle(5)
-    .workplane(offset=75)
-    .ellipse(2, 10, 25)
-    .workplane(offset=150)
-    .ellipse(2, 10, 15)
+    .workplane(offset=prop_curve_2_distance)
+    .ellipse(3, 12, 30)
+    .workplane(offset=prop_curve_3_distance)
+    .ellipse(2, 12, 20)
     .loft()
     )
 
+propeller_tip = (
+    propeller_blade.faces(">Z").workplane()
+    .transformed(rotate=cq.Vector(0,0,20))
+    .lineTo(2,0)
+    .ellipseArc(2, 12, 0, 180)
+    .close()
+    .revolve(180, (0,0,0),(1,0,0))
+    )
 
+propeller_blade = propeller_blade + propeller_tip
 
 show_object(propeller_blade)
