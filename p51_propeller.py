@@ -64,9 +64,7 @@ spinner_clip = (
 
 spinner_cut = (
     cq.Workplane("YZ")
-    .circle(spinner_lip_diameter_rear/2)
-    .extrude(2)
-    .faces(">X").workplane()
+    .transformed(offset=cq.Vector(0,0,2))
     .circle(spinner_lip_diameter_rear/2)
     .workplane(offset=spinner_lip_length)
     .circle(spinner_lip_diameter_front/2)
@@ -75,7 +73,7 @@ spinner_cut = (
 
 spinner_clip = spinner_clip-spinner_cut
 
-show_object(spinner_clip)
+show_object(spinner_clip, options={"alpha":0.5})
 
 # This propeller was designed as a reasonable-looking propeller for display
 # purposes. It was not designed for aerodynamics and any propulsive capability
@@ -129,4 +127,47 @@ propeller_tip = (
 
 propeller_blade = propeller_blade + propeller_tip
 
+propeller_blade = (
+    propeller_blade
+    .translate((12.5, 0, 22.5))
+    .rotate((0,0,0),(1,0,0),45)
+    )
 show_object(propeller_blade)
+
+"""
+propeller_blade_02 = propeller_blade.rotate((0,0,0),(1,0,0),90)
+propeller_blade_03 = propeller_blade.rotate((0,0,0),(1,0,0),180)
+propeller_blade_04 = propeller_blade.rotate((0,0,0),(1,0,0),-90)
+
+show_object(propeller_blade_02)
+show_object(propeller_blade_03)
+show_object(propeller_blade_04)
+"""
+
+prop_block_size = prop_base_diameter + 5
+
+prop_block = (
+    cq.Workplane("YZ")
+    .box(60,prop_block_size,prop_block_size)
+    )
+prop_block = prop_block + (
+    prop_block
+    .rotate((0,0,0),(1,0,0),90)
+    )
+prop_block_cut = (
+    cq.Workplane("XY")
+    .circle(prop_base_diameter/2)
+    .extrude(24, both=True)
+    )
+prop_block_cut = prop_block_cut + (
+    prop_block_cut
+    .rotate((0,0,0),(1,0,0),90)
+    )
+
+prop_block = prop_block - prop_block_cut
+prop_block = (
+    prop_block
+    .rotate((0,0,0),(1,0,0),-45)
+    .translate((12.5,0,0))
+    )
+show_object(prop_block, options={"alpha":0.2})
