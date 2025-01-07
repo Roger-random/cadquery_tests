@@ -77,6 +77,9 @@ spinner_clip = spinner_clip-spinner_cut
 
 show_object(spinner_clip)
 
+# This propeller was designed as a reasonable-looking propeller for display
+# purposes. It was not designed for aerodynamics and any propulsive capability
+# would be completely accidental.
 prop_base_diameter = 15
 prop_base_height = 2
 prop_neck_diameter = 12
@@ -108,9 +111,9 @@ propeller_blade = (
     .loft()
     .faces(">Z").workplane()
     .circle(5)
-    .workplane(offset=prop_curve_2_distance)
+    .workplane(prop_curve_2_distance)
     .ellipse(3, 12, 30)
-    .workplane(offset=prop_curve_3_distance)
+    .workplane(prop_curve_3_distance)
     .ellipse(2, 12, 20)
     .loft()
     )
