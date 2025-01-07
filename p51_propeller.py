@@ -26,9 +26,9 @@ SOFTWARE.
 I printed a 3DLabPrint P-51D Mustang but it will be on static display instead
 of a flying remote control airccraft. So I won't be installing a large noisy
 brushless outrunner motor or a real propeller. Instead, I will install a
-NEMA17 stepper motor (as used in 3D printers) that will turn slowly and
-silently. This is the propeller and hub that will attach to the NEMA17 5mm
-diameter motor output shaft.
+NEMA17 stepper motor (as used in 3D printers) that will turn a fake propeller
+(just for looks, can't propel) and turn it slowly and silently. This is the
+propeller and hub that will attach to the NEMA17 5mm diameter motor output shaft.
 """
 import cadquery as cq
 
@@ -43,6 +43,7 @@ overall_diameter = 418
 # as the outer visible shell because I don't know how to match its curvature
 # in CadQuery.
 spinner_outer_diameter = 85
+spinner_base_thickness = 2
 
 # The 3DLabPrint spinner is attached via small lips around its perimeter.
 # Here I am trying to duplicate its dimensions.
@@ -54,7 +55,7 @@ spinner_lip_length = 4
 spinner_clip = (
     cq.Workplane("YZ")
     .circle(spinner_outer_diameter/2)
-    .extrude(2)
+    .extrude(spinner_base_thickness)
     .faces(">X").workplane()
     .circle(spinner_lip_clip_thickness+spinner_lip_diameter_rear/2)
     .workplane(offset=spinner_lip_length)
@@ -79,9 +80,11 @@ show_object(spinner_clip, options={"alpha":0.5})
 # purposes. It was not designed for aerodynamics and any propulsive capability
 # would be completely accidental.
 prop_base_diameter = 15
-prop_base_height = 2
+prop_base_height = 7.5
 prop_neck_diameter = 12
 prop_base_neck_transition = prop_base_diameter - prop_neck_diameter
+prop_base_center_offset = 15
+prop_base_forward_offset = 12.5
 
 propeller_blade_base = (
     cq.Workplane("XY")
@@ -92,6 +95,7 @@ propeller_blade_base = (
     .workplane(prop_base_neck_transition)
     .circle(prop_neck_diameter/2)
     .loft()
+    .faces(">Z").workplane()
     .circle(prop_neck_diameter/2)
     .workplane(prop_base_neck_transition)
     .circle(prop_base_diameter/2)
@@ -129,10 +133,10 @@ propeller_blade = propeller_blade + propeller_tip
 
 propeller_blade = (
     propeller_blade
-    .translate((12.5, 0, 22.5))
-    .rotate((0,0,0),(1,0,0),45)
+    .translate((prop_base_forward_offset, 0, prop_base_center_offset))
+#    .rotate((0,0,0),(1,0,0),45)
     )
-show_object(propeller_blade)
+show_object(propeller_blade, options={"alpha":0.2})
 
 """
 propeller_blade_02 = propeller_blade.rotate((0,0,0),(1,0,0),90)
@@ -144,30 +148,57 @@ show_object(propeller_blade_03)
 show_object(propeller_blade_04)
 """
 
-prop_block_size = prop_base_diameter + 5
-
-prop_block = (
+# A block to support a single propeller blade
+propeller_block = (
     cq.Workplane("YZ")
-    .box(60,prop_block_size,prop_block_size)
+    .lineTo(prop_base_diameter/2, prop_base_center_offset+1, forConstruction=True)
+    .lineTo(prop_base_diameter/2,
+            prop_base_center_offset + prop_base_height + prop_base_neck_transition*2)
+    .lineTo(-prop_base_diameter/2,
+            prop_base_center_offset + prop_base_height + prop_base_neck_transition*2)
+    .lineTo(-prop_base_diameter/2, prop_base_center_offset+1)
+    .close()
+    .extrude(prop_base_forward_offset-3)
     )
-prop_block = prop_block + (
-    prop_block
-    .rotate((0,0,0),(1,0,0),90)
-    )
-prop_block_cut = (
+propeller_block_recess_1 = (
     cq.Workplane("XY")
-    .circle(prop_base_diameter/2)
-    .extrude(24, both=True)
+    .lineTo(spinner_base_thickness+1, prop_base_diameter/2, forConstruction=True)
+    .lineTo(spinner_base_thickness+3, prop_base_diameter/2-2)
+    .lineTo(spinner_base_thickness+5, prop_base_diameter/2)
+    .close()
+    .extrude(prop_base_center_offset + prop_base_height + prop_base_neck_transition*2)
     )
-prop_block_cut = prop_block_cut + (
-    prop_block_cut
-    .rotate((0,0,0),(1,0,0),90)
+propeller_block_recess_2 = (
+    propeller_block_recess_1.mirror("XZ")
     )
+propeller_block = propeller_block - propeller_block_recess_1
+propeller_block = propeller_block - propeller_block_recess_2
+propeller_block = propeller_block - propeller_blade
 
-prop_block = prop_block - prop_block_cut
-prop_block = (
-    prop_block
-    .rotate((0,0,0),(1,0,0),-45)
-    .translate((12.5,0,0))
+# A clip to hold a propeller blade against its support block
+
+propeller_clip_thickness = 0.4*4
+propeller_clip_lever = 3
+
+propeller_clip = (
+    cq.Workplane("XY")
+    .transformed(offset=cq.Vector(0,0,prop_base_center_offset+1))
+    .lineTo(spinner_base_thickness+1, prop_base_diameter/2, forConstruction=True)
+    .lineTo(spinner_base_thickness+3, prop_base_diameter/2-2)
+    .lineTo(spinner_base_thickness+5, prop_base_diameter/2)
+    .lineTo(prop_base_forward_offset, prop_base_diameter/2)
+    .lineTo(prop_base_forward_offset, 0)
+    .lineTo(prop_base_forward_offset+prop_base_diameter/2, 0)
+    .lineTo(prop_base_forward_offset+prop_base_diameter/2+propeller_clip_thickness,0)
+    .radiusArc((prop_base_forward_offset, prop_base_diameter/2 + propeller_clip_thickness), -prop_base_diameter/2 - propeller_clip_thickness)
+    .lineTo(spinner_base_thickness+propeller_clip_thickness+1, prop_base_diameter/2 + propeller_clip_thickness)
+    .lineTo(spinner_base_thickness+propeller_clip_thickness+1, prop_base_diameter/2 + propeller_clip_thickness + propeller_clip_lever)
+    .lineTo(spinner_base_thickness+1,                          prop_base_diameter/2 + propeller_clip_thickness + propeller_clip_lever)
+    .close()
+    .extrude(prop_base_height + prop_base_neck_transition*2 - 1)
     )
-show_object(prop_block, options={"alpha":0.2})
+propeller_clip = propeller_clip-propeller_blade
+propeller_clip = propeller_clip+propeller_clip.mirror("XZ")
+
+show_object(propeller_clip, options={"alpha":0.2})
+show_object(propeller_block, options={"alpha":0.2})
