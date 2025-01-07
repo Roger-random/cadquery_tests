@@ -43,6 +43,7 @@ overall_diameter = 418
 # as the outer visible shell because I don't know how to match its curvature
 # in CadQuery.
 spinner_outer_diameter = 85
+spinner_inner_diameter = 25
 spinner_base_thickness = 2
 
 # The 3DLabPrint spinner is attached via small lips around its perimeter.
@@ -74,7 +75,15 @@ spinner_cut = (
 
 spinner_clip = spinner_clip-spinner_cut
 
-show_object(spinner_clip, options={"alpha":0.5})
+spinner_center_hole = (
+    cq.Workplane("YZ")
+    .circle(spinner_inner_diameter/2)
+    .extrude(spinner_base_thickness)
+    )
+
+spinner_clip = spinner_clip-spinner_center_hole
+
+#show_object(spinner_clip, options={"alpha":0.5})
 
 # This propeller was designed as a reasonable-looking propeller for display
 # purposes. It was not designed for aerodynamics and any propulsive capability
@@ -83,7 +92,7 @@ prop_base_diameter = 15
 prop_base_height = 7.5
 prop_neck_diameter = 12
 prop_base_neck_transition = prop_base_diameter - prop_neck_diameter
-prop_base_center_offset = 15
+prop_base_center_offset = 17
 prop_base_forward_offset = 12.5
 
 propeller_blade_base = (
@@ -136,7 +145,7 @@ propeller_blade = (
     .translate((prop_base_forward_offset, 0, prop_base_center_offset))
 #    .rotate((0,0,0),(1,0,0),45)
     )
-show_object(propeller_blade, options={"alpha":0.2})
+#show_object(propeller_blade, options={"alpha":0.2})
 
 """
 propeller_blade_02 = propeller_blade.rotate((0,0,0),(1,0,0),90)
@@ -176,7 +185,6 @@ propeller_block = propeller_block - propeller_block_recess_2
 propeller_block = propeller_block - propeller_blade
 
 # A clip to hold a propeller blade against its support block
-
 propeller_clip_thickness = 0.4*4
 propeller_clip_lever = 3
 
@@ -200,5 +208,39 @@ propeller_clip = (
 propeller_clip = propeller_clip-propeller_blade
 propeller_clip = propeller_clip+propeller_clip.mirror("XZ")
 
-show_object(propeller_clip, options={"alpha":0.2})
-show_object(propeller_block, options={"alpha":0.2})
+#show_object(propeller_clip, options={"alpha":0.2})
+#show_object(propeller_block, options={"alpha":0.2})
+
+# Cut slots to hold small magnets salvaged from retired iPad case
+magnet_width = 6
+magnet_length = 16
+magnet_slot = (
+    cq.Workplane("YZ")
+    .transformed(offset=cq.Vector(0,prop_base_center_offset+magnet_length/2,0.2))
+    .rect(magnet_width,magnet_length)
+    .extrude(spinner_base_thickness)
+    )
+
+# Final hub assembly
+propeller_hub = spinner_clip - magnet_slot
+propeller_hub = propeller_hub - magnet_slot.rotate((0,0,0),(1,0,0),90)
+propeller_hub = propeller_hub - magnet_slot.rotate((0,0,0),(1,0,0),180)
+propeller_hub = propeller_hub - magnet_slot.rotate((0,0,0),(1,0,0),270)
+
+propeller_hub = propeller_hub + propeller_block.rotate((0,0,0),(1,0,0),45)
+propeller_hub = propeller_hub + propeller_block.rotate((0,0,0),(1,0,0),135)
+propeller_hub = propeller_hub + propeller_block.rotate((0,0,0),(1,0,0),-45)
+propeller_hub = propeller_hub + propeller_block.rotate((0,0,0),(1,0,0),-135)
+
+show_object(propeller_hub, options={"color": "green", "alpha":0.5})
+
+# Show other components in final position and orientation
+show_object(propeller_clip.rotate((0,0,0),(1,0,0),45), options={"color": "red", "alpha":0.5})
+show_object(propeller_clip.rotate((0,0,0),(1,0,0),135), options={"color": "red", "alpha":0.5})
+show_object(propeller_clip.rotate((0,0,0),(1,0,0),-45), options={"color": "red", "alpha":0.5})
+show_object(propeller_clip.rotate((0,0,0),(1,0,0),-135), options={"color": "red", "alpha":0.5})
+
+show_object(propeller_blade.rotate((0,0,0),(1,0,0),45), options={"color": "yellow", "alpha":0.5})
+show_object(propeller_blade.rotate((0,0,0),(1,0,0),135), options={"color": "yellow", "alpha":0.5})
+show_object(propeller_blade.rotate((0,0,0),(1,0,0),-45), options={"color": "yellow", "alpha":0.5})
+show_object(propeller_blade.rotate((0,0,0),(1,0,0),-135), options={"color": "yellow", "alpha":0.5})
