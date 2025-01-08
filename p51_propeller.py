@@ -234,6 +234,90 @@ propeller_hub = propeller_hub + propeller_block.rotate((0,0,0),(1,0,0),-135)
 
 show_object(propeller_hub, options={"color": "green", "alpha":0.5})
 
+# Motor coupler to go with the hub
+coupler_outer_radius = prop_base_center_offset + magnet_length + 2
+coupler_disk_thickness = 2
+shaft_coupler_diameter=15
+shaft_coupler_length = 10
+shaft_coupler_additional_radius = 2
+shaft_diameter = 5
+shaft_d_depth = 0.4
+coupler_fastener_diameter = 3.25
+motor_coupler = (
+    cq.Workplane("YZ")
+    .circle(coupler_outer_radius)
+    .circle(shaft_diameter/2)
+    .extrude(-coupler_disk_thickness)
+    )
+motor_coupler = motor_coupler + (
+    cq.Workplane("YZ")
+    .circle(shaft_coupler_diameter/2)
+    .circle(shaft_diameter/2)
+    .extrude(-shaft_coupler_length)
+    )
+magnet_mirror = magnet_slot.mirror("YZ")
+motor_coupler = motor_coupler - magnet_mirror
+motor_coupler = motor_coupler - magnet_mirror.rotate((0,0,0),(1,0,0),90)
+motor_coupler = motor_coupler - magnet_mirror.rotate((0,0,0),(1,0,0),180)
+motor_coupler = motor_coupler - magnet_mirror.rotate((0,0,0),(1,0,0),270)
+
+# Rotate 45 so math for coupler fastener and slit is easier
+motor_coupler = motor_coupler.rotate((0,0,0),(1,0,0),45)
+
+# If this is a D-shaped shaft, add in the flat section.
+if shaft_d_depth > 0:
+    motor_coupler = motor_coupler + (
+        cq.Workplane("YZ")
+        .lineTo( shaft_diameter/2, shaft_diameter/2-shaft_d_depth, forConstruction = True)
+        .lineTo( shaft_diameter/2, shaft_diameter/2)
+        .lineTo(-shaft_diameter/2, shaft_diameter/2)
+        .lineTo(-shaft_diameter/2, shaft_diameter/2-shaft_d_depth)
+        .close()
+        .extrude(-shaft_coupler_length)
+        )
+
+# Add location for coupler fastener
+motor_coupler = motor_coupler + (
+    cq.Workplane("YZ")
+    .lineTo( shaft_coupler_diameter/2, 0, forConstruction = True)
+    .lineTo( 0                       , shaft_coupler_diameter/2)
+    .lineTo(-shaft_coupler_diameter/2, 0)
+    .lineTo(-shaft_coupler_diameter/2, shaft_coupler_diameter/2 + shaft_coupler_additional_radius)
+    .lineTo( shaft_coupler_diameter/2, shaft_coupler_diameter/2 + shaft_coupler_additional_radius)
+    .close()
+    .extrude(-shaft_coupler_length)
+    )
+
+# Subtract hole for coupler fastener
+motor_coupler = motor_coupler - (
+    cq.Workplane("XZ")
+    .transformed(offset=cq.Vector(
+        -coupler_disk_thickness-(shaft_coupler_length-coupler_disk_thickness)/2,
+        shaft_diameter + shaft_coupler_additional_radius/2,
+        0))
+    .circle(coupler_fastener_diameter/2)
+    .extrude(coupler_outer_radius, both=True)
+    )
+
+# Cut slit for coupler
+coupler_slit_width = 0.5
+motor_coupler = motor_coupler - (
+    cq.Workplane("YZ")
+    .lineTo( coupler_slit_width/2, 0)
+    .lineTo( coupler_slit_width/2, shaft_coupler_diameter/2 + shaft_coupler_additional_radius)
+    .lineTo( coupler_outer_radius/2, coupler_outer_radius)
+    .lineTo(-coupler_outer_radius/2, coupler_outer_radius)
+    .lineTo(-coupler_slit_width/2, shaft_coupler_diameter/2 + shaft_coupler_additional_radius)
+    .lineTo(-coupler_slit_width/2, 0)
+    .close()
+    .extrude(-shaft_coupler_length)
+    )
+
+# Rotate 45 back now coupler fastener and slit has been created
+motor_coupler = motor_coupler.rotate((0,0,0),(1,0,0),-45)
+
+show_object(motor_coupler, options={"color": "blue", "alpha":0.5})
+
 # Show other components in final position and orientation
 show_object(propeller_clip.rotate((0,0,0),(1,0,0),45), options={"color": "red", "alpha":0.5})
 show_object(propeller_clip.rotate((0,0,0),(1,0,0),135), options={"color": "red", "alpha":0.5})
