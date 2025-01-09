@@ -87,6 +87,7 @@ adapter = (
     .extrude(pi_mount_standoff_height)
     )
 
+"""
 # Add a raised plate to draw heat from Pi with help of a pad of thermally
 # conductive and electrically insulating material. Dimensions start with
 # the rectangle defined by mounting holes, which should keep it clear of
@@ -122,7 +123,9 @@ pi_thermal_plate = pi_thermal_plate - pi_thermal_clearance_microsd
 
 
 adapter = adapter + pi_thermal_plate
+"""
 
+"""
 # Add a raised section on the other side in the shape of a CPU bridging the
 # gap between base plate and bottom of HSF in order to conduct heat.
 
@@ -140,7 +143,7 @@ hsf_thermal_pad = (
     )
 
 show_object(hsf_thermal_pad, options = {"alpha":0.5, "color":"red"})
-
+"""
 # Cut Pi mounting holes
 # TODO: Look up proper minor diameter of M2.5 thread
 pi_mount_hole_radius = 2.4/2
