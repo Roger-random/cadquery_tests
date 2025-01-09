@@ -10,7 +10,7 @@ import cadquery as cq
 
 hsf_mount_length = 75
 hsf_mount_width = 12.5
-hsf_mount_thickness = 1.57 # Standard FR4 PCB thickness
+hsf_mount_thickness = 1.5 # Standard FR4 PCB thickness = 1.57mm or 0.062"
 
 overall_width = hsf_mount_length+hsf_mount_width*2
 
@@ -55,8 +55,9 @@ hsf_plate = hsf_plate + hsf_plate_tabs
 # Dimensions from Raspberry Pi product brief
 pi_mount_width = 58
 pi_mount_height = 49
+pi_center_offset_x = -2.5
 
-pi_mount_border = 10
+pi_mount_border = 11
 pi_plate_thickness = hsf_mount_thickness
 
 pi_plate = (
@@ -81,76 +82,20 @@ pi_mount_standoff_radius = 6/2
 
 adapter = (
     adapter.faces(">Z").workplane()
+    .transformed(offset=cq.Vector(pi_center_offset_x,0,0))
     .rect(pi_mount_width, pi_mount_height, forConstruction = True)
     .vertices()
     .circle(pi_mount_standoff_radius)
     .extrude(pi_mount_standoff_height)
     )
 
-"""
-# Add a raised plate to draw heat from Pi with help of a pad of thermally
-# conductive and electrically insulating material. Dimensions start with
-# the rectangle defined by mounting holes, which should keep it clear of
-# USB and Ethernet protrusions. Then cut out clearance for GPIO pins and
-# the microSD slot.
-
-pi_thermal_pad_thickness = 1
-pi_thermal_plate_thickness = pi_mount_standoff_height - pi_thermal_pad_thickness
-
-pi_thermal_plate = (
-    cq.Workplane("XY")
-    .transformed(offset=cq.Vector(0, 0, hsf_mount_thickness/2))
-    .rect(pi_mount_width,pi_mount_height)
-    .extrude(pi_thermal_plate_thickness)
-    )
-
-pi_thermal_clearance_gpio = (
-    cq.Workplane("XY")
-    .transformed(offset=cq.Vector(0, pi_mount_height/2, hsf_mount_thickness/2))
-    .rect(pi_mount_width,8)
-    .extrude(pi_thermal_plate_thickness)
-    )
-pi_thermal_plate = pi_thermal_plate - pi_thermal_clearance_gpio
-
-
-pi_thermal_clearance_microsd = (
-    cq.Workplane("XY")
-    .transformed(offset=cq.Vector(15/2-pi_mount_width/2, 1, hsf_mount_thickness/2))
-    .rect(15,15)
-    .extrude(pi_thermal_plate_thickness)
-    )
-pi_thermal_plate = pi_thermal_plate - pi_thermal_clearance_microsd
-
-
-adapter = adapter + pi_thermal_plate
-"""
-
-"""
-# Add a raised section on the other side in the shape of a CPU bridging the
-# gap between base plate and bottom of HSF in order to conduct heat.
-
-# TODO: this value varies between CPU generations, how to deal with variation?
-hsf_thermal_pad_thickness = 6
-
-hsf_thermal_pad_width = 32
-
-hsf_thermal_pad = (
-    cq.Workplane("XY")
-    .transformed(offset=cq.Vector(0,0, -hsf_mount_thickness/2))
-    .rect(hsf_thermal_pad_width, hsf_thermal_pad_width)
-    .extrude(-hsf_thermal_pad_thickness)
-    .edges("|Z").fillet(hsf_thermal_pad_thickness)
-    )
-
-show_object(hsf_thermal_pad, options = {"alpha":0.5, "color":"red"})
-"""
 # Cut Pi mounting holes
 # TODO: Look up proper minor diameter of M2.5 thread
 pi_mount_hole_radius = 2.4/2
 
 pi_mount_holes = (
     cq.Workplane("XY")
-    .transformed(offset=cq.Vector(0,0, -hsf_mount_thickness/2))
+    .transformed(offset=cq.Vector(pi_center_offset_x,0, -hsf_mount_thickness/2))
     .rect(pi_mount_width, pi_mount_height, forConstruction = True)
     .vertices()
     .circle(pi_mount_hole_radius)
@@ -169,6 +114,15 @@ hsf_mount_holes = (
     .extrude(hsf_mount_thickness)
     )
 adapter = adapter - hsf_mount_holes
+
+# Cut center hole for thermal transfer bar
+thermal_bar_radius = 5
+thermal_bar = (
+    cq.Workplane("XY")
+    .circle(thermal_bar_radius)
+    .extrude(hsf_mount_thickness, both=True)
+    )
+adapter = adapter - thermal_bar
 
 show_object(adapter, options = {"alpha":0.5, "color":"green"})
 
