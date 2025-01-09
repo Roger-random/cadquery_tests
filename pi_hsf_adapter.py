@@ -74,7 +74,7 @@ adapter = hsf_plate + pi_plate
 # Add Pi mounting standoff
 
 # Must be tall enough to clear legs of through-hold components
-pi_mount_standoff_height = 3
+pi_mount_standoff_height = 2.5
 
 # Pi spec sheet doesn't explicitlys give size of clearance area?
 # Empircally measured at 6mm.
