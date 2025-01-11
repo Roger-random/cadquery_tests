@@ -116,7 +116,7 @@ hsf_mount_holes = (
 adapter = adapter - hsf_mount_holes
 
 # Cut center hole for thermal transfer bar
-thermal_bar_radius = 5
+thermal_bar_radius = 36/2
 thermal_bar = (
     cq.Workplane("XY")
     .circle(thermal_bar_radius)
