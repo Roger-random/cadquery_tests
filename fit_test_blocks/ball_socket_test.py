@@ -25,15 +25,31 @@ SOFTWARE.
 """
 Generate a small block with an array of ball-and-socket assemblies with
 increasing gaps between ball and socket.
-Designed for testing dimensional accuracy of specific 3D printers.
+Designed for testing dimensional accuracy of a 3D printer.
 """
 import cadquery as cq
 
 ball_radius = 4
 fastener_diameter = 3.5
 
-starting_gap = 0.01
-gap_increment = 0.01
+# "True" is for printing the whole thing with a single material
+# "False" allows printing the balls with different material from socket.
+combined_output = True
+
+if combined_output:
+    # PrusaSlicer would merge features less than 0.1mm apart so it makes more
+    # sense to start there.
+    starting_gap = 0.1
+    gap_increment = 0.005
+    label_format_string = "{:.3f}"
+else:
+    # Multi-material printers like Prusa XL can print with different materials
+    # (like PLA+PETG) that usually won't merge into each other. In theory this
+    # allows much tighter gaps. Maybe even down to zero gap? This test block
+    # finds out!
+    starting_gap = 0
+    gap_increment = 0.01
+    label_format_string = "{:.2f}"
 
 cell_size_x = 15
 cell_size_y = 15
@@ -99,7 +115,7 @@ for cell_y in range(cell_count_y):
                         center_y-(cell_size_y/2)+block_edge_bevel*2,
                         block_size_z/2)
                     )
-                .text("{:.2f}".format(current_gap),
+                .text(label_format_string.format(current_gap),
                       fontsize=4, kind="bold",
                       valign="bottom", distance=0.2, combine=False)
             )
@@ -115,64 +131,14 @@ for ball in ball_list:
     else:
         ball_array = ball_array + ball
 
-show_object(ball_array, options = {"alpha":0.5, "color":"green"})
-
 assembly = block
 
 if print_text_labels:
     for text in texts:
         assembly = assembly + text
 
-show_object(assembly, options = {"alpha":0.5, "color":"red"})
-
-"""
-# Optional: support wedge for 3DPrintMill 45-degree printing
-import math
-support_margin = 2
-support_height = block_size_y / math.sqrt(2)
-support_width  = block_size_x + support_margin
-support_thickness = 0.4 * 4
-support_thickness_diag = support_thickness / math.sqrt(2)
-bridged_layers = 6 * 0.2
-support_air_gap = 0.2
-brim_height = 0.4
-
-assembly = assembly+ball_array
-assembly = assembly.translate((
-    0,
-    block_size_y/2-block_edge_bevel-support_air_gap,
-    block_size_z/2 + support_air_gap))
-assembly = assembly.rotate(
-    (0,0,0),
-    (1,0,0),
-    45
-    )
-
-wedge = (
-    cq.Workplane("YZ")
-    .lineTo(-support_air_gap*math.sqrt(2),0)
-    .lineTo(-support_air_gap*math.sqrt(2),brim_height)
-    .lineTo(brim_height,brim_height)
-    .lineTo(support_height, support_height)
-    .lineTo(support_height, support_height-bridged_layers)
-    .lineTo(support_thickness_diag+bridged_layers, support_thickness_diag)
-    .lineTo(support_height, support_thickness_diag)
-    .lineTo(support_height, 0)
-    .close()
-    .extrude(support_width/2,both=True)
-    )
-
-wedge_wall = (
-    cq.Workplane("YZ")
-    .lineTo(support_height, support_height)
-    .lineTo(support_height, 0)
-    .close()
-    .extrude(support_thickness/2,both=True)
-    )
-
-wedge = wedge + wedge_wall
-wedge = wedge + wedge_wall.translate((support_width/2-support_thickness/2,0,0))
-wedge = wedge + wedge_wall.translate((-support_width/2+support_thickness/2,0,0))
-
-show_object(assembly+wedge)
-"""
+if combined_output:
+    show_object(assembly+ball_array, options = {"alpha":0.5})
+else:
+    show_object(ball_array, options = {"alpha":0.5, "color":"green"})
+    show_object(assembly, options = {"alpha":0.5, "color":"red"})
