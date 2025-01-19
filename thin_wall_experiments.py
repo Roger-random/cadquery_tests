@@ -1,0 +1,84 @@
+"""
+MIT License
+
+Copyright (c) 2024 Roger Cheng
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
+"""
+Experiments in thin-wall printing inspired by 3DLabPrint
+"""
+import math
+import cadquery as cq
+
+default_outer_diameter = 110
+default_height = 80
+default_nozzle_diameter = 0.4
+
+# Big enough that the slicer wouldn't ignore (merge/close) the gap but small
+# enough we hope adjacent filament will stick together.
+default_zero_gap = 0.1
+
+def single_wall(
+        diameter = default_outer_diameter,
+        height = default_height,
+        thickness = default_nozzle_diameter):
+    return (
+        cq.Workplane("XY")
+        .circle(diameter/2)
+        .circle(diameter/2 - thickness)
+        .extrude(height)
+        )
+
+def radial_wall_vase(
+        diameter = default_outer_diameter,
+        height = default_height,
+        thickness = default_nozzle_diameter,
+        rib_depth = 5,
+        rib_spacing = 30,
+        zero_gap = default_zero_gap):
+    cylinder_volume = (
+        cq.Workplane("XY")
+        .circle(diameter/2)
+        .circle(diameter/2 - rib_depth)
+        .extrude(height)
+        )
+    rib = (
+        cq.Workplane("XY")
+        .transformed(offset=cq.Vector(diameter/2-rib_depth/2-thickness*2,0,0))
+        .rect(rib_depth,zero_gap)
+        .extrude(height)
+        )
+    rib_count = round(math.pi*diameter/rib_spacing)
+    rib_angular_spacing = 360/rib_count
+    ribs = None
+    for r in range(rib_count):
+        if r == 0:
+            ribs = rib
+        else:
+            ribs = ribs + rib.rotate((0,0,0),(0,0,1),rib_angular_spacing*r)
+
+    return (
+        single_wall(diameter, height, thickness) +
+        (cylinder_volume-ribs) -
+        rib.translate((thickness*2,0,0))
+        )
+
+show_object(radial_wall_vase())
