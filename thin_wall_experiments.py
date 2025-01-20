@@ -81,4 +81,46 @@ def radial_wall_vase(
         rib.translate((thickness*2,0,0))
         )
 
-show_object(radial_wall_vase())
+def twist_rib_vase(
+        diameter = default_outer_diameter,
+        height = default_height,
+        thickness = default_nozzle_diameter,
+        rib_depth = 5,
+        rib_spacing = 30,
+        rib_twist = 45,
+        zero_gap = default_zero_gap):
+    cylinder_volume = (
+        cq.Workplane("XY")
+        .circle(diameter/2)
+        .circle(diameter/2 - rib_depth)
+        .extrude(height)
+        )
+    angled_gap = zero_gap * (1+math.sin(math.radians(rib_twist)))
+    full_rib = (
+        cq.Workplane("XY")
+        .lineTo(diameter/2-rib_depth-thickness, angled_gap/2,forConstruction=True)
+        .lineTo(diameter/2-rib_depth-thickness,-angled_gap/2)
+        .lineTo(diameter/2+thickness          ,-angled_gap/2)
+        .lineTo(diameter/2+thickness          , angled_gap/2)
+        .close()
+        .twistExtrude(height,360*math.tan(math.radians(rib_twist))*height/(diameter*math.pi))
+        )
+    shape = cylinder_volume - full_rib
+    slot_rib = (
+        cq.Workplane("XY")
+        .lineTo(diameter/2-rib_depth-thickness, angled_gap/2,forConstruction=True)
+        .lineTo(diameter/2-rib_depth-thickness,-angled_gap/2)
+        .lineTo(diameter/2-thickness*2        ,-angled_gap/2)
+        .lineTo(diameter/2-thickness*2        , angled_gap/2)
+        .close()
+        .twistExtrude(height,360*math.tan(math.radians(rib_twist))*height/(diameter*math.pi))
+        )
+
+    rib_count = round(math.pi*diameter/rib_spacing)
+    rib_angular_spacing = 360/rib_count
+    for rib_number in range(1,rib_count):
+        shape = shape - slot_rib.rotate((0,0,0),(0,0,1),rib_angular_spacing*rib_number)
+
+    return shape
+
+show_object(twist_rib_vase())
