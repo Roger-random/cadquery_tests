@@ -88,6 +88,7 @@ def twist_rib_vase(
         rib_depth = 5,
         rib_spacing = 30,
         rib_twist = 45,
+        cut_reverse_ribs = True,
         zero_gap = default_zero_gap):
     cylinder_volume = (
         cq.Workplane("XY")
@@ -121,6 +122,19 @@ def twist_rib_vase(
     for rib_number in range(1,rib_count):
         shape = shape - slot_rib.rotate((0,0,0),(0,0,1),rib_angular_spacing*rib_number)
 
+    if cut_reverse_ribs:
+        reverse_rib = (
+            cq.Workplane("XY")
+            .lineTo(diameter/2-rib_depth-thickness, angled_gap/2,forConstruction=True)
+            .lineTo(diameter/2-rib_depth-thickness,-angled_gap/2)
+            .lineTo(diameter/2-thickness*2        ,-angled_gap/2)
+            .lineTo(diameter/2-thickness*2        , angled_gap/2)
+            .close()
+            .twistExtrude(height,-360*math.tan(math.radians(rib_twist))*height/(diameter*math.pi))
+            )
+        for rib_number in range(rib_count):
+            shape = shape - reverse_rib.rotate((0,0,0),(0,0,1),rib_angular_spacing*rib_number)
+
     return shape
 
-show_object(twist_rib_vase())
+show_object(twist_rib_vase(rib_spacing=60))
