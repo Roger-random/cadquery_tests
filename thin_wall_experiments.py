@@ -96,7 +96,22 @@ def twist_rib_vase(
         .circle(diameter/2 - rib_depth)
         .extrude(height)
         )
+
+    # When the gap is sliced at an angled spiral, it becomes smaller unless we boost
+    # its size by sin(angle)
     angled_gap = zero_gap * (1+math.sin(math.radians(rib_twist)))
+
+    # TwistExtrude angle parameter is an angle, in degrees, regardless of
+    # extrusion height. I want to control twist as angle degrees that
+    # continues regardless of height. So this is a function that calculates
+    # the twistExtrude angle degrees as a function of extrusion height.
+    # 1. Convert desired angle degrees to radians, in order to calculate tangent
+    # 2. Multiple by extrusion height. This is the amount of twistExtrude in
+    #    terms of length around the circumference.
+    # 3. Divide this value by the circumference (diameter * pi) to get a fraction
+    #    of full rotation.
+    # 4. Mulitply by 360 for number of degrees to feed into twistExtrude.
+    twistExtrude_angle = 360*math.tan(math.radians(rib_twist))*height/(diameter*math.pi)
     full_rib = (
         cq.Workplane("XY")
         .lineTo(diameter/2-rib_depth-thickness, angled_gap/2,forConstruction=True)
@@ -104,7 +119,7 @@ def twist_rib_vase(
         .lineTo(diameter/2+thickness          ,-angled_gap/2)
         .lineTo(diameter/2+thickness          , angled_gap/2)
         .close()
-        .twistExtrude(height,360*math.tan(math.radians(rib_twist))*height/(diameter*math.pi))
+        .twistExtrude(height, twistExtrude_angle)
         )
     shape = cylinder_volume - full_rib
     slot_rib = (
@@ -114,7 +129,7 @@ def twist_rib_vase(
         .lineTo(diameter/2-thickness*2        ,-angled_gap/2)
         .lineTo(diameter/2-thickness*2        , angled_gap/2)
         .close()
-        .twistExtrude(height,360*math.tan(math.radians(rib_twist))*height/(diameter*math.pi))
+        .twistExtrude(height,twistExtrude_angle)
         )
 
     rib_count = round(math.pi*diameter/rib_spacing)
@@ -130,11 +145,11 @@ def twist_rib_vase(
             .lineTo(diameter/2-thickness*2        ,-angled_gap/2)
             .lineTo(diameter/2-thickness*2        , angled_gap/2)
             .close()
-            .twistExtrude(height,-360*math.tan(math.radians(rib_twist))*height/(diameter*math.pi))
+            .twistExtrude(height,-twistExtrude_angle)
             )
         for rib_number in range(rib_count):
             shape = shape - reverse_rib.rotate((0,0,0),(0,0,1),rib_angular_spacing*rib_number)
 
     return shape
 
-show_object(twist_rib_vase(rib_spacing=60))
+show_object(twist_rib_vase(rib_spacing=60), options={"alpha":0.5})
