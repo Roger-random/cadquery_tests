@@ -202,8 +202,10 @@ def inner_twist_rib_vase(
 
     rib_count = round(math.pi*diameter/rib_spacing)
     rib_angular_spacing = 360/rib_count
-    for rib_number in range(rib_count):
-        shape = shape - slot_rib.rotate((0,0,0),(0,0,1),rib_angular_spacing*rib_number)
+
+    ribs = slot_rib
+    for rib_number in range(1,rib_count):
+        ribs = ribs + slot_rib.rotate((0,0,0),(0,0,1),rib_angular_spacing*rib_number)
 
     if cut_reverse_ribs:
         reverse_rib = (
@@ -216,8 +218,8 @@ def inner_twist_rib_vase(
             .twistExtrude(height,-twistExtrude_angle)
             )
         for rib_number in range(rib_count):
-            shape = shape - reverse_rib.rotate((0,0,0),(0,0,1),rib_angular_spacing*rib_number+reverse_rib_offset)
+            ribs = ribs + reverse_rib.rotate((0,0,0),(0,0,1),rib_angular_spacing*rib_number+reverse_rib_offset)
 
-    return shape
+    return shape - ribs
 
-show_object(inner_twist_rib_vase(rib_spacing=120), options={"alpha":0.5})
+# show_object(inner_twist_rib_vase(rib_spacing=120), options={"alpha":0.5})
