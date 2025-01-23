@@ -222,4 +222,49 @@ def inner_twist_rib_vase(
 
     return shape - ribs
 
-# show_object(inner_twist_rib_vase(rib_spacing=120), options={"alpha":0.5})
+# Similar to above except returns a solid intended to be printed normally
+# (not vase mode) however it is tricky to make the shape in a way that
+# the slicer can understand without adding a bunch of extraneous moves.
+# The print head should move in a continuous motion almost as if it is
+# vase mode.
+def inner_twist_rib(
+        diameter = default_outer_diameter,
+        height = default_height,
+        thickness = default_nozzle_diameter,
+        rib_depth = 5,
+        rib_spacing = 30,
+        rib_twist = 45,
+        cut_reverse_ribs = True,
+        reverse_rib_offset = 25,
+        zero_gap = default_zero_gap):
+    shape = (
+        cq.Workplane("XY")
+        .circle(diameter/2)
+        .circle(diameter/2 - thickness)
+        .extrude(height)
+        )
+
+    # Convert desired rib angle into angle parameter for twistExtrude
+    twistExtrude_angle = twist_extrude_angle(rib_twist, height, diameter)
+
+    rib = (
+        cq.Workplane("XY")
+        .lineTo(diameter/2-rib_depth, thickness,forConstruction=True)
+        .lineTo(diameter/2-rib_depth,-thickness)
+        .lineTo(diameter/2          ,-thickness)
+        .lineTo(diameter/2          , thickness)
+        .close()
+        .twistExtrude(height,twistExtrude_angle)
+        )
+
+    rib_count = round(math.pi*diameter/rib_spacing)
+    rib_angular_spacing = 360/rib_count
+
+    ribs = rib
+
+    for rib_number in range(1,rib_count):
+        ribs = ribs + rib.rotate((0,0,0),(0,0,1),rib_angular_spacing*rib_number)
+
+    return shape + ribs #+ ribs.mirror("XZ")
+
+show_object(inner_twist_rib(rib_spacing=120, thickness=0.5), options={"alpha":0.5})
