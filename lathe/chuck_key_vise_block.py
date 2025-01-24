@@ -72,3 +72,22 @@ block2 = block.mirror("XZ")
 
 show_object(block , options={"color":"red", "alpha":0.5})
 show_object(block2 , options={"color":"blue", "alpha":0.5})
+
+target_square = 7
+reference_length = 15
+side_thickness = 5
+
+edge_reference = (
+    cq.Workplane("XZ")
+    .lineTo(block_width/2, target_square/2, forConstruction = True)
+    .lineTo(reference_length + block_width/2,   target_square/2)
+    .lineTo(reference_length + block_width/2,   side_thickness+block_height/2)
+    .lineTo(block_width/2 - reference_length*3, side_thickness+block_height/2)
+    .lineTo(block_width/2 - reference_length*3, block_height/2)
+    .lineTo(block_width/2                     , block_height/2)
+    .close()
+    .extrude(block_height/2)
+    .edges("|Y").fillet(2)
+    )
+
+show_object(edge_reference , options={"color":"green", "alpha":0.5})
