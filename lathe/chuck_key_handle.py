@@ -29,7 +29,7 @@ SOFTWARE.
 import cadquery as cq
 
 handle_diameter = 30
-handle_length = 50
+handle_length = 150
 handle_fillet = 10
 
 # Handle exterior volume
