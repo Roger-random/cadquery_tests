@@ -44,69 +44,74 @@ fastener_shaft_diameter = 3.4
 fastener_head_diameter = 6
 fastener_square_nut_side = 5.5
 
-# Handle exterior volume
-handle = (
-    cq.Workplane("XZ")
-    .circle(handle_diameter/2)
-    .extrude(handle_length/2,both=True)
-    .fillet(handle_fillet)
-    )
+# Designed so I could print the same shape twice and screw them together,
+# clamping down on the metal shaft.
+def two_mirrored_parts():
+    # Handle exterior volume
+    handle = (
+        cq.Workplane("XZ")
+        .circle(handle_diameter/2)
+        .extrude(handle_length/2,both=True)
+        .fillet(handle_fillet)
+        )
 
-# Subtract square profile of metal shaft
-handle = handle - (
-    cq.Workplane("YZ")
-    .rect(shaft_square_side, shaft_square_side)
-    .extrude(handle_diameter, both=True)
-    ).intersect(
-    cq.Workplane("YZ")
-    .circle(shaft_diameter/2)
-    .extrude(handle_diameter, both=True)
-    )
+    # Subtract square profile of metal shaft
+    handle = handle - (
+        cq.Workplane("YZ")
+        .rect(shaft_square_side, shaft_square_side)
+        .extrude(handle_diameter, both=True)
+        ).intersect(
+        cq.Workplane("YZ")
+        .circle(shaft_diameter/2)
+        .extrude(handle_diameter, both=True)
+        )
 
-# Subtract round profile of metal shaft
-handle = handle - (
-    cq.Workplane("YZ")
-    .transformed(offset=cq.Vector(0,0,handle_diameter/2 - shaft_flat_mismatch))
-    .circle(shaft_diameter/2)
-    .extrude(handle_diameter)
-    )
+    # Subtract round profile of metal shaft
+    handle = handle - (
+        cq.Workplane("YZ")
+        .transformed(offset=cq.Vector(0,0,handle_diameter/2 - shaft_flat_mismatch))
+        .circle(shaft_diameter/2)
+        .extrude(handle_diameter)
+        )
 
-# Subtract volume for two fasteners
-# Start with cylinder to clear fastener shaft
-fastener = (
-    cq.Workplane("XY")
-    .transformed(offset=cq.Vector(0,fastener_shaft_center_offset,0))
-    .circle(fastener_shaft_diameter/2)
-    .extrude(handle_diameter,both=True)
-    )
+    # Subtract volume for two fasteners
+    # Start with cylinder to clear fastener shaft
+    fastener = (
+        cq.Workplane("XY")
+        .transformed(offset=cq.Vector(0,fastener_shaft_center_offset,0))
+        .circle(fastener_shaft_diameter/2)
+        .extrude(handle_diameter,both=True)
+        )
 
-# Add cylinder to clear fastener head
-fastener = fastener + (
-    cq.Workplane("XY")
-    .transformed(offset=cq.Vector(0,fastener_shaft_center_offset,handle_diameter/2-4))
-    .circle(fastener_head_diameter/2)
-    .extrude(handle_diameter)
-    )
+    # Add cylinder to clear fastener head
+    fastener = fastener + (
+        cq.Workplane("XY")
+        .transformed(offset=cq.Vector(0,fastener_shaft_center_offset,handle_diameter/2-4))
+        .circle(fastener_head_diameter/2)
+        .extrude(handle_diameter)
+        )
 
-# Add volume for square nut
-fastener = fastener + (
-    cq.Workplane("XY")
-    .transformed(offset=cq.Vector(0,fastener_shaft_center_offset,-handle_diameter/2+4))
-    .rect(fastener_square_nut_side, fastener_square_nut_side)
-    .extrude(-handle_diameter)
-    )
+    # Add volume for square nut
+    fastener = fastener + (
+        cq.Workplane("XY")
+        .transformed(offset=cq.Vector(0,fastener_shaft_center_offset,-handle_diameter/2+4))
+        .rect(fastener_square_nut_side, fastener_square_nut_side)
+        .extrude(-handle_diameter)
+        )
 
-# Subtract symmetric pair of fasteners
-handle = handle - fastener
-handle = handle - fastener.rotate((0,0,0),(1,0,0),180)
+    # Subtract symmetric pair of fasteners
+    handle = handle - fastener
+    handle = handle - fastener.rotate((0,0,0),(1,0,0),180)
 
-# Keep just the top half.
-# TODO: figure out how to do this right with .split()
-#   handle.split(keepTop=True) splits on XZ plane instead of XY plane as expected.
-handle = handle - (
-    cq.Workplane("XY")
-    .rect(handle_length*2, handle_length*2)
-    .extrude(-handle_diameter)
-    )
-# Split the shape in half
-show_object(handle, options={"color":"blue", "alpha":0.5})
+    # Keep just the top half.
+    # TODO: figure out how to do this right with .split()
+    #   handle.split(keepTop=True) splits on XZ plane instead of XY plane as expected.
+    handle = handle - (
+        cq.Workplane("XY")
+        .rect(handle_length*2, handle_length*2)
+        .extrude(-handle_diameter)
+        )
+
+    return handle
+
+show_object(two_mirrored_parts(), options={"color":"blue", "alpha":0.5})
