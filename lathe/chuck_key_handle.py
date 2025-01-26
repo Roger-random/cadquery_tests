@@ -119,7 +119,7 @@ def two_mirrored_parts():
 # Single part handle designed to fit over the metal shaft. Tradeoff: No weakness from
 # central gap but also no fastener to help clamp on shaft.
 def single_part():
-    round_section_height = 5
+    round_section_height = 2
     round_section_transition = 5
     # Handle exterior volume
     handle = (
