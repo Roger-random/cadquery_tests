@@ -28,9 +28,21 @@ SOFTWARE.
 
 import cadquery as cq
 
+# Handle is deliberately large so it's hard to forget and left on the lathe
 handle_diameter = 30
 handle_length = 150
 handle_fillet = 10
+
+# Metal shaft dimensions
+shaft_diameter = 9
+shaft_square_side = 7
+shaft_flat_mismatch = 7.5 # Cover up amateur machinist mistake
+
+# Fastener dimensions
+fastener_shaft_center_offset = 10
+fastener_shaft_diameter = 3.4
+fastener_head_diameter = 6
+fastener_square_nut_side = 5.5
 
 # Handle exterior volume
 handle = (
@@ -41,10 +53,6 @@ handle = (
     )
 
 # Subtract square profile of metal shaft
-shaft_diameter = 9
-shaft_square_side = 7
-shaft_flat_mismatch = 7.5 # Cover up amateur machinist mistake
-
 handle = handle - (
     cq.Workplane("YZ")
     .rect(shaft_square_side, shaft_square_side)
@@ -63,14 +71,9 @@ handle = handle - (
     .extrude(handle_diameter)
     )
 
-# Subtract volume for two M3 fasteners
-fastener_shaft_center_offset = 10
-fastener_shaft_diameter = 3.4
-fastener_head_diameter = 6
-fastener_square_nut_side = 5.5
-
+# Subtract volume for two fasteners
 # Start with cylinder to clear fastener shaft
-m3_fastener = (
+fastener = (
     cq.Workplane("XY")
     .transformed(offset=cq.Vector(0,fastener_shaft_center_offset,0))
     .circle(fastener_shaft_diameter/2)
@@ -78,7 +81,7 @@ m3_fastener = (
     )
 
 # Add cylinder to clear fastener head
-m3_fastener = m3_fastener + (
+fastener = fastener + (
     cq.Workplane("XY")
     .transformed(offset=cq.Vector(0,fastener_shaft_center_offset,handle_diameter/2-4))
     .circle(fastener_head_diameter/2)
@@ -86,7 +89,7 @@ m3_fastener = m3_fastener + (
     )
 
 # Add volume for square nut
-m3_fastener = m3_fastener + (
+fastener = fastener + (
     cq.Workplane("XY")
     .transformed(offset=cq.Vector(0,fastener_shaft_center_offset,-handle_diameter/2+4))
     .rect(fastener_square_nut_side, fastener_square_nut_side)
@@ -94,8 +97,8 @@ m3_fastener = m3_fastener + (
     )
 
 # Subtract symmetric pair of fasteners
-handle = handle - m3_fastener
-handle = handle - m3_fastener.rotate((0,0,0),(1,0,0),180)
+handle = handle - fastener
+handle = handle - fastener.rotate((0,0,0),(1,0,0),180)
 
 # Keep just the top half.
 # TODO: figure out how to do this right with .split()
