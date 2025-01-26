@@ -26,6 +26,8 @@ SOFTWARE.
 3D-printed handle to be mounted on the 9mm metal shaft of a 7mm chuck key
 """
 
+import math
+
 import cadquery as cq
 
 # Handle is deliberately large so it's hard to forget and left on the lathe
@@ -114,4 +116,49 @@ def two_mirrored_parts():
 
     return handle
 
-show_object(two_mirrored_parts(), options={"color":"blue", "alpha":0.5})
+# Single part handle designed to fit over the metal shaft. Tradeoff: No weakness from
+# central gap but also no fastener to help clamp on shaft.
+def single_part():
+    round_section_height = 5
+    round_section_transition = 5
+    # Handle exterior volume
+    handle = (
+        cq.Workplane("XZ")
+        .circle(handle_diameter/2)
+        .extrude(handle_length/2,both=True)
+        .fillet(handle_fillet)
+        )
+
+    # Slice off at point where sides are 45 degrees from print bed surface
+    handle = handle - (
+        cq.Workplane("XY")
+        .transformed(offset=cq.Vector(0,0,-(handle_diameter/2)*math.sin(math.radians(45))))
+        .rect(handle_length*2, handle_length*2)
+        .extrude(-handle_diameter)
+        )
+
+    # Cut channel for shaft
+    shaft_cutout = (
+        # Square portion
+        cq.Workplane("XY")
+        .transformed(offset=cq.Vector(0,0,(handle_diameter/2)-round_section_height-round_section_transition))
+        .rect(shaft_square_side, shaft_square_side)
+        .extrude(-handle_diameter)
+        # Transition to cylindrical
+        .faces(">Z")
+        .rect(shaft_square_side, shaft_square_side)
+        .workplane(offset=round_section_transition)
+        .circle(shaft_diameter/2)
+        .loft()
+        ).intersect(
+            # Soften corner of rectangular slot
+            cq.Workplane("XY")
+            .circle(shaft_diameter/2)
+            .extrude(handle_diameter/2,both=True)
+        ).faces(">Z").circle(shaft_diameter/2).extrude(handle_diameter)
+
+    handle = handle - shaft_cutout
+
+    return handle
+
+show_object(single_part(), options={"color":"blue", "alpha":0.5})
