@@ -33,38 +33,48 @@ holder for machinists.
 import math
 import cadquery as cq
 
-ball_diameter = 30
+# The ball for the ball-and-socket joint at the effector end
+
+ball_diameter = 20
 
 end_ball = (
     cq.Workplane("XY")
     .sphere(ball_diameter/2)
     )
 
-end_ball_lug_side = 12.5
+# The lug that will be added to the ball. This is the part that can be
+# customized for different attachments. Example: dial indicator holder.
+end_ball_lug_side = ball_diameter/math.sqrt(2)
+end_ball_lug_round_diameter = 6
 end_ball_lug_round_length = 5
-end_ball_lug_transition = 5
-end_ball_lug_square_length = 25
+end_ball_lug_transition = 6
+end_ball_lug_square_length = 20
+
+# The main lug shape
 end_ball_lug = (
     cq.Workplane("XZ")
-    .circle(end_ball_lug_side/2)
+    .circle(end_ball_lug_round_diameter/2)
     .extrude(ball_diameter/2 + end_ball_lug_round_length)
     .faces("<Y")
-    .circle(end_ball_lug_side/2)
+    .circle(end_ball_lug_round_diameter/2)
     .workplane(offset=end_ball_lug_transition)
     .rect(end_ball_lug_side, end_ball_lug_side)
     .loft()
     .faces("<Y")
     .rect(end_ball_lug_side, end_ball_lug_side)
     .extrude(end_ball_lug_square_length)
-    )
+    ).edges("|Y").fillet(1)
 
+# Hole for dial indicator
 end_ball_lug_hole_offset = (
-    10 +
+    end_ball_lug_square_length +
     end_ball_lug_round_length +
     end_ball_lug_transition +
-    ball_diameter/2
+    ball_diameter/2 -
+    end_ball_lug_side
     )
 end_ball_lug_hole_diameter = 9.5
+
 end_ball_lug_hole = (
     cq.Workplane("XY")
     .transformed(offset=cq.Vector(0, -end_ball_lug_hole_offset, 0))
@@ -72,7 +82,9 @@ end_ball_lug_hole = (
     .extrude(end_ball_lug_side, both=True)
     )
 
+# Slot allowing the lug to flex and clamp on indicator
 end_ball_lug_slot_width = 2
+
 end_ball_lug_slot = (
     cq.Workplane("XZ")
     .transformed(offset=cq.Vector(0, 0, end_ball_lug_hole_offset))
@@ -80,6 +92,7 @@ end_ball_lug_slot = (
     .extrude(end_ball_lug_square_length)
     )
 
+# Clamping fastener
 end_ball_lug_fastener_clearance_diameter = 3.5
 end_ball_lug_fastener_clearance_offset = (
     end_ball_lug_square_length +
@@ -88,6 +101,7 @@ end_ball_lug_fastener_clearance_offset = (
     ball_diameter/2 -
     end_ball_lug_fastener_clearance_diameter * 1.5
     )
+
 end_ball_lug_fastener_clearance = (
     cq.Workplane("YZ")
     .transformed(offset=cq.Vector(-end_ball_lug_fastener_clearance_offset, 0, 0))
@@ -95,6 +109,7 @@ end_ball_lug_fastener_clearance = (
     .extrude(end_ball_lug_side, both=True)
     )
 
+# Assemble the end ball-and-socket
 end_ball_assembly = (
     end_ball +
     end_ball_lug -
@@ -103,9 +118,74 @@ end_ball_assembly = (
     end_ball_lug_fastener_clearance
     )
 
+# Create the socket surrounind the ball
+ball_surround_thickness = end_ball_lug_round_length
+ball_surround_gap = 0.25
+ball_surround_inner_radius = ball_surround_gap + ball_diameter/2
+ball_surround_outer_radius = ball_surround_thickness + ball_diameter/2
+ball_surround_inner_45 = ball_surround_inner_radius/math.sqrt(2)
+ball_surround_outer_45 = ball_surround_outer_radius/math.sqrt(2)
 
+ball_surround_outer = (
+    cq.Workplane("YZ")
+    .sphere(ball_surround_thickness + ball_diameter/2)
+    )
+
+# Cut a cone so the end lug can swivel around freely in a 90 degree cone
+lug_clearance = (
+    cq.Workplane("YZ")
+    .lineTo(end_ball_lug_round_diameter/2, 0)
+    .lineTo(-ball_diameter, ball_diameter + end_ball_lug_round_diameter/2)
+    .lineTo(-ball_diameter, 0)
+    .close()
+    .revolve(360, (0,0,0), (1,0,0))
+    )
+ball_surround_outer = ball_surround_outer - lug_clearance
+#show_object(ball_surround_outer, options={"color":"red","alpha":0.5})
+
+# Build the arm connecting to the ball joint
+arm_length = 70
+arm_side_outer = 17
+rod_side = arm_side_outer - 5
+arm_side_inner = rod_side + ball_surround_gap * 2
+
+arm = ball_surround_outer + (
+    # Outer shell of arm
+    cq.Workplane("XZ")
+    .transformed(rotate=cq.Vector(0,0,45))
+    .rect(arm_side_outer, arm_side_outer)
+    .extrude(-arm_length)
+    .edges("|Y")
+    .fillet(2.5)
+    ) - (
+    # Cut channel for actuating rod
+    cq.Workplane("XZ")
+    .transformed(rotate=cq.Vector(0,0,45))
+    .rect(arm_side_inner, arm_side_inner)
+    .extrude(-arm_length)
+    ) + (
+    # Inner actuating rod
+    cq.Workplane("XZ")
+    .transformed(rotate=cq.Vector(0,0,45))
+    .rect(rod_side, rod_side)
+    .extrude(-arm_length)
+    ) - (
+    # Cut hole for end ball
+    cq.Workplane("YZ")
+    .sphere(ball_surround_gap + ball_diameter/2)
+    )
+
+# show_object(arm, options={"color":"green","alpha":0.5})
 #################################################################################
+# 80 columns
 # 2345678901234567890123456789012345678901234567890123456789012345678901234567890
 
+combined = end_ball_assembly + arm
 
-show_object(end_ball_assembly)
+chop = (
+    cq.Workplane("XY")
+    .transformed(offset=cq.Vector(0,0,-ball_diameter/(2*math.sqrt(2))))
+    .rect(2000,2000)
+    .extrude(-200)
+    )
+show_object(combined-chop, options={"color":"blue", "alpha":0.5})
