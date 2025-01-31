@@ -144,38 +144,112 @@ ball_surround_outer = ball_surround_outer - lug_clearance
 #show_object(ball_surround_outer, options={"color":"red","alpha":0.5})
 
 # Build the arm connecting to the ball joint
-arm_length = 70
+arm_length = 100
 arm_side_outer = 17
 rod_side = arm_side_outer - 5
 arm_side_inner = rod_side + ball_surround_gap * 2
 
-arm = ball_surround_outer + (
-    # Outer shell of arm
+arm_outer_shell = (
     cq.Workplane("XZ")
     .transformed(rotate=cq.Vector(0,0,45))
     .rect(arm_side_outer, arm_side_outer)
     .extrude(-arm_length)
     .edges("|Y")
     .fillet(2.5)
-    ) - (
-    # Cut channel for actuating rod
+    )
+
+arm_actuating_rod_channel = (
     cq.Workplane("XZ")
     .transformed(rotate=cq.Vector(0,0,45))
     .rect(arm_side_inner, arm_side_inner)
-    .extrude(-arm_length)
-    ) + (
-    # Inner actuating rod
+    .extrude(9-arm_length)
+    )
+
+arm_actuating_rod = (
     cq.Workplane("XZ")
     .transformed(rotate=cq.Vector(0,0,45))
     .rect(rod_side, rod_side)
-    .extrude(-arm_length)
-    ) - (
-    # Cut hole for end ball
+    .extrude(1-arm_length)
+    )
+
+arm_end_ball_cavity = (
     cq.Workplane("YZ")
     .sphere(ball_surround_gap + ball_diameter/2)
     )
 
-# show_object(arm, options={"color":"green","alpha":0.5})
+mid_joint_diameter = 40
+mid_joint_shell_thickness = 2.4
+mid_joint_external = (
+    cq.Workplane("XY")
+    .transformed(offset=cq.Vector(0, arm_length, -ball_surround_outer_radius))
+    .circle(mid_joint_diameter/2)
+    .extrude(ball_surround_outer_radius * 2)
+    )
+
+mid_joint_internal = (
+    cq.Workplane("XY")
+    .transformed(offset=cq.Vector(0, arm_length, mid_joint_shell_thickness - end_ball_lug_side/2))
+    .circle(mid_joint_diameter/2 - mid_joint_shell_thickness)
+    .extrude(ball_surround_outer_radius + end_ball_lug_side/2)
+    )
+
+mid_joint_cone_angle_radians = math.radians(30)
+mid_joint_cone = (
+    cq.Workplane("YZ")
+    .transformed(offset=cq.Vector(arm_length, 0, 0))
+    .lineTo(0, ball_surround_outer_radius, forConstruction = True)
+    .lineTo(mid_joint_diameter/2 -
+            mid_joint_shell_thickness,
+            ball_surround_outer_radius)
+    .lineTo(mid_joint_diameter/2 -
+            mid_joint_shell_thickness -
+            math.tan(mid_joint_cone_angle_radians) * ball_surround_outer_radius,
+            -ball_surround_outer_radius)
+    .lineTo(0, -ball_surround_outer_radius)
+    .close()
+    .revolve(360, (0,0,0),(0,1,0))
+    )
+
+mid_joint_ramp = (
+    cq.Workplane("XZ")
+    .transformed(offset=cq.Vector(0, 0, -arm_length))
+    .rect(end_ball_lug_side, end_ball_lug_side)
+    .extrude(-mid_joint_diameter/2)
+    ) - mid_joint_cone
+
+mid_joint_internal = (
+    mid_joint_internal -
+    mid_joint_ramp.rotate((0, arm_length, 0), (0, arm_length, 1), 60) -
+    mid_joint_ramp.rotate((0, arm_length, 0), (0, arm_length, 1), -60)
+    )
+
+mid_joint_fastener_diameter = 6.25
+mid_joint_fastener_clearance = (
+    cq.Workplane("XY")
+    .transformed(offset=cq.Vector(0, arm_length, 0))
+    .circle(mid_joint_fastener_diameter/2)
+    .extrude(ball_surround_outer_radius, both=True)
+    )
+
+rod_actuation_preload = 1
+arm_actuating_rod = (
+    arm_actuating_rod -
+    mid_joint_cone.translate((0,rod_actuation_preload,0))
+    )
+
+#show_object(mid_joint_ramp.rotate((0, arm_length, 0), (0, arm_length, 1), 60), options={"color":"green","alpha":0.5})
+
+arm = (
+    ball_surround_outer +
+    arm_outer_shell +
+    mid_joint_external -
+    mid_joint_internal -
+    mid_joint_fastener_clearance -
+    arm_actuating_rod_channel +
+    arm_actuating_rod -
+    arm_end_ball_cavity
+    )
+
 #################################################################################
 # 80 columns
 # 2345678901234567890123456789012345678901234567890123456789012345678901234567890
@@ -185,7 +259,7 @@ combined = end_ball_assembly + arm
 chop = (
     cq.Workplane("XY")
     .transformed(offset=cq.Vector(0,0,-ball_diameter/(2*math.sqrt(2))))
-    .rect(2000,2000)
-    .extrude(-200)
+    .rect(arm_length*3,arm_length*3)
+    .extrude(-ball_surround_outer_radius)
     )
-show_object(combined-chop, options={"color":"blue", "alpha":0.5})
+show_object(combined - chop, options={"color":"blue", "alpha":0.5})
