@@ -120,7 +120,7 @@ end_ball_assembly = (
 
 # Create the socket surrounind the ball
 ball_surround_thickness = end_ball_lug_round_length
-ball_surround_gap = 0.25
+ball_surround_gap = 0.2
 ball_surround_inner_radius = ball_surround_gap + ball_diameter/2
 ball_surround_outer_radius = ball_surround_thickness + ball_diameter/2
 ball_surround_inner_45 = ball_surround_inner_radius/math.sqrt(2)
@@ -141,14 +141,14 @@ lug_clearance = (
     .revolve(360, (0,0,0), (1,0,0))
     )
 ball_surround_outer = ball_surround_outer - lug_clearance
-#show_object(ball_surround_outer, options={"color":"red","alpha":0.5})
 
 # Build the arm connecting to the ball joint
-arm_length = 100
+arm_length = 50
 arm_side_outer = 17
 rod_side = arm_side_outer - 5
 arm_side_inner = rod_side + ball_surround_gap * 2
 
+# Outer shell will link the ball-and-socket to center (mid) joint
 arm_outer_shell = (
     cq.Workplane("XZ")
     .transformed(rotate=cq.Vector(0,0,45))
@@ -158,6 +158,8 @@ arm_outer_shell = (
     .fillet(2.5)
     )
 
+# Channel inside for rod that transmits pushing force from mid joint to
+# ball in socket
 arm_actuating_rod_channel = (
     cq.Workplane("XZ")
     .transformed(rotate=cq.Vector(0,0,45))
@@ -165,6 +167,7 @@ arm_actuating_rod_channel = (
     .extrude(9-arm_length)
     )
 
+# Rod that transmits pushing force from mid joint to ball in socket
 arm_actuating_rod = (
     cq.Workplane("XZ")
     .transformed(rotate=cq.Vector(0,0,45))
@@ -172,37 +175,52 @@ arm_actuating_rod = (
     .extrude(1-arm_length)
     )
 
+# The actual "socket" part of ball and socket
 arm_end_ball_cavity = (
     cq.Workplane("YZ")
     .sphere(ball_surround_gap + ball_diameter/2)
     )
 
+# Build the center/mid joint
 mid_joint_diameter = 40
-mid_joint_shell_thickness = 2.4
+mid_joint_shell_perimeter = 2.4
+mid_joint_shell_bottom = 1
+arm_side_height = arm_side_outer / math.sin(math.radians(45))
+
+# External cylinder that will be joined with arm outer shell
 mid_joint_external = (
     cq.Workplane("XY")
-    .transformed(offset=cq.Vector(0, arm_length, -ball_surround_outer_radius))
+    .transformed(offset=cq.Vector(
+        0,
+        arm_length,
+        -arm_side_height/2))
     .circle(mid_joint_diameter/2)
-    .extrude(ball_surround_outer_radius * 2)
+    .extrude(arm_side_height)
     )
 
+# Internal volume for the joint cone pressure mechanism
 mid_joint_internal = (
     cq.Workplane("XY")
-    .transformed(offset=cq.Vector(0, arm_length, mid_joint_shell_thickness - end_ball_lug_side/2))
-    .circle(mid_joint_diameter/2 - mid_joint_shell_thickness)
+    .transformed(offset=cq.Vector(
+        0,
+        arm_length,
+        mid_joint_shell_bottom - end_ball_lug_side/2))
+    .circle(mid_joint_diameter/2 - mid_joint_shell_perimeter)
     .extrude(ball_surround_outer_radius + end_ball_lug_side/2)
     )
 
+# Pressure angle on the cone
 mid_joint_cone_angle_radians = math.radians(30)
+
 mid_joint_cone = (
     cq.Workplane("YZ")
     .transformed(offset=cq.Vector(arm_length, 0, 0))
     .lineTo(0, ball_surround_outer_radius, forConstruction = True)
     .lineTo(mid_joint_diameter/2 -
-            mid_joint_shell_thickness,
+            mid_joint_shell_perimeter,
             ball_surround_outer_radius)
     .lineTo(mid_joint_diameter/2 -
-            mid_joint_shell_thickness -
+            mid_joint_shell_perimeter -
             math.tan(mid_joint_cone_angle_radians) * ball_surround_outer_radius,
             -ball_surround_outer_radius)
     .lineTo(0, -ball_surround_outer_radius)
@@ -210,10 +228,13 @@ mid_joint_cone = (
     .revolve(360, (0,0,0),(0,1,0))
     )
 
+# Static ramp inside mid joint to push against cone
+mid_joint_ramp_vertical_offset = -1.5
+mid_joint_ramp_height = end_ball_lug_side + mid_joint_ramp_vertical_offset*2
 mid_joint_ramp = (
     cq.Workplane("XZ")
-    .transformed(offset=cq.Vector(0, 0, -arm_length))
-    .rect(end_ball_lug_side, end_ball_lug_side)
+    .transformed(offset=cq.Vector(0, mid_joint_ramp_vertical_offset, -arm_length))
+    .rect(end_ball_lug_side, mid_joint_ramp_height)
     .extrude(-mid_joint_diameter/2)
     ) - mid_joint_cone
 
@@ -223,7 +244,8 @@ mid_joint_internal = (
     mid_joint_ramp.rotate((0, arm_length, 0), (0, arm_length, 1), -60)
     )
 
-mid_joint_fastener_diameter = 6.25
+# Fastener through center of mid joint.
+mid_joint_fastener_diameter = 6.5
 mid_joint_fastener_clearance = (
     cq.Workplane("XY")
     .transformed(offset=cq.Vector(0, arm_length, 0))
@@ -231,14 +253,47 @@ mid_joint_fastener_clearance = (
     .extrude(ball_surround_outer_radius, both=True)
     )
 
+# We only need a subset of the cone used in geometrical construction, a function
+# of the range of motion we need to make the arm work.
+cone_range_of_motion = 2
+
+cone_slice = (
+    cq.Workplane("XY")
+    .transformed(offset=cq.Vector(
+        0,
+        arm_length,
+        mid_joint_shell_bottom + cone_range_of_motion - end_ball_lug_side/2))
+    .circle(mid_joint_diameter/2)
+    .circle(cone_range_of_motion + mid_joint_fastener_diameter/2)
+    .extrude(mid_joint_ramp_height - mid_joint_shell_bottom)
+    )
+
+# Take up some slack already in the actuating rod that exists to help printing.
 rod_actuation_preload = 1
 arm_actuating_rod = (
     arm_actuating_rod -
     mid_joint_cone.translate((0,rod_actuation_preload,0))
     )
 
-#show_object(mid_joint_ramp.rotate((0, arm_length, 0), (0, arm_length, 1), 60), options={"color":"green","alpha":0.5})
+# Clearance between actuation rod and knob
+knob_height = 20
+knob_bottom = 0.6
 
+knob_volume = (
+    cq.Workplane("XY")
+    .transformed(offset=cq.Vector(
+        0,
+        arm_length,
+        mid_joint_ramp_height/2 + mid_joint_ramp_vertical_offset))
+    .circle(mid_joint_diameter/2 - mid_joint_shell_perimeter)
+    .extrude(knob_height)
+    )
+arm_actuating_rod = (
+    arm_actuating_rod -
+    knob_volume
+    )
+
+# Assemble half of the arm. Print this twice for the three-jointed mechanism.
 arm = (
     ball_surround_outer +
     arm_outer_shell +
@@ -249,6 +304,36 @@ arm = (
     arm_actuating_rod -
     arm_end_ball_cavity
     )
+
+pressure_cone = mid_joint_cone.intersect(cone_slice)
+show_object(pressure_cone, options={"color":"red","alpha":0.5})
+
+knob_hex_head = (
+    cq.Workplane("XY")
+    .transformed(offset=cq.Vector(
+        0,
+        arm_length,
+        mid_joint_ramp_height/2 + mid_joint_ramp_vertical_offset + knob_bottom))
+    .polygon(6, 11, circumscribed = True)
+    .extrude(knob_height)
+    )
+
+knob = (
+    cq.Workplane("XY")
+    .transformed(offset=cq.Vector(
+        0,
+        arm_length,
+        mid_joint_ramp_height/2 + mid_joint_ramp_vertical_offset))
+    .polygon(12,
+        mid_joint_diameter - mid_joint_shell_perimeter*2,
+        circumscribed = False)
+    .circle(mid_joint_fastener_diameter/2)
+    .extrude(knob_height)
+    .faces(">Z")
+    .fillet(2)
+    ) - knob_hex_head
+
+show_object(knob, options={"color":"green","alpha":0.5})
 
 #################################################################################
 # 80 columns
