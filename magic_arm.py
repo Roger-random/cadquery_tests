@@ -256,6 +256,8 @@ mid_joint_fastener_clearance = (
 # We only need a subset of the cone used in geometrical construction, a function
 # of the range of motion we need to make the arm work.
 cone_range_of_motion = 2
+cone_thickness = mid_joint_ramp_height - mid_joint_shell_bottom
+cone_center_hole_radius = cone_range_of_motion + mid_joint_fastener_diameter/2
 
 cone_slice = (
     cq.Workplane("XY")
@@ -264,8 +266,8 @@ cone_slice = (
         arm_length,
         mid_joint_shell_bottom + cone_range_of_motion - end_ball_lug_side/2))
     .circle(mid_joint_diameter/2)
-    .circle(cone_range_of_motion + mid_joint_fastener_diameter/2)
-    .extrude(mid_joint_ramp_height - mid_joint_shell_bottom)
+    .circle(cone_center_hole_radius)
+    .extrude(cone_thickness)
     )
 
 # Take up some slack already in the actuating rod that exists to help printing.
@@ -335,10 +337,6 @@ knob = (
 
 show_object(knob, options={"color":"green","alpha":0.5})
 
-#################################################################################
-# 80 columns
-# 2345678901234567890123456789012345678901234567890123456789012345678901234567890
-
 combined = end_ball_assembly + arm
 
 chop = (
@@ -348,3 +346,45 @@ chop = (
     .extrude(-ball_surround_outer_radius)
     )
 show_object(combined - chop, options={"color":"blue", "alpha":0.5})
+
+#################################################################################
+# Tooling
+cone_lathe_base = (
+    cq.Workplane("XY")
+    .circle(12)
+    .circle(mid_joint_fastener_diameter/2)
+    .extrude(-20)
+    .faces(">Z").workplane()
+    .circle(cone_center_hole_radius)
+    .circle(mid_joint_fastener_diameter/2)
+    .extrude(cone_thickness-0.5)
+    )
+
+cone_lathe_base_hex_head = (
+    cq.Workplane("XY")
+    .transformed(offset=cq.Vector(
+        0,
+        0,
+        cone_thickness-20))
+    .polygon(6, 11, circumscribed = True)
+    .extrude(-40)
+    )
+
+cone_lathe_base = cone_lathe_base - cone_lathe_base_hex_head
+show_object(cone_lathe_base.translate((0,arm_length,-ball_surround_outer_radius*3)), options={"color":"yellow", "alpha":0.5})
+
+# This is really just a big washer, but I don't have a metal one handy
+cone_lathe_disc = (
+    cq.Workplane("XY")
+    .transformed(offset=cq.Vector(
+        0,
+        0,
+        cone_thickness+5))
+    .circle(10)
+    .circle(mid_joint_fastener_diameter/2)
+    .extrude(3)
+    )
+
+show_object(cone_lathe_disc.translate((0,arm_length,-ball_surround_outer_radius*3)), options={"color":"yellow", "alpha":0.5})
+
+# 2345678901234567890123456789012345678901234567890123456789012345678901234567890
