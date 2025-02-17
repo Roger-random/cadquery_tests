@@ -30,6 +30,7 @@ import cadquery as cq
 
 def mid_brace_l(
     fastener_distance = 30,
+    fastener_distance_step = 20,
     fastener_major_diameter_clear = 6.6,
     brace_corner_fillet = 2,
     brace_thickness = 5,
@@ -61,7 +62,7 @@ def mid_brace_l(
         # Visualize clearance for washer wingnut
         show_object(
             cq.Workplane("XZ")
-            .transformed(offset=cq.Vector(brace_leg_length/2, brace_leg_width/2 - fastener_distance/2 - 20, 0))
+            .transformed(offset=cq.Vector(brace_leg_length/2, brace_leg_width/2 - fastener_distance/2 - fastener_distance_step, 0))
             .circle(10)
             .extrude(-brace_thickness)
         )
@@ -70,11 +71,11 @@ def mid_brace_l(
         mid_brace
         - fastener_hole
         - fastener_hole.translate((0, 0, -fastener_distance))
-        - fastener_hole.rotate((0,0,0),(0,0,1), -90).mirror("XZ").translate((0, 0,  20))
-        - fastener_hole.rotate((0,0,0),(0,0,1), -90).mirror("XZ").translate((0, 0, -fastener_distance-20))
+        - fastener_hole.rotate((0,0,0),(0,0,1), -90).mirror("XZ").translate((0, 0,  fastener_distance_step))
+        - fastener_hole.rotate((0,0,0),(0,0,1), -90).mirror("XZ").translate((0, 0, -fastener_distance-fastener_distance_step))
     )
 
     return mid_brace
 
-if show_object:
+if 'show_object' in globals():
     show_object(mid_brace_l(), options={"color":"blue", "alpha":0.5})
