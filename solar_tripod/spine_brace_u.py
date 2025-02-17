@@ -37,7 +37,7 @@ def spine_brace_u(
     spine_height = 40,
     brace_fillet = 2,
     brace_length = 25,
-    brace_thickness = 2,
+    brace_thickness = 2.4,
     brace_width = 45,
     ):
 
@@ -88,8 +88,8 @@ def spine_brace_u(
 
     brace = brace_half + brace_half.mirror("YZ")
 
-    brace = brace.faces("<Z").chamfer(brace_thickness/2)
-    brace = brace.faces(">Z").chamfer(brace_thickness/2)
+    brace = brace.faces("<Z").chamfer(brace_thickness*0.3)
+    brace = brace.faces(">Z").chamfer(brace_thickness*0.3)
 
     return brace
 
