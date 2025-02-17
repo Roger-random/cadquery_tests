@@ -23,22 +23,20 @@ SOFTWARE.
 """
 
 """
-3D-printed brace for an L-shaped corner
+3D-printed L-shaped brace for middle of the span
 """
 
 import cadquery as cq
 
-def corner_brace_l(
-    fastener_hex_width = 11.25,
-    fastener_hex_thickness = 5.7,
+def mid_brace_l(
+    fastener_distance = 30,
     fastener_major_diameter_clear = 6.6,
     brace_corner_fillet = 2,
-    brace_thickness = 2,
+    brace_thickness = 5,
     brace_leg_length = 40,
-    brace_leg_width = 20,
+    brace_leg_width = 70,
     ):
-
-    corner_brace = (
+    mid_brace = (
         cq.Workplane("XY")
         .lineTo(brace_leg_length, 0)
         .lineTo(0, brace_leg_length)
@@ -46,26 +44,28 @@ def corner_brace_l(
         .extrude(brace_leg_width)
     ).edges("|Z").fillet(brace_corner_fillet)
 
-    corner_brace = corner_brace - corner_brace.translate((
-        brace_thickness + fastener_hex_thickness,
-        brace_thickness + fastener_hex_thickness,
-        brace_thickness))
+    mid_brace = mid_brace - mid_brace.translate((
+        brace_thickness,
+        brace_thickness,
+        1.8
+    ))
 
-    bolt_subtract = (
+    fastener_hole =(
         cq.Workplane("XZ")
-        .transformed(offset=cq.Vector(brace_leg_length/2, brace_leg_width/2, 0))
+        .transformed(offset=cq.Vector(brace_leg_length/2, brace_leg_width/2 + fastener_distance/2, 0))
         .circle(fastener_major_diameter_clear/2)
         .extrude(-brace_thickness)
-        .faces(">Y").workplane()
-        .polygon(6, fastener_hex_width, circumscribed=True)
-        .extrude(fastener_hex_thickness)
     )
 
-    return (
-        corner_brace
-        - bolt_subtract
-        - bolt_subtract.rotate((0,0,0),(0,0,1), -90).mirror("XZ")
+    mid_brace = (
+        mid_brace
+        - fastener_hole
+        - fastener_hole.translate((0, 0, -fastener_distance))
+        - fastener_hole.rotate((0,0,0),(0,0,1), -90).mirror("XZ")
+        - fastener_hole.rotate((0,0,0),(0,0,1), -90).mirror("XZ").translate((0, 0, -fastener_distance))
     )
+
+    return mid_brace
 
 if show_object:
-    show_object(corner_brace_l(), options={"color":"blue", "alpha":0.5})
+    show_object(mid_brace_l(), options={"color":"blue", "alpha":0.5})
