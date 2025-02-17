@@ -34,7 +34,7 @@ def mid_brace_l(
     brace_corner_fillet = 2,
     brace_thickness = 5,
     brace_leg_length = 40,
-    brace_leg_width = 70,
+    brace_leg_width = 100,
     ):
     mid_brace = (
         cq.Workplane("XY")
@@ -57,12 +57,21 @@ def mid_brace_l(
         .extrude(-brace_thickness)
     )
 
+    if False:
+        # Visualize clearance for washer wingnut
+        show_object(
+            cq.Workplane("XZ")
+            .transformed(offset=cq.Vector(brace_leg_length/2, brace_leg_width/2 - fastener_distance/2 - 20, 0))
+            .circle(10)
+            .extrude(-brace_thickness)
+        )
+
     mid_brace = (
         mid_brace
         - fastener_hole
         - fastener_hole.translate((0, 0, -fastener_distance))
-        - fastener_hole.rotate((0,0,0),(0,0,1), -90).mirror("XZ")
-        - fastener_hole.rotate((0,0,0),(0,0,1), -90).mirror("XZ").translate((0, 0, -fastener_distance))
+        - fastener_hole.rotate((0,0,0),(0,0,1), -90).mirror("XZ").translate((0, 0,  20))
+        - fastener_hole.rotate((0,0,0),(0,0,1), -90).mirror("XZ").translate((0, 0, -fastener_distance-20))
     )
 
     return mid_brace
