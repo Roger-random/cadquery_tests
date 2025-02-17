@@ -67,5 +67,44 @@ def corner_brace_l(
         - bolt_subtract.rotate((0,0,0),(0,0,1), -90).mirror("XZ")
     )
 
+def mid_brace_l(
+    fastener_distance = 30,
+    fastener_major_diameter_clear = 6.6,
+    brace_corner_fillet = 2,
+    brace_thickness = 5,
+    brace_leg_length = 40,
+    brace_leg_width = 70,
+    ):
+    mid_brace = (
+        cq.Workplane("XY")
+        .lineTo(brace_leg_length, 0)
+        .lineTo(0, brace_leg_length)
+        .close()
+        .extrude(brace_leg_width)
+    ).edges("|Z").fillet(brace_corner_fillet)
+
+    mid_brace = mid_brace - mid_brace.translate((
+        brace_thickness,
+        brace_thickness,
+        1.8
+    ))
+
+    fastener_hole =(
+        cq.Workplane("XZ")
+        .transformed(offset=cq.Vector(brace_leg_length/2, brace_leg_width/2 + fastener_distance/2, 0))
+        .circle(fastener_major_diameter_clear/2)
+        .extrude(-brace_thickness)
+    )
+
+    mid_brace = (
+        mid_brace
+        - fastener_hole
+        - fastener_hole.translate((0, 0, -fastener_distance))
+        - fastener_hole.rotate((0,0,0),(0,0,1), -90).mirror("XZ")
+        - fastener_hole.rotate((0,0,0),(0,0,1), -90).mirror("XZ").translate((0, 0, -fastener_distance))
+    )
+
+    return mid_brace
+
 if show_object:
-    show_object(corner_brace_l(), options={"color":"blue", "alpha":0.5})
+    show_object(mid_brace_l(), options={"color":"blue", "alpha":0.5})
