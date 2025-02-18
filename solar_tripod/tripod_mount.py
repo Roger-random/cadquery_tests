@@ -77,12 +77,12 @@ def tripod_mount(
     wedge_width = 95,
     wedge_length = 120,
     fastener_distance = 30,
-    fastener_distance_step = 20,
+    fastener_inner_clear = 15,
+    fastener_distance_outer = 55,
     fastener_major_diameter_clear = 6.6,
-    brace_corner_fillet = 2,
     brace_thickness = 5,
     brace_leg_length = 40,
-    brace_leg_width = 140,
+    brace_leg_width = 150,
     ):
 
     wedge_block = (
@@ -121,8 +121,64 @@ def tripod_mount(
         .extrude(brace_leg_width/2, both=True)
     ).edges("|Z").fillet(brace_thickness*0.4)
 
+    wedge_rail_outer_fastener = (
+        cq.Workplane("XZ")
+        .transformed(offset=cq.Vector(fastener_distance_outer, - brace_leg_length/2))
+        .circle(fastener_major_diameter_clear)
+        .extrude(-brace_leg_width)
+    )
     wedge_rail = (
         wedge_rail
+        - wedge_rail_outer_fastener
+        - wedge_rail_outer_fastener.mirror("YZ")
+    )
+
+    wedge_rail_reinforcement =  (
+        cq.Workplane("YZ")
+        .transformed(offset=cq.Vector(0,0,fastener_distance/2 + fastener_inner_clear))
+        .line(wedge_length/2, 0)
+        .line(0, -brace_leg_length)
+        .line(-brace_thickness,0)
+        .line(-wedge_length * 0.8, brace_leg_length*0.75)
+        .close()
+        .extrude(brace_thickness)
+    )
+
+    wedge_rail = (
+        wedge_rail
+        + wedge_rail_reinforcement
+        + wedge_rail_reinforcement.mirror("YZ")
+    )
+
+    wedge_rail_clearance_half = (
+        # Wingnut area
+        cq.Workplane("XY")
+        .transformed(offset=cq.Vector(0,0,-brace_thickness))
+        .lineTo(0, wedge_length/2 - brace_leg_length, forConstruction=True)
+        .line(0, brace_leg_length - brace_thickness)
+        .line(fastener_distance/2 + fastener_inner_clear, 0)
+        .line(0, brace_thickness - brace_leg_length)
+        .close()
+        .extrude(-brace_leg_length)
+    ) + (
+        # Fastener hole
+        cq.Workplane("XY")
+        .transformed(offset=cq.Vector(fastener_distance/2,wedge_length/2 - brace_leg_length/2,-brace_thickness))
+        .circle(fastener_major_diameter_clear)
+        .extrude(brace_thickness)
+    )
+
+    wedge_rail_clearance = wedge_rail_clearance_half + wedge_rail_clearance_half.mirror("YZ")
+    wedge_rail_clearance = wedge_rail_clearance.edges("|Z").fillet(2)
+
+    wedge_rail = (
+        wedge_rail
+        .rotate((0,0,0),(1,0,0),wedge_angle)
+        .translate((0,0,wedge_height))
+    )
+
+    wedge_rail_clearance = (
+        wedge_rail_clearance
         .rotate((0,0,0),(1,0,0),wedge_angle)
         .translate((0,0,wedge_height))
     )
@@ -130,6 +186,7 @@ def tripod_mount(
     tripod_mount = (
         wedge_block
         + wedge_rail
+        - wedge_rail_clearance
         + tripod_dovetail()
     )
 
