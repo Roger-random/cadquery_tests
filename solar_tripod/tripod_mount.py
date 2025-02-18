@@ -124,7 +124,7 @@ def tripod_mount(
     wedge_rail_outer_fastener = (
         cq.Workplane("XZ")
         .transformed(offset=cq.Vector(fastener_distance_outer, - brace_leg_length/2))
-        .circle(fastener_major_diameter_clear)
+        .circle(fastener_major_diameter_clear/2)
         .extrude(-brace_leg_width)
     )
     wedge_rail = (
@@ -164,7 +164,7 @@ def tripod_mount(
         # Fastener hole
         cq.Workplane("XY")
         .transformed(offset=cq.Vector(fastener_distance/2,wedge_length/2 - brace_leg_length/2,-brace_thickness))
-        .circle(fastener_major_diameter_clear)
+        .circle(fastener_major_diameter_clear/2)
         .extrude(brace_thickness)
     )
 
