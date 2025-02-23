@@ -29,32 +29,30 @@ Experiment in 3D-printing a frame around a piece of acrylic
 import cadquery as cq
 
 def acrylic_frame(
-    acrylic_length = 85,
-    acrylic_width = 16,
-    acrylic_thickness = 3,
-    frame_thickness = 3
+    acrylic_length = 56,
+    acrylic_width = 29,
+    acrylic_thickness = 3.2,
+    frame_thickness = 1.2
     ):
     af = (
         # Outer frame
         cq.Workplane("XY")
         .box(
-            acrylic_length + frame_thickness,
+            acrylic_length + frame_thickness*2,
             acrylic_width + frame_thickness*2,
             acrylic_thickness + frame_thickness*2)
         .edges("|Z").fillet(frame_thickness)
     ) - (
         # Inner void
         cq.Workplane("XY")
-        .transformed(offset=cq.Vector(frame_thickness*2, 0, 0))
         .box(
-            acrylic_length,
-            acrylic_width - frame_thickness,
+            acrylic_length - frame_thickness*2,
+            acrylic_width - frame_thickness*2,
             acrylic_thickness + frame_thickness*2
         )
     ) - (
         # Acrylic slot
         cq.Workplane("XY")
-        .transformed(offset=cq.Vector(frame_thickness, 0, 0))
         .box(
             acrylic_length,
             acrylic_width,
