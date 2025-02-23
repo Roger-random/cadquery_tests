@@ -30,12 +30,12 @@ quick and small piece that's better than just using fingers.
 import cadquery as cq
 
 def pipe_tap_handle(
-    length_half = 50,
-    width_half = 15,
+    length_half = 35,
+    width_half = 20,
     height = 15,
     corner_fillet = 5,
     face_chamfer = 1,
-    tap_square_side = 8.7,
+    tap_square_side = 14,
     ):
 
     quarter = (
