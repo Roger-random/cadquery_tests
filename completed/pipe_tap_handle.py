@@ -30,11 +30,11 @@ quick and small piece that's better than just using fingers.
 import cadquery as cq
 
 def pipe_tap_handle(
-    length_half = 35,
+    length_half = 150,
     width_half = 20,
-    height = 15,
+    height = 20,
     corner_fillet = 5,
-    face_chamfer = 1,
+    face_fillet = 3,
     tap_square_side = 14,
     ):
 
@@ -56,8 +56,8 @@ def pipe_tap_handle(
         .extrude(-height, combine='cut')
     )
 
-    handle = handle.faces("<Z").chamfer(face_chamfer)
-    handle = handle.faces(">Z").chamfer(face_chamfer)
+    handle = handle.faces("<Z").fillet(face_fillet)
+    handle = handle.faces(">Z").fillet(face_fillet)
 
     return handle
 
