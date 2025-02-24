@@ -44,11 +44,18 @@ def water_nozzle(
         .extrude(threaded_length)
     )
 
-    # Cosmetic
-    nozzle = nozzle.edges("|Z").fillet(3)
-    nozzle = nozzle.faces("|Y").chamfer(1)
+    elbow = (
+        cq.Workplane("XZ")
+        .rect(threaded_exterior_size, threaded_exterior_size)
+        .circle(threaded_interior_diameter/2)
+        .revolve(90,
+                 (threaded_exterior_size, -threaded_exterior_size * 0.6, 0),
+                 (-threaded_exterior_size, -threaded_exterior_size * 0.6, 0))
+    )
 
-    return nozzle
+    nozzle = nozzle + elbow
+
+    return nozzle + elbow
 
 if 'show_object' in globals():
     show_object(water_nozzle(), options={"color":"blue", "alpha":0.5})
