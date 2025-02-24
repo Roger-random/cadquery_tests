@@ -32,21 +32,21 @@ and spoil the effect.
 
 import cadquery as cq
 
-def water_nozzle(
-    threaded_exterior_size = 30,
-    threaded_interior_diameter = 20.5,
+def water_nozzle_base(
+    threaded_exterior_size = 35,
+    threaded_interior_diameter = 20.75,
     threaded_length = 20,
     ):
     nozzle = (
         cq.Workplane("XZ")
-        .rect(threaded_exterior_size, threaded_exterior_size)
+        .circle(threaded_exterior_size/2)
         .circle(threaded_interior_diameter/2)
         .extrude(threaded_length)
     )
 
     elbow = (
         cq.Workplane("XZ")
-        .rect(threaded_exterior_size, threaded_exterior_size)
+        .circle(threaded_exterior_size/2)
         .circle(threaded_interior_diameter/2)
         .revolve(90,
                  (threaded_exterior_size, -threaded_exterior_size * 0.6, 0),
@@ -55,7 +55,7 @@ def water_nozzle(
 
     nozzle = nozzle + elbow
 
-    return nozzle + elbow
+    return nozzle
 
 if 'show_object' in globals():
-    show_object(water_nozzle(), options={"color":"blue", "alpha":0.5})
+    show_object(water_nozzle_base(), options={"color":"blue", "alpha":0.5})
