@@ -33,29 +33,41 @@ and spoil the effect.
 import cadquery as cq
 
 def water_nozzle_base(
-    threaded_exterior_size = 35,
+    length = 95,
+    diameter = 70,
+    threaded_exterior_size = 40,
     threaded_interior_diameter = 20.75,
     threaded_length = 20,
+    unthreaded_interior_diameter = 22.5,
+    lip_depth = 4,
+    lip_length = 4,
     ):
-    nozzle = (
-        cq.Workplane("XZ")
+    threaded_end = (
+        cq.Workplane("YZ")
         .circle(threaded_exterior_size/2)
         .circle(threaded_interior_diameter/2)
         .extrude(threaded_length)
     )
 
-    elbow = (
-        cq.Workplane("XZ")
+    thread_transition_length = unthreaded_interior_diameter - threaded_interior_diameter
+    lip_section_length = lip_length*2 + lip_depth
+    lip_section = (
+        cq.Workplane("YZ")
+        .circle(threaded_exterior_size/2 - lip_depth)
+        .extrude(-lip_length)
+        .faces("<X").workplane()
+        .circle(threaded_exterior_size/2 - lip_depth)
+        .workplane(offset=lip_depth)
         .circle(threaded_exterior_size/2)
-        .circle(threaded_interior_diameter/2)
-        .revolve(90,
-                 (threaded_exterior_size, -threaded_exterior_size * 0.6, 0),
-                 (-threaded_exterior_size, -threaded_exterior_size * 0.6, 0))
+        .loft()
+        .faces("<X").workplane()
+        .circle(threaded_exterior_size/2)
+        .extrude(lip_length)
     )
 
-    nozzle = nozzle + elbow
+    base = threaded_end + lip_section
 
-    return nozzle
+    return base
 
 if 'show_object' in globals():
     show_object(water_nozzle_base(), options={"color":"blue", "alpha":0.5})
