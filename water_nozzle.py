@@ -130,6 +130,19 @@ def mounting_clip(
 
     return clip
 
+def filler_ring(
+    base_diameter = 45,
+    lip_size = 4,
+    ):
+    return (
+        cq.Workplane("XZ")
+        .lineTo(-lip_size*4, base_diameter/2, forConstruction=True)
+        .line(-lip_size,0)
+        .line(lip_size, -lip_size)
+        .close()
+        .revolve(360, (0,0,0),(1,0,0))
+    )
+
 def simple_elbow(
     base_diameter = 45,
     inner_diameter = 15,
@@ -149,4 +162,5 @@ def simple_elbow(
 
 if 'show_object' in globals():
     show_object(water_nozzle_base(), options={"color":"blue", "alpha":0.5})
+    show_object(filler_ring(), options={"color":"green", "alpha":0.5})
     show_object(simple_elbow(), options={"color":"red", "alpha":0.5})
