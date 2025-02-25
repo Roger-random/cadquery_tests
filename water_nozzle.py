@@ -160,7 +160,48 @@ def simple_elbow(
 
     return mounting_clip()+elbow
 
+def flattened_oval_nozzle(
+    base_diameter = 45,
+    inner_diameter = 15,
+    ):
+    outer = (
+        cq.Workplane("YZ")
+        .circle(base_diameter/2)
+        .workplane()
+        .transformed(
+            offset=cq.Vector(0,-12,20),
+            rotate=cq.Vector(40,0,0))
+        .ellipse(base_diameter/1.5, base_diameter/2.5)
+        .workplane()
+        .transformed(
+            offset=cq.Vector(0,-20,30),
+            rotate=cq.Vector(40,0,0))
+        .ellipse(base_diameter, base_diameter/8)
+        .loft()
+    )
+
+    inner = (
+        cq.Workplane("YZ")
+        .circle(inner_diameter/2)
+        .workplane()
+        .transformed(
+            offset=cq.Vector(0,-12,20),
+            rotate=cq.Vector(40,0,0))
+        .ellipse(inner_diameter*1.6, inner_diameter/2.5)
+        .workplane()
+        .transformed(
+            offset=cq.Vector(0,-21,31),
+            rotate=cq.Vector(40,0,0))
+        .ellipse(base_diameter-2, base_diameter/8-2)
+        .loft()
+    )
+
+    nozzle = outer - inner
+
+    return mounting_clip()+nozzle
+
 if 'show_object' in globals():
     show_object(water_nozzle_base(), options={"color":"blue", "alpha":0.5})
     show_object(filler_ring(), options={"color":"green", "alpha":0.5})
-    show_object(simple_elbow(), options={"color":"red", "alpha":0.5})
+    #show_object(simple_elbow(), options={"color":"red", "alpha":0.5})
+    show_object(flattened_oval_nozzle(), options={"color":"red", "alpha":0.5})
