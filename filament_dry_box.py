@@ -36,14 +36,20 @@ class filament_dry_box:
     def __init__(
             self,
             spool_diameter = 200,
-            spool_diameter_margin = 10,
-            spool_width = 80,
-            spool_width_margin = 5,
+            spool_diameter_margin = 3,
+            spool_width = 40,
+            spool_width_margin = 3,
+            shell_thickness = 1.6,
+            shell_bottom_radius = 10,
+            bottom_extra_height = 20,
             ):
         self.spool_diameter = spool_diameter
-        self.spool_diameter_margin = spool_diameter_margin
+        self.spool_volume_radius = spool_diameter/2 + spool_diameter_margin
         self.spool_width = spool_width
-        self.spool_width_margin = spool_width_margin
+        self.spool_volume_width = spool_width/2 + spool_width_margin
+        self.shell_thickness = shell_thickness
+        self.shell_bottom_radius = shell_bottom_radius
+        self.bottom_extra_height = bottom_extra_height
 
     def spool_placeholder(
             self,
@@ -73,9 +79,67 @@ class filament_dry_box:
 
         return spool
 
-    def generate_box(self):
-        return cq.Workplane("XY").box(1,2,3)
+    def box_perimeter_path(self):
+        """
+        Path describing the shape of enclosed volume. Used to sweep the outer
+        perimeter as well as generating the flat side panels.
+        """
+        return (
+            cq.Workplane("YZ")
+            .lineTo(
+                0,
+                self.spool_volume_radius,
+                forConstruction=True )
+            .radiusArc((self.spool_volume_radius,0), self.spool_volume_radius)
+            .line(0, self.shell_bottom_radius-self.spool_volume_radius-self.bottom_extra_height)
+            .radiusArc((
+                self.spool_volume_radius - self.shell_bottom_radius,
+                -self.spool_volume_radius - self.bottom_extra_height
+                ), self.shell_bottom_radius)
+            .line(-self.spool_volume_radius+self.shell_bottom_radius, 0)
+        )
+
+    def box_side(
+            self,
+            ):
+        """
+        Use perimeter path to generate a simple flat side panel.
+        """
+        return (
+            self.box_perimeter_path()
+            .close()
+            .extrude(self.shell_thickness)
+        ).translate((self.spool_volume_width,0,0))
+
+    def box_perimeter(
+            self,
+            ):
+        """
+        Draw profile of perimeter all around the box, then sweep it along pereimeter path.
+        """
+        profile = (
+            cq.Workplane("XZ")
+            .lineTo(self.spool_volume_width,
+                self.spool_volume_radius,
+                forConstruction=True )
+            .line(-self.spool_volume_width, 0)
+            .line(0, self.shell_thickness)
+            .line(self.spool_volume_width, 0)
+            .line(self.shell_thickness, -self.shell_thickness)
+            .close()
+        )
+
+        return profile.sweep(self.box_perimeter_path())
 
 if 'show_object' in globals():
     box = filament_dry_box()
     show_object(box.spool_placeholder(), options={"color":"black", "alpha":0.75})
+    tray = box.box_perimeter()+box.box_side()
+    tray = tray + tray.mirror("XZ")
+    tray = tray - (
+        cq.Workplane("YZ")
+        .circle(box.spool_volume_radius - 10)
+        .extrude(box.spool_volume_radius)
+    )
+    show_object(tray, options={"color":"blue", "alpha":0.5})
+    #show_object(box.box_side(), options={"color":"red", "alpha":0.5})
