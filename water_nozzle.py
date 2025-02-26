@@ -22,186 +22,211 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-"""
-3D-printed piece to be tapped and threaded onto the end of a water pipe to
-redirect flow. An experiment to see whether 3D-printed shapes can be used to
-obtain fine control. Original motivation is wondering if 3D-printed shape can
-create and control laminar flow or if print layer lines would add turbulence
-and spoil the effect.
-"""
-
 import cadquery as cq
 import cadquery.selectors as sel
 
-def water_nozzle_base(
-    length = 95,
-    diameter = 70,
-    threaded_exterior_size = 45,
-    threaded_interior_diameter = 20.75,
-    threaded_length = 20,
-    shell_thickness = 1.6,
-    lip_size = 4,
-    ):
-    threaded_end = (
-        cq.Workplane("YZ")
-        .circle(threaded_exterior_size/2)
-        .circle(threaded_interior_diameter/2)
-        .extrude(-threaded_length)
-    )
+class water_nozzle:
+    """
+    3D-printed experiment to see whether 3D-printed shapes can be used to
+    control flow of water. Original motivation is wondering if 3D-printed
+    shape can create and control laminar flow or if print layer lines would
+    add turbulence and spoil laminar flow.
+    """
 
-    flared_end = (
-        cq.Workplane("XZ")
-        .lineTo(-threaded_length, threaded_exterior_size/2, forConstruction=True)
-        .bezier(
-            (
-                (-threaded_length, threaded_exterior_size/2),
-                (-threaded_length*3, threaded_exterior_size/2),
-                (-length+5, diameter/2 - 5),
-                (-length, diameter/2)
-            )
+    def __init__(
+            self,
+            base_diameter = 45,
+            inner_diameter = 15,
+            lip_size = 4
+            ):
+        """
+        Configure parameters required for all pieces to interlock.
+
+        base_diameter is the outermost diameter for the interlocking section.
+        inner_diameter is the water pipe's inner diameter
+        lip_size is the base unit for creating cutout for interlocking lip
+        """
+        self.base_diameter = base_diameter
+        self.inner_diameter = inner_diameter
+        self.lip_size = lip_size
+
+    def base(
+            self,
+            length = 95,
+            flare_diameter = 70,
+            threaded_interior_diameter = 20.75,
+            threaded_length = 20,
+            shell_thickness = 1.6,
+            ):
+        """
+        Base piece to be tapped and threaded onto the end of a water pipe. The
+        flared end rests against the tile wall, the other end has the
+        interlocking lip mechanism
+        """
+        threaded_end = (
+            cq.Workplane("YZ")
+            .circle(self.base_diameter/2)
+            .circle(threaded_interior_diameter/2)
+            .extrude(-threaded_length)
         )
-        .lineTo(-length, diameter/2 - shell_thickness)
-        .bezier(
-            (
-                (-length, diameter/2 - shell_thickness),
-                (-length+ 5, diameter/2 - 5 - shell_thickness),
-                (-threaded_length*3, threaded_exterior_size/2 - shell_thickness),
-                (-threaded_length, threaded_exterior_size/2 - shell_thickness),
-                (-threaded_length, threaded_interior_diameter/2)
+
+        flared_end = (
+            cq.Workplane("XZ")
+            .lineTo(-threaded_length, self.base_diameter/2, forConstruction=True)
+            .bezier(
+                (
+                    (-threaded_length, self.base_diameter/2),
+                    (-threaded_length*3, self.base_diameter/2),
+                    (-length+5, flare_diameter/2 - 5),
+                    (-length, flare_diameter/2)
+                )
             )
+            .lineTo(-length, flare_diameter/2 - shell_thickness)
+            .bezier(
+                (
+                    (-length, flare_diameter/2 - shell_thickness),
+                    (-length+ 5, flare_diameter/2 - 5 - shell_thickness),
+                    (-threaded_length*3, self.base_diameter/2 - shell_thickness),
+                    (-threaded_length, self.base_diameter/2 - shell_thickness),
+                    (-threaded_length, threaded_interior_diameter/2)
+                )
+            )
+            .close()
+            .revolve(360, (0,0,0),(1,0,0))
         )
-        .close()
-        .revolve(360, (0,0,0),(1,0,0))
-    )
 
-    lip_cutout = (
-        cq.Workplane("XZ")
-        .lineTo(-lip_size*2, threaded_exterior_size/2 - lip_size*2, forConstruction=True)
-        .line(0,lip_size)
-        .line(lip_size*2, 0)
-        .line(0,lip_size*2)
-        .line(-lip_size*6,0)
-        .line(lip_size*3, -lip_size*3)
-        .close()
-        .revolve(360, (0,0,0),(1,0,0))
-    )
+        lip_cutout = (
+            cq.Workplane("XZ")
+            .lineTo(-self.lip_size*2, self.base_diameter/2 - self.lip_size*2, forConstruction=True)
+            .line(0,self.lip_size)
+            .line(self.lip_size*2, 0)
+            .line(0,self.lip_size*2)
+            .line(-self.lip_size*6,0)
+            .line(self.lip_size*3, -self.lip_size*3)
+            .close()
+            .revolve(360, (0,0,0),(1,0,0))
+        )
 
-    base = threaded_end + flared_end - lip_cutout
+        base = threaded_end + flared_end - lip_cutout
 
-    base = base.faces(">X").chamfer(0.5)
-    base = base.faces(">X[1]").chamfer(0.5)
+        base = base.faces(">X").chamfer(0.5)
+        base = base.faces(">X[1]").chamfer(0.5)
 
-    return base
+        return base
 
-def mounting_clip(
-    base_diameter = 45,
-    lip_size = 4,
-    ):
-    clip_full = (
-        cq.Workplane("XZ")
-        .lineTo(0, base_diameter/2 - lip_size, forConstruction=True)
-        .line(0, lip_size)
-        .line(-lip_size*4,0)
-        .line(0,-lip_size)
-        .line(lip_size, -lip_size)
-        .line(lip_size, 0)
-        .line(0, lip_size)
-        .close()
-        .revolve(360, (0,0,0),(1,0,0))
-    )
+    def filler_ring(self):
+        """
+        Interlock geometry of the base is a little compromised in order to
+        print without supports. This ring fills in the worse cosmetic wedge.
+        """
+        return (
+            cq.Workplane("XZ")
+            .lineTo(-self.lip_size*4, self.base_diameter/2, forConstruction=True)
+            .line(-self.lip_size,0)
+            .line(self.lip_size, -self.lip_size)
+            .close()
+            .revolve(360, (0,0,0),(1,0,0))
+        )
 
-    clip_cut_half = (
-        cq.Workplane("XY")
-        .line(0, base_diameter/2-lip_size)
-        .line(-lip_size*2, 0)
-        .line(0, -lip_size)
-        .line(-lip_size, 0)
-        .line(-lip_size, lip_size)
-        .lineTo(-lip_size*4, 0)
-        .close()
-        .extrude(-base_diameter)
-    )
+    def mounting_clip(self):
+        """
+        Each interchangeable interlocking nozzle may have different geometries
+        to explore different ideas, but they will all have the same mount to
+        attach to the base.
+        """
+        clip_full = (
+            cq.Workplane("XZ")
+            .lineTo(0, self.base_diameter/2 - self.lip_size, forConstruction=True)
+            .line(0, self.lip_size)
+            .line(-self.lip_size*4,0)
+            .line(0,-self.lip_size)
+            .line(self.lip_size, -self.lip_size)
+            .line(self.lip_size, 0)
+            .line(0, self.lip_size)
+            .close()
+            .revolve(360, (0,0,0),(1,0,0))
+        )
 
-    clip_cut = clip_cut_half + clip_cut_half.mirror("XZ")
+        clip_cut_half = (
+            cq.Workplane("XY")
+            .line(0, self.base_diameter/2-self.lip_size)
+            .line(-self.lip_size*2, 0)
+            .line(0, -self.lip_size)
+            .line(-self.lip_size, 0)
+            .line(-self.lip_size, self.lip_size)
+            .lineTo(-self.lip_size*4, 0)
+            .close()
+            .extrude(-self.base_diameter)
+        )
 
-    clip = clip_full - clip_cut
+        clip_cut = clip_cut_half + clip_cut_half.mirror("XZ")
 
-    clip = clip.edges("<Z").fillet(2)
+        clip = clip_full - clip_cut
 
-    return clip
+        return clip
 
-def filler_ring(
-    base_diameter = 45,
-    lip_size = 4,
-    ):
-    return (
-        cq.Workplane("XZ")
-        .lineTo(-lip_size*4, base_diameter/2, forConstruction=True)
-        .line(-lip_size,0)
-        .line(lip_size, -lip_size)
-        .close()
-        .revolve(360, (0,0,0),(1,0,0))
-    )
+    def simple_elbow(
+            self,
+            angle = 75,
+            ):
+        """
+        Simple elbow that most closely approximates the original store bought
+        nozzle design. Not exciting, just a starting point to make sure I have
+        the basics working.
+        """
+        elbow = (
+            cq.Workplane("YZ")
+            .circle(self.base_diameter/2)
+            .circle(self.inner_diameter/2)
+            .revolve(angle, (0, -self.base_diameter*0.51, 0), (1, -self.base_diameter*0.51, 0))
+        )
 
-def simple_elbow(
-    base_diameter = 45,
-    inner_diameter = 15,
-    angle = 75,
-    ):
+        elbow = elbow.edges(sel.NearestToPointSelector((0, self.inner_diameter/2,0))).fillet(2)
 
-    elbow = (
-        cq.Workplane("YZ")
-        .circle(base_diameter/2)
-        .circle(inner_diameter/2)
-        .revolve(angle, (0, -base_diameter*0.51, 0), (1, -base_diameter*0.51, 0))
-    )
+        return self.mounting_clip()+elbow
 
-    elbow = elbow.edges(sel.NearestToPointSelector((0, inner_diameter/2,0))).fillet(2)
+    def flattened_oval(
+            self,
+            ):
+        outer = (
+            cq.Workplane("YZ")
+            .circle(self.base_diameter/2)
+            .workplane()
+            .transformed(
+                offset=cq.Vector(0,-12,20),
+                rotate=cq.Vector(40,0,0))
+            .ellipse(self.base_diameter/1.5, self.base_diameter/2.5)
+            .workplane()
+            .transformed(
+                offset=cq.Vector(0,-20,30),
+                rotate=cq.Vector(40,0,0))
+            .ellipse(self.base_diameter, self.base_diameter/8)
+            .loft()
+        )
 
-    return mounting_clip()+elbow
+        inner = (
+            cq.Workplane("YZ")
+            .circle(self.inner_diameter/2)
+            .workplane()
+            .transformed(
+                offset=cq.Vector(0,-12,20),
+                rotate=cq.Vector(40,0,0))
+            .ellipse(self.inner_diameter*1.6, self.inner_diameter/2.5)
+            .workplane()
+            .transformed(
+                offset=cq.Vector(0,-21,31),
+                rotate=cq.Vector(40,0,0))
+            .ellipse(self.base_diameter-2, self.base_diameter/8-2)
+            .loft()
+        )
 
-def flattened_oval_nozzle(
-    base_diameter = 45,
-    inner_diameter = 15,
-    ):
-    outer = (
-        cq.Workplane("YZ")
-        .circle(base_diameter/2)
-        .workplane()
-        .transformed(
-            offset=cq.Vector(0,-12,20),
-            rotate=cq.Vector(40,0,0))
-        .ellipse(base_diameter/1.5, base_diameter/2.5)
-        .workplane()
-        .transformed(
-            offset=cq.Vector(0,-20,30),
-            rotate=cq.Vector(40,0,0))
-        .ellipse(base_diameter, base_diameter/8)
-        .loft()
-    )
+        nozzle = outer - inner
 
-    inner = (
-        cq.Workplane("YZ")
-        .circle(inner_diameter/2)
-        .workplane()
-        .transformed(
-            offset=cq.Vector(0,-12,20),
-            rotate=cq.Vector(40,0,0))
-        .ellipse(inner_diameter*1.6, inner_diameter/2.5)
-        .workplane()
-        .transformed(
-            offset=cq.Vector(0,-21,31),
-            rotate=cq.Vector(40,0,0))
-        .ellipse(base_diameter-2, base_diameter/8-2)
-        .loft()
-    )
-
-    nozzle = outer - inner
-
-    return mounting_clip()+nozzle
+        return self.mounting_clip()+nozzle
 
 if 'show_object' in globals():
-    show_object(water_nozzle_base(), options={"color":"blue", "alpha":0.5})
-    show_object(filler_ring(), options={"color":"green", "alpha":0.5})
-    #show_object(simple_elbow(), options={"color":"red", "alpha":0.5})
-    show_object(flattened_oval_nozzle(), options={"color":"red", "alpha":0.5})
+    nozzle = water_nozzle()
+    show_object(nozzle.base(), options={"color":"blue", "alpha":0.5})
+    show_object(nozzle.filler_ring(), options={"color":"green", "alpha":0.5})
+    #show_object(nozzle.simple_elbow(), options={"color":"red", "alpha":0.5})
+    show_object(nozzle.flattened_oval(), options={"color":"red", "alpha":0.5})
