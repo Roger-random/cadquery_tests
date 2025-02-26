@@ -33,12 +33,49 @@ class filament_dry_box:
     internet for keeping filament dry. Here is my take building something
     tailored to my personal preferences.
     """
-    def __init__(self):
-        pass
+    def __init__(
+            self,
+            spool_diameter = 200,
+            spool_diameter_margin = 10,
+            spool_width = 80,
+            spool_width_margin = 5,
+            ):
+        self.spool_diameter = spool_diameter
+        self.spool_diameter_margin = spool_diameter_margin
+        self.spool_width = spool_width
+        self.spool_width_margin = spool_width_margin
 
-    def generate_box():
+    def spool_placeholder(
+            self,
+            spool_side_thickness = 5):
+        """
+        Generate a shape centered around origin that is a visual representation
+        (not intended for printing) of the filament spool we want to enclose.
+        """
+        center = (
+            cq.Workplane("YZ")
+            .circle(self.spool_diameter/4)
+            .circle(self.spool_diameter/4 - spool_side_thickness)
+            .extrude(self.spool_width/2)
+        )
+
+        side = (
+            cq.Workplane("YZ")
+            .transformed(offset=cq.Vector(0,0,self.spool_width/2))
+            .circle(self.spool_diameter/2)
+            .circle(self.spool_diameter/4 - spool_side_thickness)
+            .extrude(-spool_side_thickness)
+        )
+
+        half = center + side
+
+        spool = half + half.mirror("YZ")
+
+        return spool
+
+    def generate_box(self):
         return cq.Workplane("XY").box(1,2,3)
 
 if 'show_object' in globals():
     box = filament_dry_box()
-    show_object(box.generate_box(), options={"color":"blue", "alpha":0.5})
+    show_object(box.spool_placeholder(), options={"color":"black", "alpha":0.75})
