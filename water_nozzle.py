@@ -188,6 +188,12 @@ class water_nozzle:
     def flattened_oval(
             self,
             ):
+        """
+        Nozzle that changes from a pipe's circular shape to a very flattened
+        oval. Results in a nearly but not completely flat triangular fan of
+        water. More water than expected exited at the edges, resulting in
+        a "frame" around the flat sheet in the middle.
+        """
         outer = (
             cq.Workplane("YZ")
             .circle(self.base_diameter/2)
