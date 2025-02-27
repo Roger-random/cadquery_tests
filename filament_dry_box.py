@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
+import math
 import cadquery as cq
 
 
@@ -172,6 +173,39 @@ class filament_dry_box:
 
         return profile.sweep(self.box_perimeter_path())
 
+    def bearing_tray(
+        self,
+        bearing_diameter_outer=22,
+        bearing_diameter_inner=8,
+        bearing_length=7,
+        bearing_separation_angle_degrees=30,
+    ):
+        bearing_distance = self.spool_diameter / 2 + bearing_diameter_outer / 2
+        bearing_x = self.spool_width / 2 - bearing_length
+        bearing_separation_angle_radians = math.radians(
+            180 - bearing_separation_angle_degrees / 2
+        )
+        bearing_y = bearing_distance * math.sin(bearing_separation_angle_radians)
+        bearing_z = bearing_distance * math.cos(bearing_separation_angle_radians)
+
+        bearing_placeholder = (
+            cq.Workplane("YZ")
+            .circle(bearing_diameter_outer / 2)
+            .circle(bearing_diameter_inner / 2)
+            .extrude(bearing_length)
+        ).translate((bearing_x, bearing_y, bearing_z))
+
+        return {"bearings": mirror_xy(bearing_placeholder)}
+
+
+def mirror_xy(quarter):
+    return (
+        quarter
+        + quarter.mirror("XZ")
+        + quarter.mirror("YZ")
+        + quarter.mirror("YZ").mirror("XZ")
+    )
+
 
 def compact_storage_box():
     fdb = filament_dry_box(bottom_extra_height=0)
@@ -187,12 +221,20 @@ def compact_storage_box():
     )
 
 
+def show_bearing_tray(fdb):
+    assert "show_object" in globals()
+    tray = fdb.bearing_tray()
+    bearings = tray["bearings"]
+    show_object(bearings, options={"color": "yellow", "alpha": 0.5})
+
+
 def individual_components():
     fdb = filament_dry_box()
     show_object(fdb.spool_placeholder(), options={"color": "black", "alpha": 0.75})
     show_object(fdb.fully_closed_side(), options={"color": "red", "alpha": 0.5})
     show_object(fdb.box_perimeter(), options={"color": "blue", "alpha": 0.5})
     show_object(fdb.lid_perimeter(), options={"color": "green", "alpha": 0.5})
+    show_bearing_tray(fdb)
 
 
 if "show_object" in globals():
