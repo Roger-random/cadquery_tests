@@ -24,6 +24,7 @@ SOFTWARE.
 
 import cadquery as cq
 
+
 class filament_dry_box:
     """
     3D-printed filaments tend to pick up moisture to varying degrees (depending
@@ -33,45 +34,44 @@ class filament_dry_box:
     internet for keeping filament dry. Here is my take building something
     tailored to my personal preferences.
     """
+
     def __init__(
-            self,
-            spool_diameter = 200,
-            spool_diameter_margin = 3.4,
-            spool_width = 70,
-            spool_width_margin = 3,
-            shell_thickness = 0.8,
-            shell_bottom_radius = 10,
-            bottom_extra_height = 0,
-            lid_height = 10,
-            ):
+        self,
+        spool_diameter=200,
+        spool_diameter_margin=3.4,
+        spool_width=70,
+        spool_width_margin=3,
+        shell_thickness=0.8,
+        shell_bottom_radius=10,
+        bottom_extra_height=40,
+        lid_height=10,
+    ):
         self.spool_diameter = spool_diameter
-        self.spool_volume_radius = spool_diameter/2 + spool_diameter_margin
+        self.spool_volume_radius = spool_diameter / 2 + spool_diameter_margin
         self.spool_width = spool_width
-        self.spool_volume_width = spool_width/2 + spool_width_margin
+        self.spool_volume_width = spool_width / 2 + spool_width_margin
         self.shell_thickness = shell_thickness
         self.shell_bottom_radius = shell_bottom_radius
         self.bottom_extra_height = bottom_extra_height
         self.lid_height = lid_height
 
-    def spool_placeholder(
-            self,
-            spool_side_thickness = 5):
+    def spool_placeholder(self, spool_side_thickness=5):
         """
         Generate a shape centered around origin that is a visual representation
         (not intended for printing) of the filament spool we want to enclose.
         """
         center = (
             cq.Workplane("YZ")
-            .circle(self.spool_diameter/4)
-            .circle(self.spool_diameter/4 - spool_side_thickness)
-            .extrude(self.spool_width/2)
+            .circle(self.spool_diameter / 4)
+            .circle(self.spool_diameter / 4 - spool_side_thickness)
+            .extrude(self.spool_width / 2)
         )
 
         side = (
             cq.Workplane("YZ")
-            .transformed(offset=cq.Vector(0,0,self.spool_width/2))
-            .circle(self.spool_diameter/2)
-            .circle(self.spool_diameter/4 - spool_side_thickness)
+            .transformed(offset=cq.Vector(0, 0, self.spool_width / 2))
+            .circle(self.spool_diameter / 2)
+            .circle(self.spool_diameter / 4 - spool_side_thickness)
             .extrude(-spool_side_thickness)
         )
 
@@ -88,23 +88,25 @@ class filament_dry_box:
         """
         return (
             cq.Workplane("YZ")
-            .lineTo(
+            .lineTo(0, self.spool_volume_radius, forConstruction=True)
+            .radiusArc((self.spool_volume_radius, 0), self.spool_volume_radius)
+            .line(
                 0,
-                self.spool_volume_radius,
-                forConstruction=True )
-            .radiusArc((self.spool_volume_radius,0), self.spool_volume_radius)
-            .line(0, self.shell_bottom_radius-self.spool_volume_radius-self.bottom_extra_height)
-            .radiusArc((
-                self.spool_volume_radius - self.shell_bottom_radius,
-                -self.spool_volume_radius - self.bottom_extra_height
-                ), self.shell_bottom_radius)
-            .line(-self.spool_volume_radius+self.shell_bottom_radius, 0)
+                self.shell_bottom_radius
+                - self.spool_volume_radius
+                - self.bottom_extra_height,
+            )
+            .radiusArc(
+                (
+                    self.spool_volume_radius - self.shell_bottom_radius,
+                    -self.spool_volume_radius - self.bottom_extra_height,
+                ),
+                self.shell_bottom_radius,
+            )
+            .line(-self.spool_volume_radius + self.shell_bottom_radius, 0)
         )
 
-    def fully_closed_side(
-            self,
-            wall_thickness = 0.6
-            ):
+    def fully_closed_side(self, wall_thickness=0.6):
         """
         The outer perimeter of side panels
         """
@@ -113,9 +115,8 @@ class filament_dry_box:
         profile = (
             cq.Workplane("XZ")
             .lineTo(
-                self.spool_volume_width,
-                self.spool_volume_radius,
-                forConstruction=True )
+                self.spool_volume_width, self.spool_volume_radius, forConstruction=True
+            )
             .line(0, self.shell_thickness)
             .line(wall_thickness, -wall_thickness)
             .line(0, wall_thickness - self.shell_thickness)
@@ -124,43 +125,36 @@ class filament_dry_box:
 
         rim = profile.sweep(self.box_perimeter_path())
 
-        panel = (
-            self.box_perimeter_path()
-            .close()
-            .extrude(wall_thickness)
-        ).translate((self.spool_volume_width, 0, 0))
+        panel = (self.box_perimeter_path().close().extrude(wall_thickness)).translate(
+            (self.spool_volume_width, 0, 0)
+        )
 
         return rim + panel
 
-    def box_perimeter(
-            self,
-            ):
+    def box_perimeter(self):
         """
         Draw profile of perimeter all around the box, then sweep it along perimeter path.
         Lip of the box must stay in sync with lid_perimeter for the two to mesh.
         """
-        box_width = self.spool_volume_width*2 - self.lid_height
+        box_width = self.spool_volume_width * 2 - self.lid_height
         profile = (
             cq.Workplane("XZ")
             .lineTo(
-                self.spool_volume_width,
-                self.spool_volume_radius,
-                forConstruction=True )
+                self.spool_volume_width, self.spool_volume_radius, forConstruction=True
+            )
             .line(-box_width + self.shell_thickness, 0)
             .line(-self.shell_thickness, -self.shell_thickness)
-            .line(-self.lid_height,0)
-            .line( self.shell_thickness, self.shell_thickness)
-            .line( self.lid_height - self.shell_thickness*1.5, 0)
-            .line( self.shell_thickness, self.shell_thickness)
-            .line( box_width - self.shell_thickness/2, 0)
+            .line(-self.lid_height, 0)
+            .line(self.shell_thickness, self.shell_thickness)
+            .line(self.lid_height - self.shell_thickness * 1.5, 0)
+            .line(self.shell_thickness, self.shell_thickness)
+            .line(box_width - self.shell_thickness / 2, 0)
             .close()
         )
 
         return profile.sweep(self.box_perimeter_path())
 
-    def lid_perimeter(
-            self,
-            ):
+    def lid_perimeter(self):
         """
         Draw profile of lid all around the box, then sweep it along perimeter path.
         Must stay in sync with box_perimeter for the two to mesh.
@@ -168,22 +162,38 @@ class filament_dry_box:
         profile = (
             cq.Workplane("XZ")
             .lineTo(
-                -self.spool_volume_width,
-                 self.spool_volume_radius,
-                 forConstruction=True)
-            .line(self.lid_height - self.shell_thickness/2, 0)
+                -self.spool_volume_width, self.spool_volume_radius, forConstruction=True
+            )
+            .line(self.lid_height - self.shell_thickness / 2, 0)
             .line(self.shell_thickness, self.shell_thickness)
-            .line(-self.lid_height-self.shell_thickness/2, 0)
+            .line(-self.lid_height - self.shell_thickness / 2, 0)
             .close()
         )
 
         return profile.sweep(self.box_perimeter_path())
 
-if 'show_object' in globals():
-    box = filament_dry_box()
-    show_object(box.spool_placeholder(), options={"color":"black", "alpha":0.75})
-    box_half = box.box_perimeter() + box.fully_closed_side()
-    show_object(box_half + box_half.mirror("XZ"), options={"color":"blue", "alpha":0.5})
 
-    lid_half = box.lid_perimeter() + box.fully_closed_side().mirror("YZ")
-    show_object(lid_half + lid_half.mirror("XZ"), options={"color":"green", "alpha":0.5})
+def compact_storage_box():
+    fdb = filament_dry_box(bottom_extra_height=0)
+    show_object(fdb.spool_placeholder(), options={"color": "black", "alpha": 0.75})
+    box_half = fdb.box_perimeter() + fdb.fully_closed_side()
+    show_object(
+        box_half + box_half.mirror("XZ"), options={"color": "blue", "alpha": 0.5}
+    )
+
+    lid_half = fdb.lid_perimeter() + fdb.fully_closed_side().mirror("YZ")
+    show_object(
+        lid_half + lid_half.mirror("XZ"), options={"color": "green", "alpha": 0.5}
+    )
+
+
+def individual_components():
+    fdb = filament_dry_box()
+    show_object(fdb.spool_placeholder(), options={"color": "black", "alpha": 0.75})
+    show_object(fdb.fully_closed_side(), options={"color": "red", "alpha": 0.5})
+    show_object(fdb.box_perimeter(), options={"color": "blue", "alpha": 0.5})
+    show_object(fdb.lid_perimeter(), options={"color": "green", "alpha": 0.5})
+
+
+if "show_object" in globals():
+    individual_components()
