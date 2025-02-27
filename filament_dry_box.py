@@ -41,15 +41,17 @@ class filament_dry_box:
         spool_diameter=200,
         spool_diameter_margin=3.4,
         spool_width=70,
-        spool_width_margin=3,
+        spool_width_margin=5,
         shell_thickness=0.8,
         shell_bottom_radius=10,
         bottom_extra_height=40,
         lid_height=10,
     ):
         self.spool_diameter = spool_diameter
+        self.spool_diameter_margin = spool_diameter_margin
         self.spool_volume_radius = spool_diameter / 2 + spool_diameter_margin
         self.spool_width = spool_width
+        self.spool_width_margin = spool_width_margin
         self.spool_volume_width = spool_width / 2 + spool_width_margin
         self.shell_thickness = shell_thickness
         self.shell_bottom_radius = shell_bottom_radius
@@ -179,6 +181,8 @@ class filament_dry_box:
         bearing_diameter_inner=8,
         bearing_length=7,
         bearing_separation_angle_degrees=30,
+        rail_lip_gap=0.5,
+        bearing_lip_size=0.5,
     ):
         bearing_distance = self.spool_diameter / 2 + bearing_diameter_outer / 2
         bearing_x = self.spool_width / 2 - bearing_length
@@ -195,7 +199,47 @@ class filament_dry_box:
             .extrude(bearing_length)
         ).translate((bearing_x, bearing_y, bearing_z))
 
-        return {"bearings": mirror_xy(bearing_placeholder)}
+        rail_lip_size = self.spool_width_margin - rail_lip_gap
+        bearing_rail = (
+            cq.Workplane("XZ")
+            .transformed(rotate=cq.Vector(bearing_separation_angle_degrees / 2, 0, 0))
+            .lineTo(
+                self.spool_volume_width, -self.spool_diameter / 2, forConstruction=True
+            )
+            # Draw the top lip
+            .line(0, rail_lip_size)
+            .line(-rail_lip_size, -rail_lip_size)
+            .line(
+                -rail_lip_gap, -bearing_diameter_outer / 2 + bearing_diameter_inner / 2
+            )
+            # Top of bearing center
+            .line(-bearing_length, 0)
+            # Bearing retaining clip
+            .line(-rail_lip_gap, bearing_lip_size)
+            .line(-bearing_lip_size, 0)
+            .line(0, -bearing_diameter_inner / 2 - bearing_lip_size)
+            # Bottom of bearing center
+            .line(bearing_length + bearing_lip_size + rail_lip_gap, -bearing_lip_size)
+            .line(rail_lip_gap, -bearing_diameter_outer / 2)
+            .radiusArc(
+                (0, -self.spool_volume_radius - bearing_diameter_outer),
+                self.spool_diameter,
+            )
+            .lineTo(
+                0,
+                -self.spool_volume_radius
+                - bearing_diameter_outer
+                - bearing_diameter_inner,
+            )
+            .line(self.spool_volume_width, 0)
+            #            .line(self.spool_width_margin, 0)
+            .close()
+            .extrude((bearing_diameter_inner / 2) - bearing_lip_size, both=True)
+        )
+
+        bearing_rail = bearing_rail - bearing_placeholder
+
+        return {"bearing": bearing_placeholder, "rail": bearing_rail}
 
 
 def mirror_xy(quarter):
@@ -224,13 +268,14 @@ def compact_storage_box():
 def show_bearing_tray(fdb):
     assert "show_object" in globals()
     tray = fdb.bearing_tray()
-    bearings = tray["bearings"]
-    show_object(bearings, options={"color": "yellow", "alpha": 0.5})
+    bearings = tray["bearing"]
+    show_object(mirror_xy(bearings), options={"color": "black", "alpha": 0.9})
+    show_object(tray["rail"])
 
 
 def individual_components():
     fdb = filament_dry_box()
-    show_object(fdb.spool_placeholder(), options={"color": "black", "alpha": 0.75})
+    show_object(fdb.spool_placeholder(), options={"color": "black", "alpha": 0.9})
     show_object(fdb.fully_closed_side(), options={"color": "red", "alpha": 0.5})
     show_object(fdb.box_perimeter(), options={"color": "blue", "alpha": 0.5})
     show_object(fdb.lid_perimeter(), options={"color": "green", "alpha": 0.5})
