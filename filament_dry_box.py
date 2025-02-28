@@ -43,7 +43,7 @@ class filament_dry_box:
         spool_width=70,
         spool_width_margin=5,
         shell_thickness=1.6,
-        shell_bottom_radius=10,
+        shell_bottom_radius=30,
         bottom_extra_height=40,
         lid_height=10,
     ):
