@@ -322,12 +322,91 @@ class filament_dry_box:
             "bearing": bearing_placeholder,
             "rail half": bearing_rail,
             "tray": tray,
-            "tray length": tray_length_half * 2,
+            "tray length half": tray_length_half,
             "below tray": self.spool_volume_radius
             + self.bottom_extra_height
             - tray_inner_radius
             - tray_structure_thickness,
         }
+
+    def dessicant_tray_gyroid(
+        self,
+        wall_thickness=3,
+        top_opening=10,
+        center_y=0,
+    ):
+        """
+        A tray to hold loose dessicant particles (not enclosed in paper bag)
+        Printed with zero top layers, zero perimeters, and Gyroid infill in
+        order to generate a container with highly porous walls. Adjust infill
+        percentage proportional to size of dessicant particcles to avoid leaks.
+        """
+        top_edge_length = top_opening + wall_thickness * 2
+
+        spool_angle_for_depth = math.acos(
+            (self.spool_volume_radius - top_edge_length) / self.spool_volume_radius
+        )
+        top_edge_height_z = math.sin(spool_angle_for_depth) * self.spool_volume_radius
+
+        volume = (
+            cq.Workplane("YZ")
+            .lineTo(self.spool_volume_radius, -top_edge_height_z, forConstruction=True)
+            .line(-top_edge_length, 0)
+            .lineTo(center_y, top_edge_length - self.spool_volume_radius)
+            .lineTo(center_y, -self.spool_volume_radius - self.bottom_extra_height)
+            .lineTo(
+                self.spool_volume_radius,
+                -self.spool_volume_radius - self.bottom_extra_height,
+            )
+            .close()
+            .extrude(self.spool_volume_width - self.shell_thickness, both=True)
+            .faces("<Z")
+            .edges(">Y")
+            .chamfer(self.shell_bottom_radius)
+        )
+
+        spool_subtract = (
+            cq.Workplane("YZ")
+            .circle(self.spool_volume_radius)
+            .extrude(self.spool_volume_width, both=True)
+        )
+
+        volume = volume - spool_subtract
+
+        volume = volume.faces("+Z").shell(-wall_thickness)
+        volume = volume.faces("<X").fillet(wall_thickness / 2)
+        volume = volume.faces(">X").fillet(wall_thickness / 2)
+
+        return volume
+
+    def dessicant_tray_triangular(self):
+        """
+        Aborted effort at a wedge-shaped dessicant tray
+        """
+        tangent_point = self.spool_volume_radius * math.sin(math.radians(45))
+        tangent_remaining = self.spool_volume_radius - tangent_point
+
+        volume = (
+            cq.Workplane("YZ")
+            .lineTo(tangent_point, -tangent_point, forConstruction=True)
+            .line(tangent_remaining, tangent_remaining)
+            .lineTo(
+                self.spool_volume_radius,
+                -self.spool_volume_radius - self.bottom_extra_height,
+            )
+            .line(-tangent_remaining, 0)
+            .close()
+            .extrude(self.spool_volume_width, both=True)
+            .faces("<Z")
+            .edges(">Y")
+            .fillet(self.shell_bottom_radius)
+            .edges("|Z")
+            .fillet(self.shell_bottom_radius / 2)
+            .faces(">Z")
+            .shell(5)
+        )
+
+        return volume
 
 
 def mirror_xy(quarter):
@@ -362,6 +441,7 @@ def show_bearing_tray(fdb):
     show_object(rail.mirror("XZ"), options={"color": "#ABCDEF", "alpha": 0.5})
     show_object(tray["tray"], options={"alpha": 0.5})
     log(tray["below tray"])
+    return tray["tray length half"]
 
 
 def individual_components():
@@ -370,7 +450,11 @@ def individual_components():
     show_object(fdb.fully_closed_side(), options={"color": "red", "alpha": 0.5})
     show_object(fdb.box_perimeter(), options={"color": "blue", "alpha": 0.5})
     show_object(fdb.lid_perimeter(), options={"color": "green", "alpha": 0.5})
-    show_bearing_tray(fdb)
+    half_length = show_bearing_tray(fdb)
+    show_object(
+        fdb.dessicant_tray_gyroid(center_y=half_length + fdb.shell_thickness * 2),
+        options={"color": "#AF3", "alpha": 0.5},
+    )
 
 
 if "show_object" in globals():
