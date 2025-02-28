@@ -511,15 +511,24 @@ def show_bearing_tray(fdb):
 def filament_feed_box():
     fdb = filament_dry_box(bottom_extra_height=28)
     show_object(fdb.spool_placeholder(), options={"color": "black", "alpha": 0.9})
-    show_object(fdb.fully_closed_side(), options={"color": "red", "alpha": 0.5})
-    box = fdb.box_perimeter()
+    fcs = fdb.fully_closed_side(wall_thickness=1.4)
+    box = fdb.box_perimeter() + fcs
     box = box + box.mirror("XZ")
     box = fdb.add_filament_exit(perimeter=box)
     show_object(box, options={"color": "blue", "alpha": 0.5})
-    show_object(fdb.lid_perimeter(), options={"color": "green", "alpha": 0.5})
+
+    lid = fdb.lid_perimeter() + fdb.fully_closed_side(wall_thickness=1.4).mirror("YZ")
+    lid = lid + lid.mirror("XZ")
+    show_object(lid, options={"color": "green", "alpha": 0.5})
     half_length = show_bearing_tray(fdb)
     show_object(
         fdb.dessicant_tray_gyroid(center_y=half_length + fdb.shell_thickness),
+        options={"color": "#AF3", "alpha": 0.5},
+    )
+    show_object(
+        fdb.dessicant_tray_gyroid(center_y=half_length + fdb.shell_thickness).mirror(
+            "XZ"
+        ),
         options={"color": "#AF3", "alpha": 0.5},
     )
 
