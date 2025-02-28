@@ -170,16 +170,57 @@ class filament_dry_box:
 
     def tiled_lid_side(
         self,
-        tile_lip_thickness=0.8,
+        tile_lip_thickness=0.6,
         tile_length=56,
         tile_width=29,
         tile_thickness=3.2,
+        tile_spacing=2.4,
     ):
         side_thickness = tile_thickness + tile_lip_thickness * 2
 
         panel_half = self.fully_closed_side(side_thickness)
 
         panel = panel_half + panel_half.mirror("XZ")
+
+        sine45 = math.sin(math.radians(45))
+        tile_square_side = tile_length * sine45 + tile_width * sine45 + tile_spacing
+
+        tile_subtract = (
+            cq.Workplane("YZ")
+            .transformed(rotate=cq.Vector(0, 0, 45))
+            .box(tile_length, tile_width, tile_thickness)
+            .box(
+                tile_length - tile_lip_thickness * 2,
+                tile_width - tile_lip_thickness * 2,
+                side_thickness * 2,
+            )
+            .edges("|X")
+            .fillet(1)
+            .translate((self.spool_volume_width + side_thickness / 2, 0, 0))
+        )
+
+        tile_subtract_even = tile_subtract.translate(
+            (0, (tile_square_side + tile_spacing) / 2, 0)
+        ) + tile_subtract.translate((0, -tile_square_side / 2, 0))
+
+        tile_subtract_odd = (
+            tile_subtract
+            + tile_subtract.translate((0, tile_square_side, 0))
+            + tile_subtract.translate((0, -tile_square_side, 0))
+        ).mirror("XZ")
+
+        lowest_odd_row_z = -98
+        lowest_even_row_z = lowest_odd_row_z + tile_square_side / 2
+
+        for z in range(3):
+            panel = panel - tile_subtract_odd.translate(
+                (0, 0, lowest_odd_row_z + tile_square_side * z)
+            )
+
+        for z in range(3):
+            panel = panel - tile_subtract_even.translate(
+                (0, 0, lowest_even_row_z + tile_square_side * z)
+            )
 
         return panel
 
@@ -570,8 +611,9 @@ def filament_feed_box():
     box = fdb.add_filament_exit(perimeter=box)
     show_object(box, options={"color": "blue", "alpha": 0.5})
 
-    lid = fdb.lid_perimeter() + fdb.fully_closed_side(wall_thickness=1.4).mirror("YZ")
+    lid = fdb.lid_perimeter()
     lid = lid + lid.mirror("XZ")
+    lid = lid + fdb.tiled_lid_side().mirror("YZ")
     show_object(lid, options={"color": "green", "alpha": 0.5})
     half_length = show_bearing_tray(fdb)
     show_object(
@@ -619,4 +661,4 @@ def filament_exit_test():
 
 
 if "show_object" in globals():
-    individual_components()
+    filament_feed_box()
