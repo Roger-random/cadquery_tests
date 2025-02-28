@@ -379,35 +379,6 @@ class filament_dry_box:
 
         return volume
 
-    def dessicant_tray_triangular(self):
-        """
-        Aborted effort at a wedge-shaped dessicant tray
-        """
-        tangent_point = self.spool_volume_radius * math.sin(math.radians(45))
-        tangent_remaining = self.spool_volume_radius - tangent_point
-
-        volume = (
-            cq.Workplane("YZ")
-            .lineTo(tangent_point, -tangent_point, forConstruction=True)
-            .line(tangent_remaining, tangent_remaining)
-            .lineTo(
-                self.spool_volume_radius,
-                -self.spool_volume_radius - self.bottom_extra_height,
-            )
-            .line(-tangent_remaining, 0)
-            .close()
-            .extrude(self.spool_volume_width, both=True)
-            .faces("<Z")
-            .edges(">Y")
-            .fillet(self.shell_bottom_radius)
-            .edges("|Z")
-            .fillet(self.shell_bottom_radius / 2)
-            .faces(">Z")
-            .shell(5)
-        )
-
-        return volume
-
 
 def mirror_xy(quarter):
     return (
