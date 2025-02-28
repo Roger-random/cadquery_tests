@@ -159,7 +159,92 @@ class filament_dry_box:
             .close()
         )
 
-        perimeter = profile.sweep(self.box_perimeter_path())
+        return profile.sweep(self.box_perimeter_path())
+
+    def add_filament_exit(
+        self,
+        perimeter,
+        exit_fitting_diameter=5.5,
+        exit_fitting_depth=5,
+    ):
+        available_width = (
+            self.spool_volume_width - self.lid_height - self.shell_thickness * 2
+        )
+        exit_depth = exit_fitting_diameter * 1.5
+
+        angle_to_clear_exit = math.acos(
+            (self.spool_volume_radius - exit_depth * 2) / self.spool_volume_radius
+        )
+        height_to_clear_exit = self.spool_volume_radius * math.sin(angle_to_clear_exit)
+
+        # Add the exterior bump
+        flare_exterior_half = (
+            cq.Workplane("XZ")
+            .lineTo(0, height_to_clear_exit)
+            .lineTo(exit_depth, height_to_clear_exit)
+            .lineTo(available_width, 0)
+            .close()
+            .workplane(offset=exit_depth * 2)
+            .lineTo(
+                0, height_to_clear_exit - self.shell_thickness, forConstruction=True
+            )
+            .lineTo(0, height_to_clear_exit)
+            .lineTo(available_width, height_to_clear_exit)
+            .lineTo(available_width, height_to_clear_exit - self.shell_thickness)
+            .close()
+            .loft()
+        ).translate((0, self.spool_volume_radius + self.shell_thickness, 0))
+
+        flare_exterior = flare_exterior_half + flare_exterior_half.mirror("YZ")
+
+        spool_volume_subtract = (
+            cq.Workplane("YZ")
+            .circle(self.spool_volume_radius - 1e-4)  # 1e-4 to work around CQ bug
+            .extrude(self.spool_volume_width, both=True)
+        )
+
+        perimeter = perimeter + flare_exterior - spool_volume_subtract
+
+        # PTFE tube fitting has M6 thread, brass metal should be strong
+        # enough to self-tap into this plastic cylindrical hole
+        fitting_hole = (
+            cq.Workplane("XY")
+            .transformed(
+                offset=(
+                    0,
+                    self.spool_volume_radius - exit_depth / 2,
+                    height_to_clear_exit,
+                )
+            )
+            .circle(exit_fitting_diameter / 2)
+            .extrude(-exit_fitting_depth)
+        )
+        perimeter = perimeter - fitting_hole
+
+        # Interior funnel for guiding filament into the fitting
+        flare_end_size = self.spool_volume_width
+        flare_end_angle = 75
+        flare_interior = (
+            cq.Workplane("XY")
+            .transformed(
+                offset=(
+                    0,
+                    self.spool_volume_radius - exit_depth / 2,
+                    height_to_clear_exit - exit_fitting_depth,
+                )
+            )
+            .circle(1.8 / 2)
+            .workplane(offset=exit_fitting_depth - height_to_clear_exit)
+            .transformed(
+                offset=cq.Vector(
+                    0, -flare_end_size * math.cos(math.radians(flare_end_angle)), 0
+                )
+            )
+            .transformed(rotate=cq.Vector(-flare_end_angle, 0, 0))
+            .circle(flare_end_size)
+            .loft()
+        )
+        perimeter = perimeter - flare_interior
 
         return perimeter
 
@@ -423,6 +508,22 @@ def show_bearing_tray(fdb):
     return tray["tray length half"]
 
 
+def filament_feed_box():
+    fdb = filament_dry_box(bottom_extra_height=28)
+    show_object(fdb.spool_placeholder(), options={"color": "black", "alpha": 0.9})
+    show_object(fdb.fully_closed_side(), options={"color": "red", "alpha": 0.5})
+    box = fdb.box_perimeter()
+    box = box + box.mirror("XZ")
+    box = fdb.add_filament_exit(perimeter=box)
+    show_object(box, options={"color": "blue", "alpha": 0.5})
+    show_object(fdb.lid_perimeter(), options={"color": "green", "alpha": 0.5})
+    half_length = show_bearing_tray(fdb)
+    show_object(
+        fdb.dessicant_tray_gyroid(center_y=half_length + fdb.shell_thickness),
+        options={"color": "#AF3", "alpha": 0.5},
+    )
+
+
 def individual_components():
     fdb = filament_dry_box(bottom_extra_height=28)
     show_object(fdb.spool_placeholder(), options={"color": "black", "alpha": 0.9})
@@ -437,4 +538,4 @@ def individual_components():
 
 
 if "show_object" in globals():
-    individual_components()
+    filament_feed_box()
