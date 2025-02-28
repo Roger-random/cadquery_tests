@@ -344,20 +344,22 @@ class filament_dry_box:
         top_edge_length = top_opening + wall_thickness * 2
 
         spool_angle_for_depth = math.acos(
-            (self.spool_volume_radius - top_edge_length) / self.spool_volume_radius
+            (self.spool_volume_radius - top_edge_length - self.shell_thickness)
+            / self.spool_volume_radius
         )
         top_edge_height_z = math.sin(spool_angle_for_depth) * self.spool_volume_radius
 
+        tray_bottom_z = (
+            -self.spool_volume_radius - self.bottom_extra_height + self.shell_thickness
+        )
+        tray_back_y = self.spool_volume_radius - self.shell_thickness
         volume = (
             cq.Workplane("YZ")
-            .lineTo(self.spool_volume_radius, -top_edge_height_z, forConstruction=True)
+            .lineTo(tray_back_y, -top_edge_height_z, forConstruction=True)
             .line(-top_edge_length, 0)
             .lineTo(center_y, top_edge_length - self.spool_volume_radius)
-            .lineTo(center_y, -self.spool_volume_radius - self.bottom_extra_height)
-            .lineTo(
-                self.spool_volume_radius,
-                -self.spool_volume_radius - self.bottom_extra_height,
-            )
+            .lineTo(center_y, tray_bottom_z)
+            .lineTo(tray_back_y, tray_bottom_z)
             .close()
             .extrude(self.spool_volume_width - self.shell_thickness, both=True)
             .faces("<Z")
@@ -423,7 +425,7 @@ def individual_components():
     show_object(fdb.lid_perimeter(), options={"color": "green", "alpha": 0.5})
     half_length = show_bearing_tray(fdb)
     show_object(
-        fdb.dessicant_tray_gyroid(center_y=half_length + fdb.shell_thickness * 2),
+        fdb.dessicant_tray_gyroid(center_y=half_length + fdb.shell_thickness),
         options={"color": "#AF3", "alpha": 0.5},
     )
 
