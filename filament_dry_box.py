@@ -111,10 +111,8 @@ class filament_dry_box:
 
     def fully_closed_side(self, wall_thickness=0.6):
         """
-        The outer perimeter of side panels
+        Featureless enclosed side panel of specified thickness
         """
-
-        assert wall_thickness < self.shell_thickness
         profile = (
             cq.Workplane("XZ")
             .lineTo(
@@ -122,17 +120,68 @@ class filament_dry_box:
             )
             .line(0, self.shell_thickness)
             .line(wall_thickness, -wall_thickness)
-            .line(0, wall_thickness - self.shell_thickness)
+            .line(-wall_thickness, 0)
             .close()
         )
 
         rim = profile.sweep(self.box_perimeter_path())
 
-        panel = (self.box_perimeter_path().close().extrude(wall_thickness)).translate(
-            (self.spool_volume_width, 0, 0)
+        panel_top_radius = (
+            self.spool_volume_radius + self.shell_thickness - wall_thickness
+        )
+        panel_bottom_radius = (
+            self.shell_bottom_radius + self.shell_thickness - wall_thickness
+        )
+        panel = (
+            cq.Workplane("YZ")
+            .transformed(offset=(0, 0, self.spool_volume_width))
+            .lineTo(0, panel_top_radius, forConstruction=True)
+            .radiusArc((panel_top_radius, 0), panel_top_radius)
+            .line(
+                0,
+                -self.spool_volume_radius
+                - self.bottom_extra_height
+                + self.shell_bottom_radius,
+            )
+            .radiusArc(
+                (
+                    self.spool_volume_radius - self.shell_bottom_radius,
+                    -self.spool_volume_radius
+                    - self.bottom_extra_height
+                    - self.shell_thickness
+                    + wall_thickness,
+                ),
+                panel_bottom_radius,
+            )
+            .line(
+                -self.spool_volume_radius
+                + panel_bottom_radius
+                + wall_thickness
+                - self.shell_thickness,
+                0,
+            )
+            .close()
+            .extrude(wall_thickness)
         )
 
-        return rim + panel
+        panel_half = rim + panel
+
+        return panel_half
+
+    def tiled_lid_side(
+        self,
+        tile_lip_thickness=0.8,
+        tile_length=56,
+        tile_width=29,
+        tile_thickness=3.2,
+    ):
+        side_thickness = tile_thickness + tile_lip_thickness * 2
+
+        panel_half = self.fully_closed_side(side_thickness)
+
+        panel = panel_half + panel_half.mirror("XZ")
+
+        return panel
 
     def box_perimeter(self):
         """
@@ -167,6 +216,10 @@ class filament_dry_box:
         exit_fitting_diameter=5.5,
         exit_fitting_depth=5,
     ):
+        """
+        Adding provision for a PTFE tube fitting for the filament to exit
+        allows a printer to draw directly from this box.
+        """
         available_width = (
             self.spool_volume_width - self.lid_height - self.shell_thickness * 2
         )
@@ -536,7 +589,7 @@ def filament_feed_box():
 def individual_components():
     fdb = filament_dry_box(bottom_extra_height=28)
     show_object(fdb.spool_placeholder(), options={"color": "black", "alpha": 0.9})
-    show_object(fdb.fully_closed_side(), options={"color": "red", "alpha": 0.5})
+    show_object(fdb.tiled_lid_side(), options={"color": "red", "alpha": 0.5})
     show_object(fdb.box_perimeter(), options={"color": "blue", "alpha": 0.5})
     show_object(fdb.lid_perimeter(), options={"color": "green", "alpha": 0.5})
     half_length = show_bearing_tray(fdb)
@@ -566,4 +619,4 @@ def filament_exit_test():
 
 
 if "show_object" in globals():
-    filament_exit_test()
+    individual_components()
