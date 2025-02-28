@@ -143,9 +143,13 @@ class filament_dry_box:
         profile = (
             cq.Workplane("XZ")
             .lineTo(
-                self.spool_volume_width, self.spool_volume_radius, forConstruction=True
+                self.spool_volume_width,
+                self.spool_volume_radius - self.shell_thickness,
+                forConstruction=True,
             )
-            .line(-box_width + self.shell_thickness, 0)
+            .line(-self.lid_height, 0)
+            .line(-self.shell_thickness, self.shell_thickness)
+            .line(-box_width + self.shell_thickness * 2 + self.lid_height, 0)
             .line(-self.shell_thickness, -self.shell_thickness)
             .line(-self.lid_height, 0)
             .line(self.shell_thickness, self.shell_thickness)
@@ -155,7 +159,9 @@ class filament_dry_box:
             .close()
         )
 
-        return profile.sweep(self.box_perimeter_path())
+        perimeter = profile.sweep(self.box_perimeter_path())
+
+        return perimeter
 
     def lid_perimeter(self):
         """
