@@ -186,6 +186,15 @@ class filament_dry_box:
         rail_lip_gap=0.5,
         bearing_lip_size=0.5,
     ):
+        """
+        Allows a quartet of bearings to support the filament spool, reduces
+        friction when printer is fed directly from this box. (Versus a non-
+        printing storage box.) Printed in multiple pieces to optimize strength
+        from layer orientation.
+        """
+
+        # Placeholder bearings for visualization.
+        # (Not for printing - use real bearings!)
         bearing_distance = self.spool_diameter / 2 + bearing_diameter_outer / 2
         bearing_x = self.spool_width / 2 - bearing_length
         bearing_separation_angle_radians = math.radians(
@@ -201,6 +210,8 @@ class filament_dry_box:
             .extrude(bearing_length)
         ).translate((bearing_x, bearing_y, bearing_z))
 
+        # Two rails hold two bearings each. Each rail is designed and extruded
+        # in half then mirrored in X.
         tray_inner_radius = self.spool_volume_radius + bearing_diameter_outer
         rail_lip_size = self.spool_width_margin - rail_lip_gap
         bearing_rail = (
@@ -243,12 +254,14 @@ class filament_dry_box:
         )
         bearing_rail = bearing_rail - bearing_placeholder
 
+        # Bottom of the tray to support the above pair of rails. Designed in a
+        # quarter then mirrored about both X and Y to create the tray.
         tray_quarter_revolve = (
             cq.Workplane("XZ")
             .lineTo(
                 0, -tray_inner_radius - tray_rail_height_delta, forConstruction=True
             )
-            .lineTo(0, -self.spool_volume_radius - self.bottom_extra_height)
+            .lineTo(0, -self.spool_diameter)
             .line(self.spool_volume_width, 0)
             .lineTo(
                 self.spool_volume_width,
@@ -275,9 +288,15 @@ class filament_dry_box:
         tray_quarter_intersect = (
             cq.Workplane("XZ")
             .lineTo(
-                0, -tray_inner_radius - tray_structure_thickness, forConstruction=True
+                0,
+                -tray_inner_radius - tray_structure_thickness,
+                forConstruction=True,
             )
-            .line(self.spool_volume_width, 0)
+            .line(
+                self.spool_volume_width - self.lid_height - self.shell_thickness * 2, 0
+            )
+            .line(self.shell_thickness, self.shell_thickness)
+            .line(self.lid_height + self.shell_thickness, 0)
             .lineTo(self.spool_volume_width, -self.spool_volume_radius)
             .line(-self.spool_volume_width, 0)
             .close()
@@ -304,6 +323,10 @@ class filament_dry_box:
             "rail half": bearing_rail,
             "tray": tray,
             "tray length": tray_length_half * 2,
+            "below tray": self.spool_volume_radius
+            + self.bottom_extra_height
+            - tray_inner_radius
+            - tray_structure_thickness,
         }
 
 
@@ -338,10 +361,11 @@ def show_bearing_tray(fdb):
     show_object(rail, options={"color": "#ABCDEF", "alpha": 0.5})
     show_object(rail.mirror("XZ"), options={"color": "#ABCDEF", "alpha": 0.5})
     show_object(tray["tray"], options={"alpha": 0.5})
+    log(tray["below tray"])
 
 
 def individual_components():
-    fdb = filament_dry_box()
+    fdb = filament_dry_box(bottom_extra_height=28)
     show_object(fdb.spool_placeholder(), options={"color": "black", "alpha": 0.9})
     show_object(fdb.fully_closed_side(), options={"color": "red", "alpha": 0.5})
     show_object(fdb.box_perimeter(), options={"color": "blue", "alpha": 0.5})
