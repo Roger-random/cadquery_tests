@@ -61,14 +61,14 @@ class filament_dry_box:
         self.lid_height = lid_height
 
         # Debug output text describes print bed size requirement
-        log(
-            "Print bed requirements: {0}mm x {1}mm".format(
-                self.spool_volume_radius * 2
-                + bottom_extra_height
-                + shell_thickness * 2,
-                self.spool_volume_radius * 2 + shell_thickness * 2,
-            )
-        )
+        # log(
+        #     "Print bed requirements: {0}mm x {1}mm".format(
+        #         self.spool_volume_radius * 2
+        #         + bottom_extra_height
+        #         + shell_thickness * 2,
+        #         self.spool_volume_radius * 2 + shell_thickness * 2,
+        #     )
+        # )
 
     def spool_placeholder(self, spool_side_thickness=5):
         """
@@ -254,7 +254,7 @@ class filament_dry_box:
         self,
         panel_lip_thickness=0.8,
         panel_lip_depth=1.2,
-        panel_thickness=3.2,
+        panel_thickness=2.8,
         panel_border=3,
     ):
         side_thickness = panel_thickness + panel_lip_thickness * 2
@@ -302,7 +302,8 @@ class filament_dry_box:
         )
 
         panel = panel_half + panel_half.mirror("XZ")
-        # show_object(panel)
+        self.panel = panel
+        #        show_object(panel)
         panel = panel.translate((self.spool_volume_width + side_thickness / 2, 0, 0))
 
         panel_opening_half = (
@@ -732,7 +733,7 @@ def show_bearing_tray(fdb):
     show_object(rail, options={"color": "#ABCDEF", "alpha": 0.5})
     show_object(rail.mirror("XZ"), options={"color": "#ABCDEF", "alpha": 0.5})
     show_object(tray["tray"], options={"alpha": 0.5})
-    log("Remaining height below bearing tray: {0}mm".format(tray["below tray"]))
+    #    log("Remaining height below bearing tray: {0}mm".format(tray["below tray"]))
     return tray["tray length half"]
 
 
