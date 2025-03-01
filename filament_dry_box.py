@@ -43,7 +43,8 @@ class filament_dry_box:
         spool_width=70,
         spool_width_margin=5,
         shell_thickness=1.6,
-        shell_bottom_radius=30,
+        shell_top_radius=50,
+        shell_bottom_radius=25,
         bottom_extra_height=40,
         lid_height=10,
     ):
@@ -54,6 +55,7 @@ class filament_dry_box:
         self.spool_width_margin = spool_width_margin
         self.spool_volume_width = spool_width / 2 + spool_width_margin
         self.shell_thickness = shell_thickness
+        self.shell_top_radius = shell_top_radius
         self.shell_bottom_radius = shell_bottom_radius
         self.bottom_extra_height = bottom_extra_height
         self.lid_height = lid_height
@@ -92,9 +94,19 @@ class filament_dry_box:
         return (
             cq.Workplane("YZ")
             .lineTo(0, self.spool_volume_radius, forConstruction=True)
-            .radiusArc((self.spool_volume_radius, 0), self.spool_volume_radius)
-            .line(
-                0,
+            .lineTo(
+                self.spool_volume_radius - self.shell_top_radius,
+                self.spool_volume_radius,
+            )
+            .radiusArc(
+                (
+                    self.spool_volume_radius,
+                    self.spool_volume_radius - self.shell_top_radius,
+                ),
+                self.shell_top_radius,
+            )
+            .lineTo(
+                self.spool_volume_radius,
                 self.shell_bottom_radius
                 - self.spool_volume_radius
                 - self.bottom_extra_height,
@@ -126,19 +138,23 @@ class filament_dry_box:
 
         rim = profile.sweep(self.box_perimeter_path())
 
-        panel_top_radius = (
+        panel_top_edge = (
             self.spool_volume_radius + self.shell_thickness - wall_thickness
         )
+        panel_top_radius = self.shell_top_radius + self.shell_thickness - wall_thickness
         panel_bottom_radius = (
             self.shell_bottom_radius + self.shell_thickness - wall_thickness
         )
         panel = (
             cq.Workplane("YZ")
             .transformed(offset=(0, 0, self.spool_volume_width))
-            .lineTo(0, panel_top_radius, forConstruction=True)
-            .radiusArc((panel_top_radius, 0), panel_top_radius)
-            .line(
-                0,
+            .lineTo(0, panel_top_edge, forConstruction=True)
+            .lineTo(panel_top_edge - panel_top_radius, panel_top_edge)
+            .radiusArc(
+                (panel_top_edge, panel_top_edge - panel_top_radius), panel_top_radius
+            )
+            .lineTo(
+                panel_top_edge,
                 -self.spool_volume_radius
                 - self.bottom_extra_height
                 + self.shell_bottom_radius,
@@ -631,7 +647,7 @@ def filament_feed_box():
 def individual_components():
     fdb = filament_dry_box(bottom_extra_height=28)
     show_object(fdb.spool_placeholder(), options={"color": "black", "alpha": 0.9})
-    show_object(fdb.tiled_lid_side(), options={"color": "red", "alpha": 0.5})
+    show_object(fdb.fully_closed_side(), options={"color": "red", "alpha": 0.5})
     show_object(fdb.box_perimeter(), options={"color": "blue", "alpha": 0.5})
     show_object(fdb.lid_perimeter(), options={"color": "green", "alpha": 0.5})
     half_length = show_bearing_tray(fdb)
