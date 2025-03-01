@@ -200,9 +200,10 @@ class filament_dry_box:
 
         return panel_half
 
-    def tiled_lid_side(
+    def cross_tiled_lid_side(
         self,
-        tile_lip_thickness=0.6,
+        tile_lip_thickness=0.8,
+        tile_lip_depth=1.6,
         tile_length=56,
         tile_width=29,
         tile_thickness=3.2,
@@ -217,13 +218,30 @@ class filament_dry_box:
         sine45 = math.sin(math.radians(45))
         tile_square_side = tile_length * sine45 + tile_width * sine45 + tile_spacing
 
+        available_width = (
+            self.spool_volume_radius + self.shell_thickness - side_thickness
+        ) * 2
+        available_height = available_width + self.bottom_extra_height
+
+        max_tiles_horiz = math.floor(available_width / tile_square_side)
+        max_tiles_vert = math.floor(available_height / tile_square_side)
+
+        extra_spacing_horiz = (
+            available_width - max_tiles_horiz * tile_square_side
+        ) / max_tiles_horiz
+        extra_spacing_vert = (
+            available_height - max_tiles_vert * tile_square_side
+        ) / max_tiles_vert
+
+        extra_spacing = min(extra_spacing_horiz, extra_spacing_vert)
+
         tile_subtract = (
             cq.Workplane("YZ")
             .transformed(rotate=cq.Vector(0, 0, 45))
             .box(tile_length, tile_width, tile_thickness)
             .box(
-                tile_length - tile_lip_thickness * 2,
-                tile_width - tile_lip_thickness * 2,
+                tile_length - tile_lip_depth * 2,
+                tile_width - tile_lip_depth * 2,
                 side_thickness * 2,
             )
             .edges("|X")
@@ -231,27 +249,44 @@ class filament_dry_box:
             .translate((self.spool_volume_width + side_thickness / 2, 0, 0))
         )
 
-        tile_subtract_even = tile_subtract.translate(
-            (0, (tile_square_side + tile_spacing) / 2, 0)
-        ) + tile_subtract.translate((0, -tile_square_side / 2, 0))
+        tile_row_width = (tile_square_side + extra_spacing) * max_tiles_horiz
+        tile_row_wide_start = (
+            -tile_row_width / 2 + tile_square_side / 2 + extra_spacing / 2
+        )
+        tile_row_wide = tile_subtract.translate((0, tile_row_wide_start, 0))
+        for x in range(1, max_tiles_horiz):
+            tile_row_wide = tile_row_wide + tile_subtract.translate(
+                (0, tile_row_wide_start + x * (tile_square_side + extra_spacing), 0)
+            )
+        tile_row_wide = tile_row_wide.mirror("XZ")
 
-        tile_subtract_odd = (
-            tile_subtract
-            + tile_subtract.translate((0, tile_square_side, 0))
-            + tile_subtract.translate((0, -tile_square_side, 0))
-        ).mirror("XZ")
-
-        lowest_odd_row_z = -98
-        lowest_even_row_z = lowest_odd_row_z + tile_square_side / 2
-
-        for z in range(3):
-            panel = panel - tile_subtract_odd.translate(
-                (0, 0, lowest_odd_row_z + tile_square_side * z)
+        tile_row_narrow_start = (
+            tile_row_wide_start + tile_square_side / 2 + extra_spacing / 2
+        )
+        tile_row_narrow = tile_subtract.translate((0, tile_row_narrow_start, 0))
+        for x in range(1, max_tiles_horiz - 1):
+            tile_row_narrow = tile_row_narrow + tile_subtract.translate(
+                (0, tile_row_narrow_start + x * (tile_square_side + extra_spacing), 0)
             )
 
-        for z in range(3):
-            panel = panel - tile_subtract_even.translate(
-                (0, 0, lowest_even_row_z + tile_square_side * z)
+        tile_column_height = (
+            tile_square_side + extra_spacing
+        ) * max_tiles_vert - tile_square_side / 2
+
+        lowest_row_z = -tile_column_height / 2 - extra_spacing / 2
+
+        for z in range(max_tiles_vert):
+            panel = panel - tile_row_wide.translate(
+                (0, 0, lowest_row_z + (tile_square_side + extra_spacing) * z)
+            )
+
+        for z in range(max_tiles_vert - 1):
+            panel = panel - tile_row_narrow.translate(
+                (
+                    0,
+                    0,
+                    lowest_row_z + (tile_square_side + extra_spacing) * (z + 0.5),
+                )
             )
 
         return panel
@@ -752,7 +787,7 @@ def filament_feed_box():
 
     lid = fdb.lid_perimeter()
     lid = lid + lid.mirror("XZ")
-    lid = lid + fdb.single_panel_side().mirror("YZ")
+    lid = lid + fdb.cross_tiled_lid_side().mirror("YZ")
     show_object(lid, options={"color": "green", "alpha": 0.5})
     half_length = show_bearing_tray(fdb)
     show_object(
