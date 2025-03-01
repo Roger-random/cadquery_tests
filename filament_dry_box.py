@@ -60,6 +60,16 @@ class filament_dry_box:
         self.bottom_extra_height = bottom_extra_height
         self.lid_height = lid_height
 
+        # Debug output text describes print bed size requirement
+        log(
+            "Print bed requirements: {0}mm x {1}mm".format(
+                self.spool_volume_radius * 2
+                + bottom_extra_height
+                + shell_thickness * 2,
+                self.spool_volume_radius * 2 + shell_thickness * 2,
+            )
+        )
+
     def spool_placeholder(self, spool_side_thickness=5):
         """
         Generate a shape centered around origin that is a visual representation
@@ -722,12 +732,12 @@ def show_bearing_tray(fdb):
     show_object(rail, options={"color": "#ABCDEF", "alpha": 0.5})
     show_object(rail.mirror("XZ"), options={"color": "#ABCDEF", "alpha": 0.5})
     show_object(tray["tray"], options={"alpha": 0.5})
-    log(tray["below tray"])
+    log("Remaining height below bearing tray: {0}mm".format(tray["below tray"]))
     return tray["tray length half"]
 
 
 def filament_feed_box():
-    fdb = filament_dry_box(bottom_extra_height=28)
+    fdb = filament_dry_box()
     show_object(fdb.spool_placeholder(), options={"color": "black", "alpha": 0.9})
     box = fdb.box_perimeter()
     box = box + box.mirror("XZ")
