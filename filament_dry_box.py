@@ -240,6 +240,102 @@ class filament_dry_box:
 
         return panel
 
+    def single_panel_side(
+        self,
+        panel_lip_thickness=0.8,
+        panel_lip_depth=1.2,
+        panel_thickness=3.2,
+        panel_border=3,
+    ):
+        side_thickness = panel_thickness + panel_lip_thickness * 2
+
+        panel_edge_compensation = self.shell_thickness - side_thickness - panel_border
+        panel_edge_top_and_sides = self.spool_volume_radius + panel_edge_compensation
+        panel_opening_edge_compensation = panel_edge_compensation - panel_lip_depth
+        panel_opening_top_and_sides = (
+            self.spool_volume_radius + panel_opening_edge_compensation
+        )
+
+        printed_half = self.fully_closed_side(side_thickness)
+        printed = printed_half + printed_half.mirror("XZ")
+
+        panel_half = (
+            cq.Workplane("YZ")
+            .lineTo(0, panel_edge_top_and_sides)
+            .lineTo(
+                self.spool_volume_radius - self.shell_top_radius,
+                panel_edge_top_and_sides,
+            )
+            .radiusArc(
+                (
+                    panel_edge_top_and_sides,
+                    self.spool_volume_radius - self.shell_top_radius,
+                ),
+                self.shell_top_radius + panel_edge_compensation,
+            )
+            .lineTo(
+                panel_edge_top_and_sides,
+                -self.spool_volume_radius
+                - self.bottom_extra_height
+                + self.shell_bottom_radius,
+            )
+            .radiusArc(
+                (
+                    self.spool_volume_radius - self.shell_bottom_radius,
+                    -panel_edge_top_and_sides - self.bottom_extra_height,
+                ),
+                self.shell_bottom_radius + panel_edge_compensation,
+            )
+            .lineTo(0, -panel_edge_top_and_sides - self.bottom_extra_height)
+            .close()
+            .extrude(panel_thickness / 2, both=True)
+        )
+
+        panel = panel_half + panel_half.mirror("XZ")
+        # show_object(panel)
+        panel = panel.translate((self.spool_volume_width + side_thickness / 2, 0, 0))
+
+        panel_opening_half = (
+            cq.Workplane("YZ")
+            .lineTo(0, panel_opening_top_and_sides)
+            .lineTo(
+                self.spool_volume_radius - self.shell_top_radius,
+                panel_opening_top_and_sides,
+            )
+            .radiusArc(
+                (
+                    panel_opening_top_and_sides,
+                    self.spool_volume_radius - self.shell_top_radius,
+                ),
+                self.shell_top_radius + panel_opening_edge_compensation,
+            )
+            .lineTo(
+                panel_opening_top_and_sides,
+                -self.spool_volume_radius
+                - self.bottom_extra_height
+                + self.shell_bottom_radius,
+            )
+            .radiusArc(
+                (
+                    self.spool_volume_radius - self.shell_bottom_radius,
+                    -panel_opening_top_and_sides - self.bottom_extra_height,
+                ),
+                self.shell_bottom_radius + panel_opening_edge_compensation,
+            )
+            .lineTo(0, -panel_opening_top_and_sides - self.bottom_extra_height)
+            .close()
+            .extrude(panel_thickness + panel_lip_thickness, both=True)
+        )
+        panel_opening = panel_opening_half + panel_opening_half.mirror("XZ")
+        panel_opening = panel_opening.translate(
+            (self.spool_volume_width + side_thickness / 2, 0, 0)
+        )
+
+        subtract = panel + panel_opening
+        printed = printed - subtract
+
+        return printed
+
     def box_perimeter(self):
         """
         Draw profile of perimeter all around the box, then sweep it along perimeter path.
@@ -633,15 +729,15 @@ def show_bearing_tray(fdb):
 def filament_feed_box():
     fdb = filament_dry_box(bottom_extra_height=28)
     show_object(fdb.spool_placeholder(), options={"color": "black", "alpha": 0.9})
-    fcs = fdb.fully_closed_side(wall_thickness=1.4)
-    box = fdb.box_perimeter() + fcs
+    box = fdb.box_perimeter()
     box = box + box.mirror("XZ")
     box = fdb.add_filament_exit(perimeter=box)
+    box = box + fdb.single_panel_side()
     show_object(box, options={"color": "blue", "alpha": 0.5})
 
     lid = fdb.lid_perimeter()
     lid = lid + lid.mirror("XZ")
-    lid = lid + fdb.tiled_lid_side().mirror("YZ")
+    lid = lid + fdb.single_panel_side().mirror("YZ")
     show_object(lid, options={"color": "green", "alpha": 0.5})
     half_length = show_bearing_tray(fdb)
     show_object(
