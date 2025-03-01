@@ -282,17 +282,24 @@ class filament_dry_box:
         )
         exit_depth = exit_fitting_diameter * 1.5
 
+        ramp_bottom_z = self.spool_volume_radius - self.shell_top_radius
+
+        assert self.shell_top_radius > exit_depth
+
         angle_to_clear_exit = math.acos(
-            (self.spool_volume_radius - exit_depth * 2) / self.spool_volume_radius
+            (self.shell_top_radius - exit_depth * 2) / self.shell_top_radius
         )
-        height_to_clear_exit = self.spool_volume_radius * math.sin(angle_to_clear_exit)
+        height_to_clear_exit = ramp_bottom_z + self.shell_top_radius * math.sin(
+            angle_to_clear_exit
+        )
 
         # Add the exterior bump
         flare_exterior_half = (
             cq.Workplane("XZ")
+            .lineTo(0, ramp_bottom_z, forConstruction=True)
             .lineTo(0, height_to_clear_exit)
             .lineTo(exit_depth, height_to_clear_exit)
-            .lineTo(available_width, 0)
+            .lineTo(available_width, ramp_bottom_z)
             .close()
             .workplane(offset=exit_depth * 2)
             .lineTo(
@@ -309,8 +316,12 @@ class filament_dry_box:
 
         spool_volume_subtract = (
             cq.Workplane("YZ")
-            .circle(self.spool_volume_radius - 1e-4)  # 1e-4 to work around CQ bug
-            .extrude(self.spool_volume_width, both=True)
+            .transformed(offset=cq.Vector(ramp_bottom_z, ramp_bottom_z, 0))
+            .circle(self.shell_top_radius - 1e-4)  # 1e-4 to work around CQ bug
+            .extrude(
+                self.spool_volume_width - self.lid_height - self.shell_thickness,
+                both=True,
+            )
         )
 
         perimeter = perimeter + flare_exterior - spool_volume_subtract
@@ -344,7 +355,7 @@ class filament_dry_box:
                 )
             )
             .circle(1.8 / 2)
-            .workplane(offset=exit_fitting_depth - height_to_clear_exit)
+            .workplane(offset=(height_to_clear_exit - ramp_bottom_z) * -1.5)
             .transformed(
                 offset=cq.Vector(
                     0, -flare_end_size * math.cos(math.radians(flare_end_angle)), 0
@@ -354,6 +365,7 @@ class filament_dry_box:
             .circle(flare_end_size)
             .loft()
         )
+
         perimeter = perimeter - flare_interior
 
         return perimeter
