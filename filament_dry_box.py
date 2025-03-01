@@ -293,14 +293,23 @@ class filament_dry_box:
 
     def single_panel_side(
         self,
-        panel_lip_thickness=0.8,
-        panel_lip_depth=1.2,
+        panel_lip_thickness=1.6,
+        panel_lip_depth=2.4,
         panel_thickness=2.8,
         panel_border=3,
     ):
         side_thickness = panel_thickness + panel_lip_thickness * 2
 
-        panel_edge_compensation = self.shell_thickness - side_thickness - panel_border
+        # Dimensions driven by panel lip parameters
+        # panel_edge_compensation = self.shell_thickness - side_thickness - panel_border
+
+        # Dimensions for reusing acrylic panels already cut to different parameters
+        panel_edge_compensation = (
+            self.shell_thickness
+            - (panel_thickness + 0.8 * 2)
+            - panel_border
+            - (3.2 - panel_thickness)
+        )
         panel_edge_top_and_sides = self.spool_volume_radius + panel_edge_compensation
         panel_opening_edge_compensation = panel_edge_compensation - panel_lip_depth
         panel_opening_top_and_sides = (
@@ -343,6 +352,7 @@ class filament_dry_box:
         )
 
         panel = panel_half + panel_half.mirror("XZ")
+        self.panel_outline = panel.section()
         panel = panel.translate((self.spool_volume_width + side_thickness / 2, 0, 0))
 
         panel_opening_half = (
@@ -527,8 +537,12 @@ class filament_dry_box:
                 -self.spool_volume_width, self.spool_volume_radius, forConstruction=True
             )
             .line(self.lid_height - self.shell_thickness / 2, 0)
-            .line(self.shell_thickness, self.shell_thickness)
-            .line(-self.lid_height - self.shell_thickness / 2, 0)
+            .line(
+                0, self.shell_thickness
+            )  # .line(self.shell_thickness, self.shell_thickness)
+            .line(
+                -self.lid_height + self.shell_thickness / 2, 0
+            )  # .line(-self.lid_height - self.shell_thickness / 2, 0)
             .close()
         )
 
@@ -787,7 +801,7 @@ def filament_feed_box():
 
     lid = fdb.lid_perimeter()
     lid = lid + lid.mirror("XZ")
-    lid = lid + fdb.cross_tiled_lid_side().mirror("YZ")
+    lid = lid + fdb.single_panel_side().mirror("YZ")
     show_object(lid, options={"color": "green", "alpha": 0.5})
     half_length = show_bearing_tray(fdb)
     show_object(
