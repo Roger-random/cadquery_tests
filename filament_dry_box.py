@@ -830,7 +830,9 @@ class filament_dry_box:
             .transformed(
                 offset=cq.Vector(
                     0,
-                    -self.spool_volume_radius + top_edge_length / 2,
+                    self.spool_volume_radius
+                    - top_edge_length / 2
+                    - self.shell_thickness,
                     -top_edge_height_z,
                 )
             )
@@ -838,12 +840,15 @@ class filament_dry_box:
                 (self.spool_volume_width - self.shell_thickness) * 2,
                 top_edge_length - self.shell_thickness * 2,
             )
-            .extrude(1)
+            .extrude(wall_thickness / 2)
             .edges("|Z")
             .fillet(wall_thickness)
             .faces("<Z")
             .workplane()
-            .rect((self.spool_volume_width - wall_thickness) * 2, top_opening)
+            .rect(
+                (self.spool_volume_width - wall_thickness - self.shell_thickness) * 2,
+                top_opening - wall_thickness,
+            )
             .extrude(wall_thickness)
         )
 
