@@ -642,8 +642,15 @@ class filament_dry_box:
             .line(0, bearing_diameter_outer + self.spool_width_margin * 1.5)
             .line(-self.spool_width_margin + bearing_clearance_gap, 0)
             .line(0, -bearing_diameter_outer - self.spool_width_margin * 0.5)
-            .tangentArcPoint((-bearing_clearance_gap * 2, -bearing_clearance_gap * 2))
-            .line(-self.spool_width / 2 + bearing_clearance_gap, 0)
+            .tangentArcPoint(
+                (-self.spool_width_margin / 2, -self.spool_width_margin / 2)
+            )
+            .line(
+                -self.spool_width / 2
+                + self.spool_width_margin / 2
+                - bearing_clearance_gap,
+                0,
+            )
             .close()
             .extrude(-bearing_axle_truck_y)
         )
