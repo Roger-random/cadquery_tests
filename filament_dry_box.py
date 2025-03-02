@@ -722,6 +722,9 @@ class filament_dry_box:
             .faces(">Y")
             .edges(">Z")
             .fillet(bearing_diameter_outer / 4)
+            .faces(">X")
+            .edges(">Y")
+            .fillet(self.spool_width_margin / 2)
         )
 
         bearing_axle_truck = (
