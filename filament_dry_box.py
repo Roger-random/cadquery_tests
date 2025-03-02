@@ -724,31 +724,50 @@ class filament_dry_box:
             .fillet(bearing_diameter_outer / 4)
             .faces(">X")
             .edges(">Y")
-            .fillet(self.spool_width_margin / 2)
+            .fillet(self.spool_width_margin * 0.8)
         )
 
-        bearing_axle_truck = (
-            bearing_axle_truck_quarter + bearing_axle_truck_quarter.mirror("YZ")
-        )
-        bearing_axle_truck = bearing_axle_truck + bearing_axle_truck.mirror("XZ")
+        bearing_axle_truck = quarter_to_whole(bearing_axle_truck_quarter)
 
-        log(
-            "below tray = {} + {} + {}".format(
-                self.spool_volume_radius,
-                self.bottom_extra_height,
-                bearing_axle_truck_bottom_z,
+        spacer_height = (
+            self.spool_volume_radius
+            + self.bottom_extra_height
+            + bearing_axle_truck_bottom_z
+            - self.shell_thickness
+        )
+
+        assert (
+            spacer_height > 0
+        ), "Not enough room for bearings. Parameter bottom_extra_height is {} but needs to be at least {}".format(
+            self.bottom_extra_height, self.bottom_extra_height - spacer_height
+        )
+
+        # Create a spacer to raise bearings up to the proper height. This
+        # space is available for other use, such as extra dessicant or a
+        # microcontroller and associated sensors.
+        spacer_quarter = (
+            cq.Workplane("XZ")
+            .lineTo(0, bearing_axle_truck_bottom_z, forConstruction=True)
+            .line(self.spool_volume_width, 0)
+            .line(0, -spacer_height)
+            .line(-self.lid_height - self.shell_thickness, 0)
+            .line(-self.shell_thickness, -self.shell_thickness)
+            .lineTo(
+                0, bearing_axle_truck_bottom_z - spacer_height - self.shell_thickness
             )
+            .close()
+            .extrude(bearing_axle_truck_y)
         )
+        spacer = quarter_to_whole(spacer_quarter)
+        spacer = spacer.edges("|Z").fillet(self.spool_width_margin * 0.8)
 
         return {
             "bearing": bearing_placeholder,
             "bearing axle": bearing_axle,
             "tray": bearing_axle_truck,
             "tray length half": bearing_axle_truck_y,
-            "below tray": self.spool_volume_radius
-            + self.bottom_extra_height
-            + bearing_axle_truck_bottom_z
-            - self.shell_thickness,
+            "below tray": spacer_height,
+            "spacer": spacer,
         }
 
     def dessicant_tray_gyroid(
@@ -804,7 +823,7 @@ class filament_dry_box:
         return volume
 
 
-def mirror_xy(quarter):
+def quarter_to_whole(quarter):
     return (
         quarter
         + quarter.mirror("XZ")
@@ -830,11 +849,14 @@ def compact_storage_box():
 def show_bearing_tray(fdb):
     assert "show_object" in globals()
     tray = fdb.bearing_tray()
-    show_object(mirror_xy(tray["bearing"]), options={"color": "black", "alpha": 0.9})
+    show_object(
+        quarter_to_whole(tray["bearing"]), options={"color": "black", "alpha": 0.9}
+    )
     axle = tray["bearing axle"]
     show_object(axle, options={"color": "#ABCDEF", "alpha": 0.5})
     show_object(axle.mirror("XZ"), options={"color": "#ABCDEF", "alpha": 0.5})
-    show_object(tray["tray"], options={"color": "#ABCDEF", "alpha": 0.5})
+    show_object(tray["tray"], options={"color": "#ABCDFF", "alpha": 0.5})
+    show_object(tray["spacer"], options={"color": "#FFCDEF", "alpha": 0.5})
     log("Remaining height below bearing tray: {0}mm".format(tray["below tray"]))
     return tray["tray length half"]
 
