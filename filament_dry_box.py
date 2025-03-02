@@ -414,9 +414,9 @@ class filament_dry_box:
             .line(-self.shell_thickness, self.shell_thickness)
             .line(-box_width + self.shell_thickness * 2 + self.lid_height, 0)
             .line(-self.shell_thickness, -self.shell_thickness)
-            .line(-self.lid_height + self.shell_thickness / 2, 0)
-            .line(0, self.shell_thickness)
-            .line(self.lid_height - self.shell_thickness, 0)
+            .line(-self.lid_height, 0)
+            .line(self.shell_thickness, self.shell_thickness)
+            .line(self.lid_height - self.shell_thickness * 1.5, 0)
             .line(self.shell_thickness, self.shell_thickness)
             .line(box_width - self.shell_thickness / 2, 0)
             .close()
@@ -538,12 +538,8 @@ class filament_dry_box:
                 -self.spool_volume_width, self.spool_volume_radius, forConstruction=True
             )
             .line(self.lid_height - self.shell_thickness / 2, 0)
-            .line(
-                0, self.shell_thickness
-            )  # .line(self.shell_thickness, self.shell_thickness)
-            .line(
-                -self.lid_height + self.shell_thickness / 2, 0
-            )  # .line(-self.lid_height - self.shell_thickness / 2, 0)
+            .line(self.shell_thickness, self.shell_thickness)
+            .line(-self.lid_height - self.shell_thickness / 2, 0)
             .close()
         )
 
