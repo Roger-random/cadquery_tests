@@ -24,6 +24,7 @@ SOFTWARE.
 
 import math
 import cadquery as cq
+import cadquery.selectors as sel
 
 # When not running in CQ-Editor, turn log into print
 if "log" not in globals():
@@ -554,10 +555,8 @@ class filament_dry_box:
         bearing_diameter_inner=8,
         bearing_length=7,
         bearing_separation_angle_degrees=30,
-        tray_structure_thickness=6,
-        tray_rail_height_delta=0.1,
-        rail_lip_gap=0.5,
-        bearing_lip_size=0.5,
+        bearing_clearance_gap=0.25,
+        bearing_axle_slot_fraction=0.8,
     ):
         """
         Allows a quartet of bearings to support the filament spool, reduces
@@ -583,123 +582,170 @@ class filament_dry_box:
             .extrude(bearing_length)
         ).translate((bearing_x, bearing_y, bearing_z))
 
-        # Two rails hold two bearings each. Each rail is designed and extruded
-        # in half then mirrored in X.
-        tray_inner_radius = self.spool_volume_radius + bearing_diameter_outer
-        rail_lip_size = self.spool_width_margin - rail_lip_gap
-        bearing_rail = (
-            cq.Workplane("XZ")
-            .transformed(rotate=cq.Vector(bearing_separation_angle_degrees / 2, 0, 0))
-            .lineTo(
-                self.spool_volume_width, -self.spool_diameter / 2, forConstruction=True
-            )
-            # Draw the top lip
-            .line(0, rail_lip_size)
-            .line(-rail_lip_size, -rail_lip_size)
-            .line(
-                -rail_lip_gap, -bearing_diameter_outer / 2 + bearing_diameter_inner / 2
-            )
-            # Top of bearing center
-            .line(-bearing_length, 0)
-            # Bearing retaining clip
-            .line(-rail_lip_gap, bearing_lip_size)
-            .line(-bearing_lip_size, 0)
-            .line(0, -bearing_diameter_inner / 2 - bearing_lip_size)
-            # Bottom of bearing center
-            .line(bearing_length + bearing_lip_size + rail_lip_gap, -bearing_lip_size)
-            .lineTo(
-                self.spool_volume_width - self.spool_width_margin + rail_lip_gap,
-                -self.spool_diameter / 2 - bearing_diameter_outer,
-            )
-            # Cross member to reach the opposing bearing
-            .lineTo(
-                self.spool_volume_width
-                - self.spool_width_margin
-                + rail_lip_gap
-                - bearing_length / 2,
-                -tray_inner_radius,
-            )
-            .lineTo(0, -tray_inner_radius)
-            .line(0, -tray_structure_thickness)
-            .line(self.spool_volume_width, 0)
-            .close()
-            .extrude(tray_structure_thickness / 2, both=True)
+        bearing_axle_lip_x = (
+            self.spool_width / 2 - bearing_length - bearing_clearance_gap
         )
-        bearing_rail = bearing_rail - bearing_placeholder
+        bearing_axle_lip_y = bearing_diameter_inner * 0.25
+        bearing_axle_half = (
+            # outer parts of the axle that go through middle of bearings
+            cq.Workplane("YZ")
+            .transformed(offset=cq.Vector(bearing_y, bearing_z))
+            .circle(bearing_diameter_inner / 2 - bearing_clearance_gap)
+            .extrude(self.spool_volume_width)
+        ) + (
+            cq.Workplane("YZ")
+            # Middle part of the axle thicker to keep bearings in place
+            .transformed(offset=cq.Vector(bearing_y, bearing_z))
+            .circle(bearing_diameter_inner / 2 + bearing_axle_lip_y)
+            .extrude(bearing_axle_lip_x)
+        )
 
-        # Bottom of the tray to support the above pair of rails. Designed in a
-        # quarter then mirrored about both X and Y to create the tray.
-        tray_quarter_revolve = (
+        bearing_axle_half = bearing_axle_half.edges(
+            sel.NearestToPointSelector(
+                (
+                    bearing_axle_lip_x,
+                    bearing_y,
+                    bearing_diameter_inner / 2 + bearing_axle_lip_y,
+                )
+            )
+        ).chamfer(bearing_axle_lip_y)
+
+        bearing_axle_half = bearing_axle_half.faces(">X").fillet(
+            bearing_diameter_inner / 8
+        )
+
+        bearing_axle_center_slice = (
+            cq.Workplane("XY")
+            .transformed(offset=cq.Vector(0, bearing_y, bearing_z))
+            .box(
+                self.spool_width * 3,
+                bearing_diameter_inner * bearing_axle_slot_fraction,
+                bearing_diameter_outer,
+            )
+        )
+
+        bearing_axle_half = bearing_axle_half.intersect(bearing_axle_center_slice)
+        bearing_axle = bearing_axle_half + bearing_axle_half.mirror("YZ")
+
+        # Now create a truck to carry a pair of the above axles
+        bearing_axle_truck_bottom_z = (
+            bearing_z - bearing_diameter_outer / 2 - self.spool_width_margin
+        )
+        bearing_axle_truck_y = (
+            bearing_y + bearing_diameter_outer / 2 + bearing_clearance_gap
+        )
+
+        bearing_axle_truck_xz = (
+            cq.Workplane("XZ")
+            .lineTo(0, bearing_axle_truck_bottom_z, forConstruction=True)
+            .line(self.spool_volume_width, 0)
+            .line(0, bearing_diameter_outer + self.spool_width_margin * 1.5)
+            .line(-self.spool_width_margin + bearing_clearance_gap, 0)
+            .line(0, -bearing_diameter_outer - self.spool_width_margin * 0.5)
+            .tangentArcPoint((-bearing_clearance_gap * 2, -bearing_clearance_gap * 2))
+            .line(-self.spool_width / 2 + bearing_clearance_gap, 0)
+            .close()
+            .extrude(-bearing_axle_truck_y)
+        )
+
+        truck_reinforcement_rib_bottom_z = (
+            bearing_axle_truck_bottom_z
+            + self.spool_width_margin
+            - bearing_clearance_gap * 2
+        )
+        truck_reinforcement_rib = (
             cq.Workplane("XZ")
             .lineTo(
-                0, -tray_inner_radius - tray_rail_height_delta, forConstruction=True
+                self.spool_width / 2 + bearing_clearance_gap,
+                -self.spool_diameter / 2,
+                forConstruction=True,
             )
-            .lineTo(0, -self.spool_diameter)
-            .line(self.spool_volume_width, 0)
+            # Bezier is fancy version of .lineTo(0, truck_reinforcement_rib_bottom_z)
+            .bezier(
+                (
+                    (
+                        self.spool_width / 2 + bearing_clearance_gap,
+                        -self.spool_diameter / 2,
+                    ),
+                    (
+                        self.spool_width / 2 + bearing_clearance_gap,
+                        -self.spool_diameter / 2 - bearing_diameter_outer / 2,
+                    ),
+                    (
+                        self.spool_width / 4,
+                        truck_reinforcement_rib_bottom_z,
+                    ),
+                    (0, truck_reinforcement_rib_bottom_z),
+                )
+            )
+            .lineTo(
+                self.spool_width / 2 + bearing_clearance_gap,
+                truck_reinforcement_rib_bottom_z,
+            )
+            .close()
+            .extrude(-self.spool_width_margin)
+        )
+        bearing_axle_truck_xz = bearing_axle_truck_xz + truck_reinforcement_rib
+
+        spool_centering_guide_cut = (
+            cq.Workplane("XZ")
+            .lineTo(self.spool_volume_width, 0)
             .lineTo(
                 self.spool_volume_width,
-                bearing_length / 2 - tray_inner_radius - tray_rail_height_delta,
+                -self.spool_diameter / 2 + self.spool_width_margin,
             )
-            .lineTo(
-                self.spool_volume_width - self.spool_width_margin + rail_lip_gap,
-                -self.spool_diameter / 2
-                - bearing_diameter_outer
-                - tray_rail_height_delta,
-            )
-            .lineTo(
-                self.spool_volume_width
-                - self.spool_width_margin
-                + rail_lip_gap
-                - bearing_length / 2,
-                -tray_inner_radius - tray_rail_height_delta,
-            )
+            .lineTo(self.spool_width / 2, -self.spool_diameter / 2)
+            .lineTo(0, -self.spool_diameter / 2)
             .close()
             .revolve(bearing_separation_angle_degrees, (0, 0, 0), (1, 0, 0))
         )
 
-        tray_length_half = bearing_x + bearing_diameter_outer / 2 + 1
-        tray_quarter_intersect = (
-            cq.Workplane("XZ")
+        bearing_axle_slot_offset = (
+            bearing_diameter_inner * bearing_axle_slot_fraction
+        ) / 2
+        bearing_axle_slot = (
+            cq.Workplane("YZ")
+            .lineTo(bearing_y - bearing_axle_slot_offset, 0, forConstruction=True)
             .lineTo(
-                0,
-                -tray_inner_radius - tray_structure_thickness,
-                forConstruction=True,
+                bearing_y - bearing_axle_slot_offset,
+                bearing_z - bearing_diameter_inner / 2 + bearing_clearance_gap,
             )
-            .line(
-                self.spool_volume_width - self.lid_height - self.shell_thickness * 2, 0
-            )
-            .line(self.shell_thickness, self.shell_thickness)
-            .line(self.lid_height + self.shell_thickness, 0)
-            .lineTo(self.spool_volume_width, -self.spool_volume_radius)
-            .line(-self.spool_volume_width, 0)
+            .line(bearing_axle_slot_offset * 2, 0)
+            .line(0, bearing_diameter_inner)
+            .line(bearing_diameter_outer, 0)
+            .lineTo(bearing_axle_truck_y, 0)
             .close()
-            .extrude(-tray_length_half)
+            .extrude(self.spool_volume_width)
         )
-        tray_quarter = tray_quarter_revolve.intersect(tray_quarter_intersect)
+        bearing_axle_truck_quarter = (
+            (bearing_axle_truck_xz - spool_centering_guide_cut - bearing_axle_slot)
+            .faces(">Y")
+            .edges(">Z")
+            .fillet(bearing_diameter_outer / 4)
+        )
 
-        tray_quarter = tray_quarter - bearing_rail
-        tray = tray_quarter + tray_quarter.mirror("XZ")
-        tray = tray + tray.mirror("YZ")
+        bearing_axle_truck = (
+            bearing_axle_truck_quarter + bearing_axle_truck_quarter.mirror("YZ")
+        )
+        bearing_axle_truck = bearing_axle_truck + bearing_axle_truck.mirror("XZ")
 
-        tray_center_cutout_size = self.spool_volume_width * 0.8
-        tray = (
-            # Center cutout
-            tray.faces("<Z")
-            .workplane()
-            .transformed(rotate=cq.Vector(0, 0, 45))
-            .rect(tray_center_cutout_size, tray_center_cutout_size)
-            .cutThruAll()
+        log(
+            "below tray = {} + {} + {}".format(
+                self.spool_volume_radius,
+                self.bottom_extra_height,
+                bearing_axle_truck_bottom_z,
+            )
         )
 
         return {
             "bearing": bearing_placeholder,
-            "rail half": bearing_rail,
-            "tray": tray,
-            "tray length half": tray_length_half,
+            "bearing axle": bearing_axle,
+            "tray": bearing_axle_truck,
+            "tray length half": bearing_axle_truck_y,
             "below tray": self.spool_volume_radius
             + self.bottom_extra_height
-            - tray_inner_radius
-            - tray_structure_thickness,
+            + bearing_axle_truck_bottom_z
+            - self.shell_thickness,
         }
 
     def dessicant_tray_gyroid(
@@ -782,10 +828,10 @@ def show_bearing_tray(fdb):
     assert "show_object" in globals()
     tray = fdb.bearing_tray()
     show_object(mirror_xy(tray["bearing"]), options={"color": "black", "alpha": 0.9})
-    rail = tray["rail half"] + tray["rail half"].mirror("YZ")
-    show_object(rail, options={"color": "#ABCDEF", "alpha": 0.5})
-    show_object(rail.mirror("XZ"), options={"color": "#ABCDEF", "alpha": 0.5})
-    show_object(tray["tray"], options={"alpha": 0.5})
+    axle = tray["bearing axle"]
+    show_object(axle, options={"color": "#ABCDEF", "alpha": 0.5})
+    show_object(axle.mirror("XZ"), options={"color": "#ABCDEF", "alpha": 0.5})
+    show_object(tray["tray"], options={"color": "#ABCDEF", "alpha": 0.5})
     log("Remaining height below bearing tray: {0}mm".format(tray["below tray"]))
     return tray["tray length half"]
 
