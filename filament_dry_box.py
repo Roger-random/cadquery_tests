@@ -934,24 +934,5 @@ def individual_components():
     )
 
 
-def filament_exit_test():
-    fdb = filament_dry_box(bottom_extra_height=28)
-    exit_test = fdb.add_filament_exit(fdb.box_perimeter())
-    test_height = 60
-    test_intersect = (
-        cq.Workplane("XZ")
-        .lineTo(fdb.spool_volume_width / 3, 0)
-        .line(0, test_height)
-        .line(-fdb.spool_volume_width * 2 / 3, 0)
-        .line(0, -test_height)
-        .close()
-        .extrude(-fdb.spool_volume_radius - fdb.shell_thickness * 2)
-    )
-
-    show_object(
-        exit_test.intersect(test_intersect), options={"color": "blue", "alpha": 0.5}
-    )
-
-
 if "show_object" in globals():
     filament_feed_box()
