@@ -773,7 +773,7 @@ class filament_dry_box:
     def dessicant_tray_gyroid(
         self,
         wall_thickness=3,
-        top_opening=10,
+        top_opening=20,
         center_y=0,
     ):
         """
@@ -820,7 +820,29 @@ class filament_dry_box:
         volume = volume.faces("<X").fillet(wall_thickness / 2)
         volume = volume.faces(">X").fillet(wall_thickness / 2)
 
-        return volume
+        lid = (
+            cq.Workplane("XY")
+            .transformed(
+                offset=cq.Vector(
+                    0,
+                    -self.spool_volume_radius + top_edge_length / 2,
+                    -top_edge_height_z,
+                )
+            )
+            .rect(
+                (self.spool_volume_width - self.shell_thickness) * 2,
+                top_edge_length - self.shell_thickness * 2,
+            )
+            .extrude(1)
+            .edges("|Z")
+            .fillet(wall_thickness)
+            .faces("<Z")
+            .workplane()
+            .rect((self.spool_volume_width - wall_thickness) * 2, top_opening)
+            .extrude(wall_thickness)
+        )
+
+        return {"tray": volume, "lid": lid}
 
 
 def quarter_to_whole(quarter):
@@ -875,14 +897,21 @@ def filament_feed_box():
     lid = lid + fdb.single_panel_side().mirror("YZ")
     show_object(lid, options={"color": "green", "alpha": 0.5})
     half_length = show_bearing_tray(fdb)
+    dtg = fdb.dessicant_tray_gyroid(center_y=half_length + fdb.shell_thickness)
     show_object(
-        fdb.dessicant_tray_gyroid(center_y=half_length + fdb.shell_thickness),
+        dtg["tray"],
         options={"color": "#AF3", "alpha": 0.5},
     )
     show_object(
-        fdb.dessicant_tray_gyroid(center_y=half_length + fdb.shell_thickness).mirror(
-            "XZ"
-        ),
+        dtg["lid"],
+        options={"color": "#AF3", "alpha": 0.5},
+    )
+    show_object(
+        dtg["tray"].mirror("XZ"),
+        options={"color": "#AF3", "alpha": 0.5},
+    )
+    show_object(
+        dtg["lid"].mirror("XZ"),
         options={"color": "#AF3", "alpha": 0.5},
     )
 
@@ -895,7 +924,7 @@ def individual_components():
     show_object(fdb.lid_perimeter(), options={"color": "green", "alpha": 0.5})
     half_length = show_bearing_tray(fdb)
     show_object(
-        fdb.dessicant_tray_gyroid(center_y=half_length + fdb.shell_thickness),
+        fdb.dessicant_tray_gyroid(center_y=half_length + fdb.shell_thickness)["tray"],
         options={"color": "#AF3", "alpha": 0.5},
     )
 
