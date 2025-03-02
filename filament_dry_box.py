@@ -656,9 +656,7 @@ class filament_dry_box:
         )
 
         truck_reinforcement_rib_bottom_z = (
-            bearing_axle_truck_bottom_z
-            + self.spool_width_margin
-            - bearing_clearance_gap * 2
+            bearing_axle_truck_bottom_z + self.spool_width_margin / 2
         )
         truck_reinforcement_rib = (
             cq.Workplane("XZ")
