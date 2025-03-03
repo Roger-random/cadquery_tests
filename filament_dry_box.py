@@ -201,6 +201,117 @@ class filament_dry_box:
 
         return panel_half
 
+    def diagonal_tiles_lid_side(
+        self,
+        tile_lip_thickness=0.8,
+        tile_lip_depth=1.6,
+        tile_length=55.9,
+        tile_width=28.6,
+        tile_thickness=2.8,
+        tile_spacing_minimum=1.6,
+    ):
+        # Create a standard issue side panel with our desired thickness
+        side_thickness = tile_thickness + tile_lip_thickness * 2
+        panel_half = self.fully_closed_side(side_thickness)
+        panel = panel_half + panel_half.mirror("XZ")
+
+        # After the bevel around the edge that accounts for thickness, we have
+        # less width to work with and smaller effective radii. (Might want to
+        # move this the side panel generator)
+        available_width = (
+            self.spool_volume_radius + self.shell_thickness - side_thickness
+        ) * 2
+        available_top_radius = (
+            self.shell_top_radius + self.shell_thickness - side_thickness
+        )
+        available_bottom_radius = (
+            self.shell_bottom_radius + self.shell_thickness - side_thickness
+        )
+
+        # A circle circumscribing the tile is what we use to pack
+        circumscribed_diameter = math.sqrt(
+            math.pow(tile_length, 2) + math.pow(tile_width, 2)
+        )
+        circumscribed_radius = circumscribed_diameter / 2
+
+        # How much setback we must place the packing circle from the edge in
+        # ordet to keep clear of radii
+        sine45 = math.sin(math.radians(45))
+        if circumscribed_radius > available_top_radius:
+            tile_offset_top = circumscribed_radius
+        else:
+            tile_offset_top = (
+                available_top_radius
+                - (available_top_radius - circumscribed_radius) * sine45
+            )
+        if circumscribed_radius > available_bottom_radius:
+            tile_offset_bottom = circumscribed_radius
+        else:
+            tile_offset_bottom = (
+                available_bottom_radius
+                - (available_bottom_radius - circumscribed_radius) * sine45
+            )
+        tile_side_offset = max(tile_offset_top, tile_offset_bottom)
+
+        # Given the calculated setback, determine our space constraints.
+        tile_z_max = available_width / 2 - tile_offset_top
+        tile_z_min = (
+            -available_width / 2 - self.bottom_extra_height + tile_offset_bottom
+        )
+        tile_z_range = tile_z_max - tile_z_min
+        tile_y_max = available_width / 2 - tile_side_offset
+        tile_y_min = -available_width / 2 + tile_side_offset
+        tile_y_range = tile_y_max - tile_y_min
+
+        # Now we have our space constraint, find how to best pack tiles within.
+        # Packing is determined by y-axis, z-axis gets whatever falls out.
+
+        # First find the angle of the tile's diagonal length. This is the
+        # maximum width we can occupy with these tile dimensions, so the best
+        # packing will be somewhere between this angle and vertical.
+        tile_diag_angle_degrees = math.degrees(math.asin(tile_width / tile_length))
+
+        # How wide is available Y in terms of tile diagonal? Expect to get
+        # a partial multiple (Example: 2.15) so round that up (Example: 3)
+        # to get the minimum number of tiles we need to cover the range.
+        tile_y_count_min = math.ceil(
+            tile_y_range / (circumscribed_diameter + tile_spacing_minimum)
+        )
+
+        tiles_y_angle_degress_min = math.degrees(
+            math.asin((tile_y_range / tile_y_count_min) / circumscribed_diameter)
+        )
+
+        packed_angle = tiles_y_angle_degress_min
+        tile_y_step = tile_y_range / tile_y_count_min
+
+        tile_y_count = tile_y_count_min
+
+        tile_z_step = circumscribed_diameter * math.cos(math.radians(packed_angle))
+        tile_z_count = math.floor(tile_z_range / tile_z_step)
+
+        tile_subtract = (
+            cq.Workplane("YZ")
+            .transformed(rotate=cq.Vector(0, 0, packed_angle))
+            .box(tile_width, tile_length, tile_thickness)
+            .box(
+                tile_width - tile_lip_depth * 2,
+                tile_length - tile_lip_depth * 2,
+                side_thickness * 2,
+            )
+            .edges("|X")
+            .fillet(2)
+            .translate((self.spool_volume_width + side_thickness / 2, 0, 0))
+        )
+
+        for z in range(tile_z_count + 1):
+            for y in range(tile_y_count + 1):
+                panel = panel - tile_subtract.translate(
+                    (0, tile_y_min + tile_y_step * y, tile_z_max - tile_z_step * z)
+                )
+
+        return panel
+
     def cross_tiled_lid_side(
         self,
         tile_lip_thickness=0.8,
@@ -884,23 +995,25 @@ def show_bearing_tray(fdb):
     show_object(axle, options={"color": "#ABCDEF", "alpha": 0.5})
     show_object(axle.mirror("XZ"), options={"color": "#ABCDEF", "alpha": 0.5})
     show_object(tray["tray"], options={"color": "#ABCDFF", "alpha": 0.5})
-    show_object(tray["spacer"], options={"color": "#FFCDEF", "alpha": 0.5})
+    if tray["below tray"] > 1:
+        show_object(tray["spacer"], options={"color": "#FFCDEF", "alpha": 0.5})
     log("Remaining height below bearing tray: {0}mm".format(tray["below tray"]))
+
     return tray["tray length half"]
 
 
 def filament_feed_box():
-    fdb = filament_dry_box()
+    fdb = filament_dry_box(shell_top_radius=25)
     show_object(fdb.spool_placeholder(), options={"color": "black", "alpha": 0.9})
     box = fdb.box_perimeter()
     box = box + box.mirror("XZ")
     box = fdb.add_filament_exit(perimeter=box)
-    box = box + fdb.single_panel_side()
+    box = box + fdb.diagonal_tiles_lid_side()
     show_object(box, options={"color": "blue", "alpha": 0.5})
 
     lid = fdb.lid_perimeter()
     lid = lid + lid.mirror("XZ")
-    lid = lid + fdb.single_panel_side().mirror("YZ")
+    lid = lid + fdb.diagonal_tiles_lid_side().mirror("YZ")
     show_object(lid, options={"color": "green", "alpha": 0.5})
     half_length = show_bearing_tray(fdb)
     dtg = fdb.dessicant_tray_gyroid(center_y=half_length + fdb.shell_thickness)
@@ -935,5 +1048,14 @@ def individual_components():
     )
 
 
+def diagonal_lid_test():
+    fdb = filament_dry_box()
+
+    show_object(
+        fdb.diagonal_tiles_lid_side(),
+        options={"color": "blue", "alpha": 0.5},
+    )
+
+
 if "show_object" in globals():
-    filament_feed_box()
+    diagonal_lid_test()
