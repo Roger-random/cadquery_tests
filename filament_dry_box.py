@@ -50,7 +50,7 @@ class filament_dry_box:
         spool_width=70,
         spool_width_margin=5,
         shell_thickness=1.6,
-        shell_top_radius=50,
+        shell_top_radius=25,
         shell_bottom_radius=25,
         bottom_extra_height=40,
         lid_height=10,
@@ -208,6 +208,7 @@ class filament_dry_box:
         tile_length=55.9,
         tile_width=28.6,
         tile_thickness=2.8,
+        tile_spacing=2.4,
     ):
         # Create a standard issue side panel with our desired thickness
         side_thickness = tile_thickness + tile_lip_thickness * 2
@@ -252,22 +253,15 @@ class filament_dry_box:
             )
         tile_side_offset = max(tile_offset_top, tile_offset_bottom)
 
-        # Given the calculated setback, determine our space constraints.
+        # Given the calculated setback, determine our space constraints on
+        # tile position
         tile_z_max = available_width / 2 - tile_offset_top
         tile_z_min = (
             -available_width / 2 - self.bottom_extra_height + tile_offset_bottom
         )
-        layout_z_range = tile_z_max - tile_z_min + circumscribed_diameter
         tile_y_max = available_width / 2 - tile_side_offset
         tile_y_min = -available_width / 2 + tile_side_offset
         layout_y_range = tile_y_max - tile_y_min + circumscribed_diameter
-
-        show_object(
-            cq.Workplane("YZ")
-            .transformed(offset=cq.Vector(0, -self.bottom_extra_height / 2, 0))
-            .rect(layout_y_range, layout_z_range)
-            .extrude(5)
-        )
 
         # Now we have our space constraint, find how to best pack tiles within.
         # Packing is determined by y-axis, z-axis gets whatever falls out.
@@ -275,9 +269,8 @@ class filament_dry_box:
         # How wide is available Y in terms of tile diagonal? Expect to get
         # a partial multiple (Example: 2.15) so round that up (Example: 3)
         # to get the minimum number of tiles we need to cover the range.
-        tile_y_count_min = math.ceil(layout_y_range / circumscribed_diameter)
+        tile_y_count = math.ceil(layout_y_range / circumscribed_diameter)
 
-        tile_y_count = tile_y_count_min
         if tile_y_count > 1:
             # Determine the step size between tiles to space out that number of tiles
             tile_y_step = (tile_y_max - tile_y_min) / (tile_y_count - 1)
@@ -286,14 +279,13 @@ class filament_dry_box:
             tile_y_step = 0
 
         # Calculate the tile rotation angle to fit within that step size.
-        tile_rotation_radians = math.acos(tile_width / tile_y_step)
+        tile_rotation_radians = math.acos((tile_width + tile_spacing) / tile_y_step)
 
-        log("------------------")
-        log(f"tile_rotation_radians {tile_rotation_radians}")
+        # From that rotation angle, calculate the z tile stepping
+        tile_z_step = tile_y_step / math.tan(tile_rotation_radians)
+        tile_z_count = math.ceil((tile_z_max - tile_z_min) / tile_z_step)
 
-        tile_z_step = math.sin(tile_rotation_radians) * tile_width * 2
-        tile_z_count = 2
-
+        # Create the subtraction tool
         tile_subtract = (
             cq.Workplane("YZ")
             .transformed(rotate=cq.Vector(0, 0, math.degrees(tile_rotation_radians)))
@@ -308,14 +300,11 @@ class filament_dry_box:
             .translate((self.spool_volume_width + side_thickness / 2, 0, 0))
         )
 
+        # Use subtraction tool to create openings for acrylic tiles
         for z in range(tile_z_count):
             for y in range(tile_y_count):
-                # panel = panel - tile_subtract.translate(
-                show_object(
-                    tile_subtract.translate(
-                        (0, tile_y_min + tile_y_step * y, tile_z_max - tile_z_step * z)
-                        # (0, tile_y_min + tile_y_step * y, tile_z_max)
-                    )
+                panel = panel - tile_subtract.translate(
+                    (0, tile_y_min + tile_y_step * y, tile_z_max - tile_z_step * z)
                 )
 
         return panel
@@ -980,7 +969,7 @@ def quarter_to_whole(quarter):
 
 
 def compact_storage_box():
-    fdb = filament_dry_box(bottom_extra_height=0)
+    fdb = filament_dry_box(shell_top_radius=98, bottom_extra_height=0)
     show_object(fdb.spool_placeholder(), options={"color": "black", "alpha": 0.75})
     box_half = fdb.box_perimeter() + fdb.fully_closed_side()
     show_object(
@@ -1043,27 +1032,5 @@ def filament_feed_box():
     )
 
 
-def individual_components():
-    fdb = filament_dry_box(bottom_extra_height=28)
-    show_object(fdb.spool_placeholder(), options={"color": "black", "alpha": 0.9})
-    show_object(fdb.fully_closed_side(), options={"color": "red", "alpha": 0.5})
-    show_object(fdb.box_perimeter(), options={"color": "blue", "alpha": 0.5})
-    show_object(fdb.lid_perimeter(), options={"color": "green", "alpha": 0.5})
-    half_length = show_bearing_tray(fdb)
-    show_object(
-        fdb.dessicant_tray_gyroid(center_y=half_length + fdb.shell_thickness)["tray"],
-        options={"color": "#AF3", "alpha": 0.5},
-    )
-
-
-def diagonal_lid_test():
-    fdb = filament_dry_box()
-
-    show_object(
-        fdb.diagonal_tiles_lid_side(),
-        options={"color": "blue", "alpha": 0.5},
-    )
-
-
 if "show_object" in globals():
-    diagonal_lid_test()
+    filament_feed_box()
