@@ -207,7 +207,7 @@ class filament_dry_box:
         tile_lip_depth=1.6,
         tile_length=55.9,
         tile_width=28.6,
-        tile_thickness=3.0,
+        tile_thickness=2.8,
     ):
         # Create a standard issue side panel with our desired thickness
         side_thickness = tile_thickness + tile_lip_thickness * 2
@@ -272,57 +272,31 @@ class filament_dry_box:
         # Now we have our space constraint, find how to best pack tiles within.
         # Packing is determined by y-axis, z-axis gets whatever falls out.
 
-        # First find the angle of the tile's diagonal length. This is the
-        # maximum width we can occupy with these tile dimensions, so the best
-        # packing will be somewhere between this angle and vertical.
-        tile_diag_angle_degrees = math.degrees(math.atan(tile_width / tile_length))
-
         # How wide is available Y in terms of tile diagonal? Expect to get
         # a partial multiple (Example: 2.15) so round that up (Example: 3)
         # to get the minimum number of tiles we need to cover the range.
         tile_y_count_min = math.ceil(layout_y_range / circumscribed_diameter)
 
-        tiles_y_angle_degress_min = (
-            math.degrees(
-                math.asin((layout_y_range / tile_y_count_min) / circumscribed_diameter)
-            )
-            - tile_diag_angle_degrees
-        )
+        tile_y_count = tile_y_count_min
+        if tile_y_count > 1:
+            # Determine the step size between tiles to space out that number of tiles
+            tile_y_step = (tile_y_max - tile_y_min) / (tile_y_count - 1)
+        else:
+            # Single tile along Y axis
+            tile_y_step = 0
+
+        # Calculate the tile rotation angle to fit within that step size.
+        tile_rotation_radians = math.acos(tile_width / tile_y_step)
 
         log("------------------")
-        angle_edge_degrees = 45.25
-        angle_diameter_degrees = angle_edge_degrees + tile_diag_angle_degrees
-        log(f"tiles_y_angle_degress_min {tiles_y_angle_degress_min}")
-        log(f"tile_diag_angle_degrees {tile_diag_angle_degrees}")
-        log(f"angle_diameter_degrees {angle_diameter_degrees}")
+        log(f"tile_rotation_radians {tile_rotation_radians}")
 
-        diameter_projected_x = (
-            math.sin(math.radians(angle_diameter_degrees)) * circumscribed_diameter
-        )
-        diameter_projected_y = (
-            math.cos(math.radians(angle_diameter_degrees)) * circumscribed_diameter
-        )
-
-        log(f"diameter_projected_x {diameter_projected_x}")
-        log(f"diameter_projected_y {diameter_projected_y}")
-
-        x_space = (
-            diameter_projected_x
-            - math.tan(math.radians(angle_edge_degrees)) * diameter_projected_y
-        ) + 2.4
-        log(f"x_space {x_space}")
-
-        y_space = 42.5
-
-        tile_y_count = 4
-        tile_y_step = x_space
-
-        tile_z_step = y_space
-        tile_z_count = 5
+        tile_z_step = math.sin(tile_rotation_radians) * tile_width * 2
+        tile_z_count = 2
 
         tile_subtract = (
             cq.Workplane("YZ")
-            .transformed(rotate=cq.Vector(0, 0, angle_edge_degrees))
+            .transformed(rotate=cq.Vector(0, 0, math.degrees(tile_rotation_radians)))
             .box(tile_width, tile_length, tile_thickness)
             .box(
                 tile_width - tile_lip_depth * 2,
@@ -336,11 +310,12 @@ class filament_dry_box:
 
         for z in range(tile_z_count):
             for y in range(tile_y_count):
-                panel = panel - tile_subtract.translate(
-                    # show_object(
-                    # tile_subtract.translate(
-                    (0, tile_y_min + tile_y_step * y, tile_z_max - tile_z_step * z)
-                    # (0, tile_y_min + tile_y_step * y, tile_z_max)
+                # panel = panel - tile_subtract.translate(
+                show_object(
+                    tile_subtract.translate(
+                        (0, tile_y_min + tile_y_step * y, tile_z_max - tile_z_step * z)
+                        # (0, tile_y_min + tile_y_step * y, tile_z_max)
+                    )
                 )
 
         return panel
@@ -1091,4 +1066,4 @@ def diagonal_lid_test():
 
 
 if "show_object" in globals():
-    filament_feed_box()
+    diagonal_lid_test()
