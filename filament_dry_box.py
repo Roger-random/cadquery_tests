@@ -635,6 +635,31 @@ class filament_dry_box:
 
         return perimeter
 
+    def cut_wire_entrance(
+        self,
+        perimeter,
+        wire_diameter=2,
+        wire_count=2,
+    ):
+        """
+        Cut an entrance for a few small wires of given diameter and quantity.
+        """
+        entrance_half = (
+            cq.Workplane("XZ")
+            .lineTo(
+                0,
+                -self.spool_volume_radius - self.bottom_extra_height + 1e-4,
+                forConstruction=True,
+            )
+            .line(0, wire_diameter)
+            .line(wire_diameter * wire_count / 2, 0)
+            .tangentArcPoint((0, -wire_diameter))
+            .close()
+            .extrude(-self.spool_diameter)
+        )
+        entrance = entrance_half + entrance_half.mirror("YZ")
+        return perimeter - entrance
+
     def lid_perimeter(self):
         """
         Draw profile of lid all around the box, then sweep it along perimeter path.
@@ -1005,6 +1030,7 @@ def filament_feed_box():
     box = fdb.box_perimeter()
     box = box + box.mirror("XZ")
     box = fdb.add_filament_exit(perimeter=box)
+    box = fdb.cut_wire_entrance(perimeter=box)
     box = box + fdb.diagonal_tiles_lid_side()
     show_object(box, options={"color": "blue", "alpha": 0.5})
 
