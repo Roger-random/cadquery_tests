@@ -33,6 +33,66 @@ if "log" not in globals():
         print(args)
 
 
+def tin_placeholder_3oz():
+    """
+    Placeholder for a small 3oz container from McMaster-Carr
+    https://www.mcmaster.com/products/tin-cans/tins-1~/
+    """
+    return (
+        cq.Workplane("XY")
+        .circle(69 / 2)
+        .extrude(12.5)
+        .faces(">Z")
+        .workplane()
+        .circle(70 / 2)
+        .extrude(3)
+        .faces(">Z")
+        .workplane()
+        .circle(72 / 2)
+        .extrude(2)
+        .faces(">Z")
+        .workplane()
+        .circle(69.5 / 2)
+        .extrude(5.5)
+        .faces(">Z")
+        .workplane()
+        .circle(61.3 / 2)
+        .extrude(0.5)
+        .faces("<Z")
+        .fillet(2)
+    )
+
+
+def tin_placeholder_4oz():
+    """
+    Placeholder for a small 4oz container from McMaster-Carr
+    https://www.mcmaster.com/products/tin-cans/tins-1~/
+    """
+    return (
+        cq.Workplane("XY")
+        .circle(64.5 / 2)
+        .extrude(29)
+        .faces(">Z")
+        .workplane()
+        .circle(65.5 / 2)
+        .extrude(4)
+        .faces(">Z")
+        .workplane()
+        .circle(67.35 / 2)
+        .extrude(1.5)
+        .faces(">Z")
+        .workplane()
+        .circle(65 / 2)
+        .extrude(11.5)
+        .faces(">Z")
+        .workplane()
+        .circle(55 / 2)
+        .extrude(0.5)
+        .faces("<Z")
+        .fillet(2)
+    )
+
+
 class filament_rm_7m74:
     """
     Turning a Rubbermaid 7M74 5 liter / 21 cup ("fits 5lb flour") container
@@ -65,7 +125,6 @@ class filament_rm_7m74:
 
 if "show_object" in globals():
     fr7 = filament_rm_7m74()
-    show_object(
-        fr7.fit_test().rotate((0, 0, 0), (0, 0, 1), 0),
-        options={"color": "blue", "alpha": 0.5},
-    )
+    rotate_for_print = 0  # 60 for .rotate((0, 0, 0), (0, 0, 1), rotate_for_print)
+
+    show_object(tin_placeholder_4oz(), options={"color": "yellow", "alpha": 0.5})
