@@ -217,6 +217,37 @@ class filament_rm_7m74:
 
         return tray
 
+    def tray_4oz_transform(self, tin):
+        return tin.translate((0, 70, 0))
+
+    def tray_4oz(self):
+        base = self.base_volume(side_extra_height=20)
+        tin_cutout_center = (
+            cq.Workplane("XY").circle(65 / 2).extrude(45).faces("<Z").chamfer(1)
+        )
+
+        tray = (
+            (
+                base
+                - tin_cutout_center
+                - self.tray_4oz_transform(tin_cutout_center)
+                - self.tray_4oz_transform(tin_cutout_center).mirror("XZ")
+            )
+            .faces(">Z")
+            .fillet(1)
+        )
+
+        support_cutout = self.bearing_support_cutout().translate((20, 35, 0))
+
+        tray = (
+            tray
+            - support_cutout
+            - support_cutout.mirror("XZ")
+            - support_cutout.mirror("YZ")
+            - support_cutout.mirror("XZ").mirror("YZ")
+        )
+        return tray
+
     def bearing_support_inner_3oz(self):
         slot_start_x = 20
         bearing_center_x = 34
@@ -322,6 +353,23 @@ def assembly_3oz():
     )
 
 
+def assembly_4oz():
+    fr7 = filament_rm_7m74()
+    show_object(fr7.tray_4oz(), options={"color": "blue", "alpha": 0.5})
+    show_object(tin_placeholder_4oz(), options={"color": "gray", "alpha": 0.8})
+    side = fr7.tray_4oz_transform(tin_placeholder_4oz())
+    show_object(side, options={"color": "gray", "alpha": 0.8})
+    show_object(side.mirror("XZ"), options={"color": "gray", "alpha": 0.8})
+    show_object(
+        fr7.spool_placeholder().translate((0, 0, 148)),
+        options={"color": "gray", "alpha": 0.8},
+    )
+    show_object(
+        bearing_placeholder().translate((34, -35, 42)),
+        options={"color": "gray", "alpha": 0.8},
+    )
+
+
 def supportio():
     fr7 = filament_rm_7m74()
     show_object(
@@ -335,4 +383,4 @@ def supportio():
 
 
 if "show_object" in globals():
-    assembly_3oz()
+    assembly_4oz()
