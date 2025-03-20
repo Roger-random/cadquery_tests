@@ -229,6 +229,7 @@ class filament_rm_7m74:
         base_height = self.bottom_chamfer + 2
         bearing_guide_thickness = 5
         bearing_x_inner = bearing_center_x - bearing_half
+        bearing_x_outer = bearing_center_x + bearing_half
         bearing_x_clear = 0.5
         bearing_y = 24
         bearing_y_top = bearing_y + 11
@@ -244,40 +245,9 @@ class filament_rm_7m74:
             .lineTo(bearing_x_inner, bearing_y + 4)
             .line(0, -8)
             .lineTo(bearing_x_inner - bearing_x_clear, base_height)
-            .lineTo(bearing_x_inner, base_height)
-            .lineTo(bearing_x_inner, 0)
-            .close()
-            .extrude(support_thickness / 2, both=True)
-        )
-
-        support = side.intersect(self.bearing_support_cutout())
-
-        return support
-
-    def bearing_support_outer_3oz(self):
-        bearing_center_x = 34
-        bearing_half = 7 / 2
-        support_thickness = 7
-        base_height = self.bottom_chamfer + 2
-        bearing_guide_thickness = 5
-        bearing_x_inner = bearing_center_x - bearing_half
-        bearing_x_outer = bearing_center_x + bearing_half
-        bearing_x_clear = 0.5
-        bearing_y = 24
-        bearing_y_top = bearing_y + 11
-
-        side = (
-            cq.Workplane("XZ")
-            .lineTo(bearing_x_inner, 0, forConstruction=True)
-            .line(0, base_height)
             .lineTo(bearing_x_outer + bearing_x_clear, base_height)
-            .lineTo(bearing_x_outer, bearing_y - 4)
-            .line(0, 8)
-            .lineTo(bearing_x_outer + bearing_x_clear, bearing_y_top)
-            .line(bearing_guide_thickness, bearing_guide_thickness)
-            .lineTo(self.width / 2, base_height)
-            .line(0, -base_height + self.bottom_chamfer)
-            .line(-self.bottom_chamfer, -self.bottom_chamfer)
+            .line(-bearing_x_clear, -base_height + self.bottom_chamfer)
+            .lineTo(self.width / 2 - self.bottom_chamfer - support_thickness, 0)
             .close()
             .extrude(support_thickness / 2, both=True)
         )
@@ -289,6 +259,43 @@ class filament_rm_7m74:
         )
 
         support = (side + axle).intersect(self.bearing_support_cutout())
+
+        return support
+
+    def bearing_support_outer_3oz(self):
+        bearing_center_x = 34
+        bearing_half = 7 / 2
+        support_thickness = 7
+        base_height = self.bottom_chamfer + 2
+        bearing_x_outer = bearing_center_x + bearing_half
+        bearing_x_clear = 0.5
+        bearing_y = 24
+        bearing_y_top = bearing_y + 11
+        top_x = 2 + self.width / 2
+
+        side = (
+            cq.Workplane("XZ")
+            .lineTo(
+                self.width / 2 - self.bottom_chamfer - support_thickness,
+                0,
+                forConstruction=True,
+            )
+            .line(self.bottom_chamfer, self.bottom_chamfer)
+            .lineTo(bearing_x_outer + bearing_x_clear, base_height)
+            .lineTo(bearing_x_outer, bearing_y - 4)
+            .line(0, 8)
+            .lineTo(bearing_x_outer + bearing_x_clear, bearing_y_top)
+            .lineTo(
+                top_x,
+                bearing_y_top + (top_x) - (bearing_x_outer + bearing_x_clear),
+            )
+            .lineTo(self.width / 2, self.bottom_chamfer)
+            .line(-self.bottom_chamfer, -self.bottom_chamfer)
+            .close()
+            .extrude(support_thickness / 2, both=True)
+        )
+
+        support = side.intersect(self.bearing_support_cutout())
 
         return support
 
@@ -316,6 +323,18 @@ def assembly_3oz():
     show_object(
         bearing_support_pair,
         options={"color": "green", "alpha": 0.5},
+    )
+
+
+def supportio():
+    fr7 = filament_rm_7m74()
+    show_object(
+        fr7.bearing_support_inner_3oz(),
+        options={"color": "green", "alpha": 0.5},
+    )
+    show_object(
+        fr7.bearing_support_outer_3oz(),
+        options={"color": "red", "alpha": 0.5},
     )
 
 
