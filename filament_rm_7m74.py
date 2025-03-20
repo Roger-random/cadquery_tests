@@ -93,20 +93,6 @@ def tin_placeholder_4oz():
     )
 
 
-def bearing_placeholder(
-    bearing_diameter_outer=22,
-    bearing_diameter_inner=8,
-    bearing_length=7,
-):
-    return (
-        cq.Workplane("YZ")
-        .circle(bearing_diameter_outer / 2)
-        .circle(bearing_diameter_inner / 2)
-        .extrude(bearing_length)
-        .translate((-bearing_length / 2, 0, 0))
-    )
-
-
 class filament_rm_7m74:
     """
     Turning a Rubbermaid 7M74 5 liter / 21 cup ("fits 5lb flour") container
@@ -129,6 +115,23 @@ class filament_rm_7m74:
         self.bottom_chamfer = bottom_chamfer
         self.spool_diameter = spool_diameter
         self.spool_width = spool_width
+
+    def bearing_placeholder(
+        self,
+        bearing_diameter_outer=22,
+        bearing_diameter_inner=8,
+        bearing_length=7,
+    ):
+        self.bearing_diameter_outer = bearing_diameter_outer
+        self.bearing_diameter_inner = bearing_diameter_inner
+        self.bearing_length = bearing_length
+        return (
+            cq.Workplane("YZ")
+            .circle(bearing_diameter_outer / 2)
+            .circle(bearing_diameter_inner / 2)
+            .extrude(bearing_length)
+            .translate((-bearing_length / 2, 0, 0))
+        )
 
     def spool_placeholder(self, spool_side_thickness=5):
         """
@@ -160,6 +163,7 @@ class filament_rm_7m74:
         self,
         base_height=12,
     ):
+        self.base_height = base_height
         return (
             cq.Workplane("XY")
             .rect(self.width, self.length)
@@ -201,7 +205,14 @@ class filament_rm_7m74:
             .chamfer(1)
         )
 
-    def tray(self, volume_height, cutout_diameter, cutout_height, side_transform):
+    def tray(
+        self,
+        volume_height,
+        cutout_diameter,
+        cutout_height,
+        side_transform,
+        support_cutout_translate=(20, 35, 0),
+    ):
         base = self.base_volume(base_height=volume_height)
         cutout_center = self.tray_cutout(diameter=cutout_diameter, height=cutout_height)
 
@@ -212,7 +223,10 @@ class filament_rm_7m74:
             - side_transform(cutout_center).mirror("XZ")
         )
 
-        support_cutout = self.bearing_support_cutout().translate((20, 35, 0))
+        support_cutout = self.bearing_support_cutout().translate(
+            support_cutout_translate
+        )
+        self.support_cutout_translate = support_cutout_translate
 
         tray = (
             tray
@@ -245,73 +259,71 @@ class filament_rm_7m74:
             side_transform=self.tray_4oz_side_transform,
         )
 
-    def bearing_support_inner_3oz(self):
-        slot_start_x = 20
-        bearing_center_x = 34
-        bearing_half = 7 / 2
+    def bearing_support(self):
         support_thickness = 7
-        base_height = self.bottom_chamfer + 2
         bearing_guide_thickness = 5
+        bearing_x_clear = 0.5
+        slot_start_x = self.support_cutout_translate[0]
+        bearing_half = self.bearing_length / 2
+        bearing_center_x = self.spool_width / 2 - bearing_half + 1
         bearing_x_inner = bearing_center_x - bearing_half
         bearing_x_outer = bearing_center_x + bearing_half
-        bearing_x_clear = 0.5
-        bearing_y = 24
-        bearing_y_top = bearing_y + 11
-        side = (
+        bearing_y = self.base_height + self.bearing_diameter_outer / 2 + 1
+        bearing_y_top = bearing_y + self.bearing_diameter_outer / 2
+        bearing_axle_diameter = 8
+        bearing_axle_top = bearing_y + bearing_axle_diameter / 2
+        inner = (
             cq.Workplane("XZ")
             .lineTo(slot_start_x, 0, forConstruction=True)
-            .line(0, base_height)
+            .line(0, self.base_height)
             .lineTo(
                 bearing_x_inner - bearing_guide_thickness - bearing_x_clear,
                 bearing_y_top + bearing_guide_thickness,
             )
             .line(bearing_guide_thickness, -bearing_guide_thickness)
-            .lineTo(bearing_x_inner, bearing_y + 4)
-            .line(0, -8)
-            .lineTo(bearing_x_inner - bearing_x_clear, base_height)
-            .lineTo(bearing_x_outer + bearing_x_clear, base_height)
-            .line(-bearing_x_clear, -base_height + self.bottom_chamfer)
+            .lineTo(bearing_x_inner, bearing_axle_top)
+            .line(0, -bearing_axle_diameter)
+            .lineTo(bearing_x_inner - bearing_x_clear, self.base_height)
+            .lineTo(bearing_x_outer + bearing_x_clear, self.base_height)
+            .line(-bearing_x_clear, -self.base_height + self.bottom_chamfer)
             .lineTo(self.width / 2 - self.bottom_chamfer - support_thickness, 0)
             .close()
             .extrude(support_thickness / 2, both=True)
         )
 
-        axle = (
-            (cq.Workplane("YZ").circle(4).extrude(bearing_half * 2))
-            .intersect((cq.Workplane("YZ").rect(7, 8).extrude(bearing_half * 2)))
+        bearing_axle = (
+            (
+                cq.Workplane("YZ")
+                .circle(bearing_axle_diameter / 2)
+                .extrude(bearing_half * 2)
+            )
+            .intersect(
+                cq.Workplane("YZ")
+                .rect(support_thickness, bearing_axle_diameter)
+                .extrude(bearing_half * 2)
+            )
             .translate((bearing_x_inner, 0, bearing_y))
         )
 
-        support = (side + axle).intersect(self.bearing_support_cutout())
+        support_inner = (inner + bearing_axle).intersect(self.bearing_support_cutout())
 
-        return support
+        outer_top_x = 2 + self.width / 2
 
-    def bearing_support_outer_3oz(self):
-        bearing_center_x = 34
-        bearing_half = 7 / 2
-        support_thickness = 7
-        base_height = self.bottom_chamfer + 2
-        bearing_x_outer = bearing_center_x + bearing_half
-        bearing_x_clear = 0.5
-        bearing_y = 24
-        bearing_y_top = bearing_y + 11
-        top_x = 2 + self.width / 2
-
-        side = (
+        outer = (
             cq.Workplane("XZ")
             .lineTo(
                 self.width / 2 - self.bottom_chamfer - support_thickness,
                 0,
                 forConstruction=True,
             )
-            .line(self.bottom_chamfer, self.bottom_chamfer)
-            .lineTo(bearing_x_outer + bearing_x_clear, base_height)
+            .lineTo(bearing_x_outer, self.bottom_chamfer)
+            .lineTo(bearing_x_outer + bearing_x_clear, self.base_height)
             .lineTo(bearing_x_outer, bearing_y - 4)
             .line(0, 8)
             .lineTo(bearing_x_outer + bearing_x_clear, bearing_y_top)
             .lineTo(
-                top_x,
-                bearing_y_top + (top_x) - (bearing_x_outer + bearing_x_clear),
+                outer_top_x,
+                bearing_y_top + (outer_top_x) - (bearing_x_outer + bearing_x_clear),
             )
             .lineTo(self.width / 2, self.bottom_chamfer)
             .line(-self.bottom_chamfer, -self.bottom_chamfer)
@@ -319,9 +331,9 @@ class filament_rm_7m74:
             .extrude(support_thickness / 2, both=True)
         )
 
-        support = side.intersect(self.bearing_support_cutout())
+        support_outer = outer.intersect(self.bearing_support_cutout())
 
-        return support
+        return support_inner, support_outer
 
 
 def assembly_3oz():
@@ -336,14 +348,22 @@ def assembly_3oz():
         fr7.spool_placeholder().translate((0, 0, 130)),
         options={"color": "gray", "alpha": 0.8},
     )
+
     show_object(
-        bearing_placeholder().translate((34, -35, 24)),
+        fr7.bearing_placeholder().translate(
+            (
+                (fr7.spool_width / 2 - fr7.bearing_length / 2 + 1),
+                -35,
+                fr7.base_height + fr7.bearing_diameter_outer / 2 + 1,
+            )
+        ),
         options={"color": "gray", "alpha": 0.8},
     )
 
-    bearing_support_pair = (
-        fr7.bearing_support_inner_3oz() + fr7.bearing_support_outer_3oz()
-    ).translate((0, -35, 0))
+    bearing_support_inner, bearing_support_outer = fr7.bearing_support()
+    bearing_support_pair = (bearing_support_inner + bearing_support_outer).translate(
+        (0, -35, 0)
+    )
     show_object(
         bearing_support_pair,
         options={"color": "green", "alpha": 0.5},
@@ -362,21 +382,32 @@ def assembly_4oz():
         options={"color": "gray", "alpha": 0.8},
     )
     show_object(
-        bearing_placeholder().translate((34, -35, 42)),
+        fr7.bearing_placeholder().translate(
+            (
+                (fr7.spool_width / 2 - fr7.bearing_length / 2 + 1),
+                -35,
+                fr7.base_height + fr7.bearing_diameter_outer / 2 + 1,
+            )
+        ),
         options={"color": "gray", "alpha": 0.8},
+    )
+    bearing_support_inner, bearing_support_outer = fr7.bearing_support()
+    bearing_support_pair = (bearing_support_inner + bearing_support_outer).translate(
+        (0, -35, 0)
+    )
+    show_object(
+        bearing_support_pair,
+        options={"color": "green", "alpha": 0.5},
     )
 
 
 def supportio():
     fr7 = filament_rm_7m74()
-    show_object(
-        fr7.bearing_support_inner_3oz(),
-        options={"color": "green", "alpha": 0.5},
-    )
-    show_object(
-        fr7.bearing_support_outer_3oz(),
-        options={"color": "red", "alpha": 0.5},
-    )
+    fr7.tray_4oz()
+    fr7.bearing_placeholder()
+    inner, outer = fr7.bearing_support()
+    show_object(inner, options={"color": "green", "alpha": 0.5})
+    show_object(outer, options={"color": "red", "alpha": 0.5})
 
 
 if "show_object" in globals():
