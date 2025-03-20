@@ -406,9 +406,13 @@ def supportio():
     fr7.tray_4oz()
     fr7.bearing_placeholder()
     inner, outer = fr7.bearing_support()
-    show_object(inner, options={"color": "green", "alpha": 0.5})
-    show_object(outer, options={"color": "red", "alpha": 0.5})
+    show_object(
+        inner.rotate((0, 0, 0), (1, 0, 0), 90), options={"color": "green", "alpha": 0.5}
+    )
+    show_object(
+        outer.rotate((0, 0, 0), (1, 0, 0), 90), options={"color": "red", "alpha": 0.5}
+    )
 
 
 if "show_object" in globals():
-    assembly_4oz()
+    supportio()
