@@ -116,8 +116,8 @@ class filament_rm_7m74:
 
     def __init__(
         self,
-        width=89,
-        length=210,
+        width=89.5,
+        length=211,
         corner_fillet=25,
         bottom_chamfer=10,
         spool_diameter=200,
@@ -171,11 +171,7 @@ class filament_rm_7m74:
         )
 
     def tray_3oz_transform(self, tin):
-        return (
-            tin.translate((0, 35, 0))
-            .rotate((0, 0, 0), (1, 0, 0), 40)
-            .translate((0, 52, -1))
-        )
+        return tin.translate((0, 71, 7))
 
     def bearing_support_cutout(
         self,
