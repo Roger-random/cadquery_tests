@@ -158,20 +158,17 @@ class filament_rm_7m74:
 
     def base_volume(
         self,
-        side_extra_height=2,
+        base_height=12,
     ):
         return (
             cq.Workplane("XY")
             .rect(self.width, self.length)
-            .extrude(self.bottom_chamfer + side_extra_height)
+            .extrude(base_height)
             .edges("|Z")
             .fillet(self.corner_fillet)
             .faces("<Z")
             .chamfer(self.bottom_chamfer)
         )
-
-    def tray_3oz_transform(self, tin):
-        return tin.translate((0, 71, 7))
 
     def bearing_support_cutout(
         self,
@@ -195,15 +192,25 @@ class filament_rm_7m74:
 
         return support_half + support_half.mirror("XZ")
 
-    def tray_3oz(self):
-        base = self.base_volume(side_extra_height=2)
-        tin_cutout_center = (
-            cq.Workplane("XY").circle(35).extrude(24).faces("<Z").chamfer(1)
+    def tray_cutout(self, diameter, height):
+        return (
+            cq.Workplane("XY")
+            .circle(diameter / 2)
+            .extrude(height)
+            .faces("<Z")
+            .chamfer(1)
         )
-        tray = base - tin_cutout_center
 
-        tin_cutout_side = self.tray_3oz_transform(tin_cutout_center)
-        tray = tray - tin_cutout_side - tin_cutout_side.mirror("XZ")
+    def tray(self, volume_height, cutout_diameter, cutout_height, side_transform):
+        base = self.base_volume(base_height=volume_height)
+        cutout_center = self.tray_cutout(diameter=cutout_diameter, height=cutout_height)
+
+        tray = (
+            base
+            - cutout_center
+            - side_transform(cutout_center)
+            - side_transform(cutout_center).mirror("XZ")
+        )
 
         support_cutout = self.bearing_support_cutout().translate((20, 35, 0))
 
@@ -214,39 +221,29 @@ class filament_rm_7m74:
             - support_cutout.mirror("YZ")
             - support_cutout.mirror("XZ").mirror("YZ")
         )
-
         return tray
 
-    def tray_4oz_transform(self, tin):
+    def tray_3oz_side_transform(self, tin):
+        return tin.translate((0, 71, 7))
+
+    def tray_3oz(self):
+        return self.tray(
+            volume_height=12,
+            cutout_diameter=70,
+            cutout_height=24,
+            side_transform=self.tray_3oz_side_transform,
+        )
+
+    def tray_4oz_side_transform(self, tin):
         return tin.translate((0, 70, 0))
 
     def tray_4oz(self):
-        base = self.base_volume(side_extra_height=20)
-        tin_cutout_center = (
-            cq.Workplane("XY").circle(65 / 2).extrude(45).faces("<Z").chamfer(1)
+        return self.tray(
+            volume_height=30,
+            cutout_diameter=65,
+            cutout_height=45,
+            side_transform=self.tray_4oz_side_transform,
         )
-
-        tray = (
-            (
-                base
-                - tin_cutout_center
-                - self.tray_4oz_transform(tin_cutout_center)
-                - self.tray_4oz_transform(tin_cutout_center).mirror("XZ")
-            )
-            .faces(">Z")
-            .fillet(1)
-        )
-
-        support_cutout = self.bearing_support_cutout().translate((20, 35, 0))
-
-        tray = (
-            tray
-            - support_cutout
-            - support_cutout.mirror("XZ")
-            - support_cutout.mirror("YZ")
-            - support_cutout.mirror("XZ").mirror("YZ")
-        )
-        return tray
 
     def bearing_support_inner_3oz(self):
         slot_start_x = 20
@@ -332,7 +329,7 @@ def assembly_3oz():
 
     show_object(fr7.tray_3oz(), options={"color": "blue", "alpha": 0.5})
     show_object(tin_placeholder_3oz(), options={"color": "gray", "alpha": 0.8})
-    side = fr7.tray_3oz_transform(tin_placeholder_3oz())
+    side = fr7.tray_3oz_side_transform(tin_placeholder_3oz())
     show_object(side, options={"color": "gray", "alpha": 0.8})
     show_object(side.mirror("XZ"), options={"color": "gray", "alpha": 0.8})
     show_object(
@@ -357,7 +354,7 @@ def assembly_4oz():
     fr7 = filament_rm_7m74()
     show_object(fr7.tray_4oz(), options={"color": "blue", "alpha": 0.5})
     show_object(tin_placeholder_4oz(), options={"color": "gray", "alpha": 0.8})
-    side = fr7.tray_4oz_transform(tin_placeholder_4oz())
+    side = fr7.tray_4oz_side_transform(tin_placeholder_4oz())
     show_object(side, options={"color": "gray", "alpha": 0.8})
     show_object(side.mirror("XZ"), options={"color": "gray", "alpha": 0.8})
     show_object(
