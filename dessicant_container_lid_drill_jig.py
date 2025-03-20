@@ -25,6 +25,8 @@ SOFTWARE.
 import math
 import cadquery as cq
 
+import vise_jaws
+
 # When not running in CQ-Editor, turn log into print
 if "log" not in globals():
 
@@ -47,36 +49,33 @@ class dessicant_container_lid_drill_jig:
         lid_interior_diameter=68.8,
         lid_raised_diameter=60,
         lid_raised_height=0.4,
+        lid_top_fillet=1,
+        lid_edge_clearance=3,
         drill_area_diameter=60,
         drill_bit_diameter=25.4 * (21 / 64),  # A less-used bit from the set
         drill_hole_padding=3,
-        base_diameter=80,
         base_central_height=10,
-        base_surround_height=10,
-        guide_diameter=90,
-        guide_interface_chamfer=1,
+        base_surround_height=8,
+        vise_jaw_angle=20,
     ):
         self.lid_interior_diameter = lid_interior_diameter
         self.lid_raised_diameter = lid_raised_diameter
         self.lid_raised_height = lid_raised_height
+        self.lid_top_fillet = lid_top_fillet
+        self.lid_edge_clearance = lid_edge_clearance
         self.drill_area_diameter = drill_area_diameter
         self.drill_bit_diameter = drill_bit_diameter
         self.drill_hole_padding = drill_hole_padding
-        self.base_diameter = base_diameter
         self.base_central_height = base_central_height
         self.base_surround_height = base_surround_height
         self.base_overall_height = (
-            base_surround_height + base_central_height + lid_raised_height
+            base_central_height + lid_raised_height + base_surround_height
         )
-        self.guide_diameter = guide_diameter
-        self.guide_interface_chamfer = guide_interface_chamfer
+        self.vise_jaw_angle = vise_jaw_angle
 
-    def drill_locations(
-        self,
-    ):
+    def drill_locations(self):
         drill = (
             cq.Workplane("XY")
-            .transformed(offset=cq.Vector(0, 0, self.base_overall_height / 2))
             .circle(self.drill_bit_diameter / 2)
             .extrude(self.base_overall_height, both=True)
         )
@@ -103,81 +102,74 @@ class dessicant_container_lid_drill_jig:
 
         return locations
 
-    def base(
-        self,
-        lid_top_fillet=1,
-        base_surround_fillet=15,
-    ):
+    def guide(self):
         """
-        Lid sits on top of this base object
+        A guide to sit on top of the lid (sitting up-side down) with holes
+        indication drill locations, held in place by slope of custom vise jaws
         """
-        base_surround = (
-            cq.Workplane("XY")
-            .polygon(8, self.base_diameter, circumscribed=True)
-            .extrude(self.base_surround_height)
-            .edges("|Z")
-            .fillet(base_surround_fillet)
-            .faces(">Z")
-            .chamfer(self.guide_interface_chamfer)
+        size_half = self.lid_interior_diameter / 2 + self.lid_edge_clearance
+        guide_top_half = (
+            cq.Workplane("XZ")
+            .line(0, self.base_surround_height)
+            .line(size_half, 0)
+            .line(
+                self.base_surround_height * math.tan(math.radians(self.vise_jaw_angle)),
+                -self.base_surround_height,
+            )
+            .close()
+            .extrude(size_half, both=True)
         )
 
-        base_center = (
-            base_surround.faces(">Z")
+        guide_top = guide_top_half + guide_top_half.mirror("YZ")
+
+        guide_center = (
+            guide_top.faces("<Z")
             .workplane()
             .circle(self.lid_interior_diameter / 2)
             .extrude(self.base_central_height)
-            .faces(">Z")
-            .fillet(lid_top_fillet)
-            .faces(">Z")
+            .faces("<Z")
+            .fillet(self.lid_top_fillet)
+            .faces("<Z")
             .workplane()
             .circle(self.lid_raised_diameter / 2)
             .extrude(self.lid_raised_height)
         )
 
-        return base_center
+        guide_top = guide_top + guide_center
 
-    def guide(
-        self,
-        guide_thickness=2.4,
-        guide_surround_fillet=15,
-        finger_hole_diameter=20,
-    ):
-        """
-        Once the lid is installed on base, put this guide over them.
-        """
-        guide = (
-            cq.Workplane("XY")
-            .polygon(8, self.guide_diameter, circumscribed=True)
-            .polygon(8, self.base_diameter, circumscribed=True)
-            .extrude(self.base_overall_height)
-            .faces(">Z")
-            .polygon(8, self.guide_diameter, circumscribed=True)
-            .extrude(guide_thickness)
-            .edges("|Z")
-            .fillet(guide_surround_fillet)
-            .faces("<Z or >Z")
-            .chamfer(self.guide_interface_chamfer)
-        )
+        return guide_top
 
-        # Cut holes for my finger to get in there and remove the base
-        # after drilling. No of course I had this before I printed it
-        # and discovered I couldn't get the base out. Don't be silly.
-        finger_hole_subtract = (
+    def jaw(self, rotate_for_printing=False):
+        vise = vise_jaws.hf_59111_central_machinery_4in_drill_press_vise()
+        base = vise.jaw()
+
+        wedge = (
             cq.Workplane("XZ")
-            .circle(finger_hole_diameter / 2)
-            .extrude(self.guide_diameter, both=True)
+            .lineTo(0, vise.height / 2)
+            .lineTo(
+                vise.height * math.tan(math.radians(self.vise_jaw_angle)),
+                vise.height / 2,
+            )
+            .lineTo(0, -vise.height / 2)
+            .close()
+            .extrude(vise.width / 2, both=True)
         )
 
-        for rotation_step in range(4):
-            guide = guide - finger_hole_subtract.rotate(
-                (0, 0, 0), (0, 0, 1), rotation_step * 45
-            )
+        jaw = vise.fastener_cut(base + wedge)
 
-        return guide
+        jaw = jaw.edges("|X").fillet(2)
+
+        if rotate_for_printing:
+            jaw = jaw.rotate((0, 0, 0), (0, 1, 0), 90 - self.vise_jaw_angle)
+
+        return jaw
 
 
 if "show_object" in globals():
     jig = dessicant_container_lid_drill_jig()
     locations = jig.drill_locations()
-    show_object(jig.base() - locations, options={"color": "blue", "alpha": 0.5})
     show_object(jig.guide() - locations, options={"color": "green", "alpha": 0.5})
+    show_object(
+        jig.jaw().translate((-jig.lid_interior_diameter / 2 - 12, 0, 0)),
+        options={"color": "blue", "alpha": 0.5},
+    )
