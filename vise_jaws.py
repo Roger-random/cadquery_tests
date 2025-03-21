@@ -49,9 +49,10 @@ class hf_59111_central_machinery_4in_drill_press_vise:
         self.height = 20
         self.depth = 4
         self.fastener_distance_half = 30
-        self.fastener_shaft_radius = 4
-        self.fastener_shaft_depth = 2
-        self.fastener_head_radius = 6
+        self.fastener_shaft_radius = 3.5
+        self.fastener_shaft_depth = 1.5
+        self.fastener_taper_depth = 1.7
+        self.fastener_head_radius = 5.5
 
     def jaw(self):
         """
@@ -76,7 +77,7 @@ class hf_59111_central_machinery_4in_drill_press_vise:
             .faces(">X")
             .workplane()
             .circle(self.fastener_shaft_radius)
-            .workplane(offset=self.depth - self.fastener_shaft_depth)
+            .workplane(offset=self.fastener_taper_depth)
             .circle(self.fastener_head_radius)
             .loft()
             .faces(">X")
@@ -91,6 +92,9 @@ class hf_59111_central_machinery_4in_drill_press_vise:
 if "show_object" in globals():
     vise = hf_59111_central_machinery_4in_drill_press_vise()
     show_object(
-        vise.fastener_cut(vise.jaw()),
+        vise.fastener_cut(vise.jaw())
+        .edges("|X")
+        .fillet(2)
+        .rotate((0, 0, 0), (0, 1, 0), -90),
         options={"color": "green", "alpha": 0.5},
     )
