@@ -122,6 +122,8 @@ class dessicant_container_lid_drill_jig:
 
         guide_top = guide_top_half + guide_top_half.mirror("YZ")
 
+        guide_top = guide_top.edges("not |X").edges("not |Y").fillet(5)
+
         guide_center = (
             guide_top.faces("<Z")
             .workplane()
@@ -166,9 +168,20 @@ class dessicant_container_lid_drill_jig:
 
 
 if "show_object" in globals():
-    jig = dessicant_container_lid_drill_jig()
+    jig = dessicant_container_lid_drill_jig(
+        lid_interior_diameter=64.4,
+        lid_raised_diameter=54,
+        lid_raised_height=0.56,
+        drill_area_diameter=54,
+        drill_bit_diameter=25.4 * (17 / 64),  # Another less-used drill bit
+        drill_hole_padding=4,
+        base_central_height=12.5,
+    )
     locations = jig.drill_locations()
-    show_object(jig.guide() - locations, options={"color": "green", "alpha": 0.5})
+    show_object(
+        (jig.guide() - locations).faces(">Z").chamfer(1),
+        options={"color": "green", "alpha": 0.5},
+    )
     show_object(
         jig.jaw().translate((-jig.lid_interior_diameter / 2 - 12, 0, 0)),
         options={"color": "blue", "alpha": 0.5},
