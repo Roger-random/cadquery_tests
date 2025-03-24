@@ -91,10 +91,15 @@ class hf_59111_central_machinery_4in_drill_press_vise:
 
 if "show_object" in globals():
     vise = hf_59111_central_machinery_4in_drill_press_vise()
+
+    # Get baseline jaw
+    jaw = vise.jaw()
+
+    # Add extra 2mm of flat surface area, for general purpose usage
+    pad = cq.Workplane("YZ").rect(vise.width, vise.height).extrude(2)
+    jaw = jaw + pad
+
     show_object(
-        vise.fastener_cut(vise.jaw())
-        .edges("|X")
-        .fillet(2)
-        .rotate((0, 0, 0), (0, 1, 0), -90),
+        vise.fastener_cut(jaw).edges("|X").fillet(2).rotate((0, 0, 0), (0, 1, 0), -90),
         options={"color": "green", "alpha": 0.5},
     )
