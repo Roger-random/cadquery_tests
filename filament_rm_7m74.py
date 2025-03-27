@@ -259,7 +259,7 @@ class filament_rm_7m74:
             side_transform=self.tray_4oz_side_transform,
         )
 
-    def bearing_support(self):
+    def bearing_support(self, outer_top_x_padding=2):
         support_thickness = 7
         bearing_guide_thickness = 5
         bearing_x_clear = 0.5
@@ -307,7 +307,7 @@ class filament_rm_7m74:
 
         support_inner = (inner + bearing_axle).intersect(self.bearing_support_cutout())
 
-        outer_top_x = 2 + self.width / 2
+        outer_top_x = outer_top_x_padding + self.width / 2
 
         outer = (
             cq.Workplane("XZ")
