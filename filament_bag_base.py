@@ -186,6 +186,7 @@ class filament_bag_base:
         bottom_height_below_spool=30,
         tray_wall_thickness=0.8,
         axle_hook_height=0.5,
+        filament_exit_diameter=5.5,
     ):
         # Remember our given parameters
         self.spool = spool
@@ -201,6 +202,7 @@ class filament_bag_base:
         self.bottom_y = bottom_y
         self.tray_wall_thickness = tray_wall_thickness
         self.axle_hook_height = axle_hook_height
+        self.filament_exit_diameter = filament_exit_diameter
 
         # Make use of those parameters for additional setup calculations
         self.calculate_dimensions()
@@ -305,7 +307,22 @@ class filament_bag_base:
             self.tray_margin / 2
         )
 
-        self.tray_perimeter = self.tray_outer - self.tray_inner
+        filament_exit = (
+            cq.Workplane("XZ")
+            .transformed(
+                offset=cq.Vector(
+                    0,
+                    self.tray_top_z
+                    - self.top_vertical_height
+                    + self.filament_exit_diameter,
+                    0,
+                )
+            )
+            .circle(self.filament_exit_diameter / 2)
+            .extrude(self.tray_top_y)
+        )
+
+        self.tray_perimeter = self.tray_outer - self.tray_inner - filament_exit
 
     def generate_bearing_support(self):
         """
@@ -494,7 +511,6 @@ if "show_object" in globals():
     fbb.show_placeholders()
     fbb.calculate_perimeter()
     fbb.generate_bearing_support()
-    fbb.generate_dessicant_grate()
     show_object(
         fbb.tray_perimeter + fbb.bottom + fbb.quarter_to_whole(fbb.bearing_support),
         options={"color": "blue", "alpha": 0.5},
