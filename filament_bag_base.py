@@ -45,28 +45,28 @@ class bearing:
         Create an instance with dimensions of generic 608 bearings
         """
         return bearing(
-            bearing_diameter_outer=22,
-            bearing_diameter_inner=8,
-            bearing_length=7,
+            diameter_outer=22,
+            diameter_inner=8,
+            length=7,
         )
 
     def __init__(
         self,
-        bearing_diameter_outer,
-        bearing_diameter_inner,
-        bearing_length,
+        diameter_outer,
+        diameter_inner,
+        length,
     ):
-        self.bearing_diameter_outer = bearing_diameter_outer
-        self.bearing_diameter_inner = bearing_diameter_inner
-        self.bearing_length = bearing_length
+        self.diameter_outer = diameter_outer
+        self.diameter_inner = diameter_inner
+        self.length = length
 
     def placeholder(self):
         return (
             cq.Workplane("YZ")
-            .circle(self.bearing_diameter_outer / 2)
-            .circle(self.bearing_diameter_inner / 2)
-            .extrude(self.bearing_length)
-            .translate((-self.bearing_length / 2, 0, 0))
+            .circle(self.diameter_outer / 2)
+            .circle(self.diameter_inner / 2)
+            .extrude(self.length)
+            .translate((-self.length / 2, 0, 0))
         )
 
 
@@ -82,10 +82,10 @@ class spool:
         Create an instance with dimensions of Printed Solid Jesse
         """
         return spool(
-            spool_diameter=200,
-            spool_width=72.5,
-            spool_side_thickness=5,
-            center_diameter=55,
+            diameter_outer=200,
+            diameter_inner=55,
+            width=72.5,
+            side_thickness=5,
         )
 
     @staticmethod
@@ -94,23 +94,23 @@ class spool:
         Create an instance with dimensions of MatterhHackers Build
         """
         return spool(
-            spool_diameter=200,
-            spool_width=67.5,
-            spool_side_thickness=5,
-            center_diameter=55,
+            diamete_outer=200,
+            diameter_inner=55,
+            width=67.5,
+            side_thickness=5,
         )
 
     def __init__(
         self,
-        spool_diameter,
-        spool_width,
-        spool_side_thickness,
-        center_diameter,
+        diameter_outer,
+        diameter_inner,
+        width,
+        side_thickness,
     ):
-        self.spool_diameter = spool_diameter
-        self.spool_width = spool_width
-        self.spool_side_thickness = spool_side_thickness
-        self.center_diameter = center_diameter
+        self.diameter_outer = diameter_outer
+        self.width = width
+        self.side_thickness = side_thickness
+        self.diameter_inner = diameter_inner
 
     def placeholder(self):
         """
@@ -119,17 +119,17 @@ class spool:
         """
         center = (
             cq.Workplane("YZ")
-            .circle(self.center_diameter / 2 + self.spool_side_thickness)
-            .circle(self.center_diameter / 2)
-            .extrude(self.spool_width / 2)
+            .circle(self.diameter_inner / 2 + self.side_thickness)
+            .circle(self.diameter_inner / 2)
+            .extrude(self.width / 2)
         )
 
         side = (
             cq.Workplane("YZ")
-            .transformed(offset=cq.Vector(0, 0, self.spool_width / 2))
-            .circle(self.spool_diameter / 2)
-            .circle(self.center_diameter / 2 + self.spool_side_thickness)
-            .extrude(-self.spool_side_thickness)
+            .transformed(offset=cq.Vector(0, 0, self.width / 2))
+            .circle(self.diameter_outer / 2)
+            .circle(self.diameter_inner / 2 + self.side_thickness)
+            .extrude(-self.side_thickness)
         )
 
         half = center + side
@@ -149,9 +149,77 @@ class filament_bag_base:
     filament is starting on the wrong foot for staying dry.
     """
 
-    def __init__(self):
-        pass
+    def __init__(
+        self,
+        spool: spool,
+        bearing: bearing,
+        bearing_separation_angle=30,
+    ):
+        # Given parameters
+        self.spool = spool
+        self.bearing = bearing
+        self.bearing_separation_angle = bearing_separation_angle
+
+        # Values calculated from given parameters
+        self.spool_offset_z = self.spool.diameter_outer / 2
+        self.spool_offset = (0, 0, self.spool_offset_z)
+        self.bearing_distance = (
+            self.spool.diameter_outer / 2 + self.bearing.diameter_outer / 2
+        )
+        self.bearing_offset_x = self.spool.width / 2 - self.spool.side_thickness / 2
+        self.bearing_offset_y = (
+            math.sin(math.radians(self.bearing_separation_angle))
+            * self.bearing_distance
+        )
+        self.bearing_offset_z = self.spool_offset_z - (
+            math.cos(math.radians(self.bearing_separation_angle))
+            * self.bearing_distance
+        )
+        self.bearing_offset = (
+            self.bearing_offset_x,
+            self.bearing_offset_y,
+            self.bearing_offset_z,
+        )
+
+    def show_placeholders(
+        self,
+        show_object_options={"color": "gray", "alpha": 0.8},
+    ):
+        """
+        If running in CQ-Editor, where show_object() is defined in global
+        namespace, show all placeholder objects at their appropriate locations
+        with the given options. (Default of mostly transparent gray.)
+
+        When not running in CQ-Editor, does nothing and returns to caller.
+        """
+        if "show_object" in globals():
+
+            show_object(
+                self.spool.placeholder().translate(self.spool_offset),
+                options=show_object_options,
+            )
+
+            positioned_bearing = self.bearing.placeholder().translate(
+                self.bearing_offset
+            )
+            show_object(
+                positioned_bearing,
+                options=show_object_options,
+            )
+            show_object(
+                positioned_bearing.mirror("XZ"),
+                options=show_object_options,
+            )
+            show_object(
+                positioned_bearing.mirror("YZ"),
+                options=show_object_options,
+            )
+            show_object(
+                positioned_bearing.mirror("XZ").mirror("YZ"),
+                options=show_object_options,
+            )
 
 
 if "show_object" in globals():
-    show_object(bearing.preset_608().placeholder())
+    fbb = filament_bag_base(spool.preset_jesse(), bearing.preset_608())
+    fbb.show_placeholders()
