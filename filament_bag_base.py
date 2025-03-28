@@ -151,6 +151,92 @@ class spool:
         return spool
 
 
+class acrylic_bottom_panel:
+    """
+    Class consolidating math related to using an acrylic panel in the bottom
+    as an alternative to a solid slab of 3D printed plastic.
+    """
+
+    def __init__(
+        self,
+        length,
+        width,
+        thickness,
+        corner_radius,
+        lip_thickness=1.6,
+        lip_depth=2.4,
+        border=3,
+    ):
+        self.length = length
+        self.width = width
+        self.thickness = thickness
+        self.corner_radius = corner_radius
+        self.lip_thickness = lip_thickness
+        self.lip_depth = lip_depth
+        self.border = border
+
+        self.calculate_minimum_dimensions()
+
+    def placeholder(self):
+        """
+        Returns a solid representing a sheet of acrylic cut to the parameters
+        given in our constructor. Useful for visualization or call section()
+        on the shape and send that to exportDXF() for laser cutting.
+        """
+        half_length = self.length / 2
+        half_width = self.width / 2
+        quarter = (
+            cq.Workplane("XY")
+            .lineTo(0, half_length)
+            .lineTo(half_width - self.corner_radius, half_length)
+            .tangentArcPoint(
+                (half_width, half_length - self.corner_radius), relative=False
+            )
+            .lineTo(half_width, 0)
+            .close()
+            .extrude(self.thickness / 2, both=True)
+        )
+
+        return filament_bag_base.quarter_to_whole(quarter)
+
+    def opening_cutter(self):
+        """
+        Returns a solid that can be used in a geometric subtraction operation
+        to cut a window area to fit the acrylic panel.
+        """
+        cutter_half_length = self.length / 2 - self.lip_depth
+        cutter_half_width = self.width / 2 - self.lip_depth
+        cutter_radius = self.corner_radius - self.lip_depth
+
+        window_quarter = (
+            cq.Workplane("XY")
+            .lineTo(0, cutter_half_length)
+            .lineTo(cutter_half_width - cutter_radius, cutter_half_length)
+            .tangentArcPoint(
+                (cutter_half_width, cutter_half_length - cutter_radius), relative=False
+            )
+            .lineTo(cutter_half_width, 0)
+            .close()
+            .extrude(self.thickness * 4, both=True)
+        )
+
+        window = filament_bag_base.quarter_to_whole(window_quarter)
+
+        cutter = window + self.placeholder()
+
+        return cutter
+
+    def calculate_minimum_dimensions(self):
+        """
+        Based on parameters given in the constructor, calculate minimum
+        dimensions necessary to accommodate this panel
+        """
+        self.minimum_length = self.length + self.border * 2
+        self.minimum_width = self.width + self.border * 2
+        self.minimum_thickness = self.thickness + self.lip_thickness * 2
+        self.minimum_radius = self.corner_radius + self.border
+
+
 class filament_bag_base:
     """
     A 3D printed base that serves as a filament dispensing container and can
@@ -163,26 +249,61 @@ class filament_bag_base:
 
     @staticmethod
     def preset_mhbuild():
+        panel = acrylic_bottom_panel(
+            length=190, width=60, thickness=2.7, corner_radius=20, border=2.4
+        )
+
+        wall_thickness = 0.8
+        chamfer_room_bottom_thickness = (
+            panel.minimum_thickness
+            + panel.lip_depth
+            + panel.border
+            - wall_thickness
+            - panel.lip_thickness
+        )
+
         instance = filament_bag_base(
             spool.preset_mhbuild(),
             bearing.preset_608(),
-            bottom_x=35,
-            bottom_y=100,
-            bottom_corner_radius=25,
-            bottom_height_below_spool=30,
+            bottom_x=panel.minimum_width / 2,
+            bottom_y=panel.minimum_length / 2,
+            bottom_corner_radius=panel.minimum_radius,
+            bottom_thickness=chamfer_room_bottom_thickness,
+            bottom_height_below_spool=40,
+            tray_wall_thickness=wall_thickness,
         )
         instance.calculate_perimeter()
         instance.generate_bearing_support()
         instance.generate_dessicant_grate()
         instance.generate_filament_exit_subtract()
 
-        instance.base = (
+        assemble_base = (
             instance.tray_perimeter
             + instance.bottom
             + instance.bearing_support
             + instance.dessicant_shelf
             - instance.filament_exit_subtract
+            - panel.opening_cutter().translate(
+                (0, 0, instance.tray_bottom_z + panel.minimum_thickness / 2)
+            )
         )
+        assemble_base = assemble_base.edges(
+            sel.NearestToPointSelector(
+                (
+                    0,
+                    0,
+                    instance.tray_bottom_z + chamfer_room_bottom_thickness,
+                )
+            )
+        ).chamfer(panel.lip_depth + panel.border - wall_thickness - 0.3)
+
+        assemble_base = assemble_base.edges(
+            sel.NearestToPointSelector(
+                (panel.minimum_width / 2, 0, instance.tray_bottom_z)
+            )
+        ).fillet(panel.border)
+
+        instance.base = assemble_base
 
         return instance
 
@@ -299,7 +420,8 @@ class filament_bag_base:
             .close()
         )
 
-    def quarter_to_whole(self, quarter):
+    @staticmethod
+    def quarter_to_whole(quarter):
         """
         Given an object representing a quarter of the shape, mirror it about
         YZ and XZ planes to create the whole shape.
