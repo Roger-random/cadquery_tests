@@ -161,16 +161,46 @@ class filament_bag_base:
     filament is starting on the wrong foot for staying dry.
     """
 
+    @staticmethod
+    def preset_mhbuild():
+        return filament_bag_base(
+            spool.preset_mhbuild(),
+            bearing.preset_608(),
+            bottom_x=35,
+            bottom_y=100,
+            bottom_corner_radius=25,
+        )
+
     def __init__(
         self,
         spool: spool,
         bearing: bearing,
+        bottom_x,
+        bottom_y,
+        bottom_corner_radius,
         bearing_separation_angle=30,
+        tray_margin_x=5,
+        tray_margin_y=5,
+        top_height_above_bearing=10,
+        tray_top_corner_radius=25,
+        top_vertical_height=40,
+        bottom_height_below_spool=30,
+        tray_wall_thickness=0.8,
     ):
         # Given parameters
         self.spool = spool
         self.bearing = bearing
         self.bearing_separation_angle = bearing_separation_angle
+        self.tray_margin_x = tray_margin_x
+        self.tray_margin_y = tray_margin_y
+        self.top_height_above_bearing = top_height_above_bearing
+        self.tray_top_corner_radius = tray_top_corner_radius
+        self.top_vertical_height = top_vertical_height
+        self.bottom_height_below_spool = bottom_height_below_spool
+        self.bottom_corner_radius = bottom_corner_radius
+        self.bottom_x = bottom_x
+        self.bottom_y = bottom_y
+        self.tray_wall_thickness = tray_wall_thickness
 
         # Values calculated from given parameters
         self.spool_offset_z = self.spool.diameter_outer / 2
@@ -192,6 +222,66 @@ class filament_bag_base:
             self.bearing_offset_y,
             self.bearing_offset_z,
         )
+        self.tray_top_x = self.spool.width / 2 + tray_margin_x
+        self.tray_top_y = self.spool.diameter_outer / 2 + tray_margin_y
+        self.tray_top_z = (
+            self.bearing_offset_z
+            + self.bearing.diameter_outer / 2
+            + top_height_above_bearing
+        )
+        self.tray_bottom_z = -bottom_height_below_spool
+
+    def tray(self):
+        """
+        Returns CadQuery object that is the bottom tray, majority of the
+        filament base.
+        """
+        top_outer_corner = (
+            cq.Workplane("XY")
+            .transformed(offset=cq.Vector(0, 0, self.tray_top_z))
+            .lineTo(0, self.tray_top_y)
+            .lineTo(self.tray_top_x - self.tray_top_corner_radius, self.tray_top_y)
+            .tangentArcPoint(
+                (self.tray_top_x, self.tray_top_y - self.tray_top_corner_radius),
+                relative=False,
+            )
+            .lineTo(self.tray_top_x, 0)
+            .close()
+            .extrude(-self.top_vertical_height)
+        )
+
+        bottom_corner = (
+            cq.Workplane("XY")
+            .transformed(offset=cq.Vector(0, 0, self.tray_bottom_z))
+            .lineTo(0, self.bottom_y)
+            .lineTo(self.bottom_x - self.bottom_corner_radius, self.bottom_y)
+            .tangentArcPoint(
+                (self.bottom_x, self.bottom_y - self.bottom_corner_radius),
+                relative=False,
+            )
+            .lineTo(self.bottom_x, 0)
+            .close()
+            .extrude(1.2)
+        )
+
+        face_t = top_outer_corner.faces("<Z")
+        face_b = bottom_corner.faces(">Z")
+        fairing_outer_corner = face_t.add(face_b).loft()
+
+        tray_outer_corner = top_outer_corner + fairing_outer_corner
+
+        tray_outer_half = tray_outer_corner + tray_outer_corner.mirror("YZ")
+
+        self.tray_outer = tray_outer_half + tray_outer_half.mirror("XZ")
+        self.tray_shell = self.tray_outer.faces("+Z or -Z").shell(
+            -self.tray_wall_thickness
+        )
+        self.tray_inner = self.tray_outer - self.tray_shell
+
+        bottom_half = bottom_corner + bottom_corner.mirror("YZ")
+        bottom = bottom_half + bottom_half.mirror("XZ")
+
+        return self.tray_shell + bottom
 
     def show_placeholders(
         self,
@@ -233,5 +323,6 @@ class filament_bag_base:
 
 
 if "show_object" in globals():
-    fbb = filament_bag_base(spool.preset_esun3kg(), bearing.preset_608())
+    fbb = filament_bag_base.preset_mhbuild()
     fbb.show_placeholders()
+    show_object(fbb.tray(), options={"color": "blue", "alpha": 0.5})
