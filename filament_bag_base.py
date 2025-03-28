@@ -202,6 +202,7 @@ class filament_bag_base:
         tray_wall_thickness=0.8,
         axle_hook_height=0.5,
         filament_exit_diameter=5.5,
+        dessicant_grate_height=3,
     ):
         # Remember our given parameters
         self.spool = spool
@@ -218,6 +219,7 @@ class filament_bag_base:
         self.tray_wall_thickness = tray_wall_thickness
         self.axle_hook_height = axle_hook_height
         self.filament_exit_diameter = filament_exit_diameter
+        self.dessicant_grate_height = dessicant_grate_height
 
         # Make use of those parameters for additional setup calculations
         self.calculate_dimensions()
@@ -501,13 +503,12 @@ class filament_bag_base:
         Also generates the shelf that needs to be added to the perimeter to
         hold this grate.
         """
-        self.dessicant_grate_height = 3
         grate_top_z = (
             self.bearing_offset_z
             - self.bearing.diameter_outer / 2
             - self.spool.side_thickness / 2
         )
-        shelf_size = self.tray_margin
+        shelf_size = self.tray_margin / 2
         shelf_profile = (
             cq.Workplane("YZ")
             .lineTo(self.tray_top_y, grate_top_z + shelf_size, forConstruction=True)
