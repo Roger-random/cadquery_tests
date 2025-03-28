@@ -163,13 +163,18 @@ class filament_bag_base:
 
     @staticmethod
     def preset_mhbuild():
-        return filament_bag_base(
+        instance = filament_bag_base(
             spool.preset_mhbuild(),
             bearing.preset_608(),
             bottom_x=35,
             bottom_y=100,
             bottom_corner_radius=25,
+            bottom_height_below_spool=22,
         )
+        instance.calculate_perimeter()
+        instance.generate_bearing_support()
+
+        return instance
 
     def __init__(
         self,
@@ -509,8 +514,6 @@ class filament_bag_base:
 if "show_object" in globals():
     fbb = filament_bag_base.preset_mhbuild()
     fbb.show_placeholders()
-    fbb.calculate_perimeter()
-    fbb.generate_bearing_support()
     show_object(
         fbb.tray_perimeter + fbb.bottom + fbb.quarter_to_whole(fbb.bearing_support),
         options={"color": "blue", "alpha": 0.5},
