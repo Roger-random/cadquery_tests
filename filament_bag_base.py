@@ -25,6 +25,7 @@ SOFTWARE.
 import math
 import cadquery as cq
 import cadquery.selectors as sel
+from cadquery import exporters
 
 # When not running in CQ-Editor, turn log into print
 if "log" not in globals():
@@ -157,6 +158,12 @@ class acrylic_bottom_panel:
     as an alternative to a solid slab of 3D printed plastic.
     """
 
+    @staticmethod
+    def preset_mhtest():
+        return acrylic_bottom_panel(
+            length=190, width=60, thickness=2.7, corner_radius=20, border=2.4
+        )
+
     def __init__(
         self,
         length,
@@ -180,8 +187,7 @@ class acrylic_bottom_panel:
     def placeholder(self):
         """
         Returns a solid representing a sheet of acrylic cut to the parameters
-        given in our constructor. Useful for visualization or call section()
-        on the shape and send that to exportDXF() for laser cutting.
+        given in our constructor.
         """
         half_length = self.length / 2
         half_width = self.width / 2
@@ -198,6 +204,12 @@ class acrylic_bottom_panel:
         )
 
         return filament_bag_base.quarter_to_whole(quarter)
+
+    def exportDXF(self, filename="./tray_bottom_acrylic_panel.dxf"):
+        """
+        Export placeholder solid to DXF outline for laser cutting
+        """
+        exporters.exportDXF(self.placeholder().section(), filename)
 
     def opening_cutter(self):
         """
@@ -249,9 +261,7 @@ class filament_bag_base:
 
     @staticmethod
     def preset_mhbuild():
-        panel = acrylic_bottom_panel(
-            length=190, width=60, thickness=2.7, corner_radius=20, border=2.4
-        )
+        panel = acrylic_bottom_panel.preset_mhtest()
 
         wall_thickness = 0.8
         chamfer_room_bottom_thickness = (
