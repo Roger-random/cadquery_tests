@@ -193,6 +193,7 @@ class filament_bag_base:
         bottom_x,
         bottom_y,
         bottom_corner_radius,
+        bottom_thickness=1.2,
         bearing_separation_angle=30,
         tray_margin=5,
         top_height_above_bearing=10,
@@ -213,9 +214,10 @@ class filament_bag_base:
         self.tray_top_corner_radius = tray_top_corner_radius
         self.top_vertical_height = top_vertical_height
         self.bottom_height_below_spool = bottom_height_below_spool
-        self.bottom_corner_radius = bottom_corner_radius
         self.bottom_x = bottom_x
         self.bottom_y = bottom_y
+        self.bottom_corner_radius = bottom_corner_radius
+        self.bottom_thickness = bottom_thickness
         self.tray_wall_thickness = tray_wall_thickness
         self.axle_hook_height = axle_hook_height
         self.filament_exit_diameter = filament_exit_diameter
@@ -309,7 +311,7 @@ class filament_bag_base:
         """
         Create a flat bottom intended for 3D printing
         """
-        self.bottom_corner = self.bottom_corner_path().extrude(1.2)
+        self.bottom_corner = self.bottom_corner_path().extrude(self.bottom_thickness)
 
         self.bottom = self.quarter_to_whole(self.bottom_corner)
 
@@ -331,9 +333,7 @@ class filament_bag_base:
             -self.tray_wall_thickness
         )
         self.tray_inner = self.tray_outer - self.tray_shell
-        self.tray_inner = self.tray_inner.faces("+Z or -Z").chamfer(
-            self.tray_margin / 2
-        )
+        self.tray_inner = self.tray_inner.faces("+Z").chamfer(self.tray_margin / 2)
 
         self.tray_perimeter = self.tray_outer - self.tray_inner
 
