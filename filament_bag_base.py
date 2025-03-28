@@ -179,20 +179,18 @@ class filament_bag_base:
         bottom_y,
         bottom_corner_radius,
         bearing_separation_angle=30,
-        tray_margin_x=5,
-        tray_margin_y=5,
+        tray_margin=5,
         top_height_above_bearing=10,
         tray_top_corner_radius=25,
         top_vertical_height=40,
         bottom_height_below_spool=30,
         tray_wall_thickness=0.8,
     ):
-        # Given parameters
+        # Remember our given parameters
         self.spool = spool
         self.bearing = bearing
         self.bearing_separation_angle = bearing_separation_angle
-        self.tray_margin_x = tray_margin_x
-        self.tray_margin_y = tray_margin_y
+        self.tray_margin = tray_margin
         self.top_height_above_bearing = top_height_above_bearing
         self.tray_top_corner_radius = tray_top_corner_radius
         self.top_vertical_height = top_vertical_height
@@ -202,6 +200,15 @@ class filament_bag_base:
         self.bottom_y = bottom_y
         self.tray_wall_thickness = tray_wall_thickness
 
+        # Make use of those parameters for additional setup calculations
+        self.calculate_dimensions()
+        self.create_paths()
+
+    def calculate_dimensions(self):
+        """
+        Once parameters are set in the constructor, we can derive
+        dimensions that can be referenced during construction
+        """
         # Values calculated from given parameters
         self.spool_offset_z = self.spool.diameter_outer / 2
         self.spool_offset = (0, 0, self.spool_offset_z)
@@ -222,21 +229,21 @@ class filament_bag_base:
             self.bearing_offset_y,
             self.bearing_offset_z,
         )
-        self.tray_top_x = self.spool.width / 2 + tray_margin_x
-        self.tray_top_y = self.spool.diameter_outer / 2 + tray_margin_y
+        self.tray_top_x = self.spool.width / 2 + self.tray_margin
+        self.tray_top_y = self.spool.diameter_outer / 2 + self.tray_margin
         self.tray_top_z = (
             self.bearing_offset_z
             + self.bearing.diameter_outer / 2
-            + top_height_above_bearing
+            + self.top_height_above_bearing
         )
-        self.tray_bottom_z = -bottom_height_below_spool
+        self.tray_bottom_z = -self.bottom_height_below_spool
 
-    def tray(self):
+    def create_paths(self):
         """
-        Returns CadQuery object that is the bottom tray, majority of the
-        filament base.
+        Once parameters are set in the constructor, we can calculate some
+        geometries to be referenced during construction
         """
-        top_outer_corner = (
+        self.top_corner_path = (
             cq.Workplane("XY")
             .transformed(offset=cq.Vector(0, 0, self.tray_top_z))
             .lineTo(0, self.tray_top_y)
@@ -247,10 +254,9 @@ class filament_bag_base:
             )
             .lineTo(self.tray_top_x, 0)
             .close()
-            .extrude(-self.top_vertical_height)
         )
 
-        bottom_corner = (
+        self.bottom_corner_path = (
             cq.Workplane("XY")
             .transformed(offset=cq.Vector(0, 0, self.tray_bottom_z))
             .lineTo(0, self.bottom_y)
@@ -261,27 +267,47 @@ class filament_bag_base:
             )
             .lineTo(self.bottom_x, 0)
             .close()
-            .extrude(1.2)
         )
 
-        face_t = top_outer_corner.faces("<Z")
-        face_b = bottom_corner.faces(">Z")
-        fairing_outer_corner = face_t.add(face_b).loft()
+    def quarter_to_whole(self, quarter):
+        """
+        Given an object representing a quarter of the shape, mirror it about
+        YZ and XZ planes to create the whole shape.
+        """
+        half = quarter + quarter.mirror("YZ")
+        return half + half.mirror("XZ")
 
-        tray_outer_corner = top_outer_corner + fairing_outer_corner
+    def create_flat_bottom(self):
+        """
+        Create a flat bottom intended for 3D printing
+        """
+        self.bottom_corner = self.bottom_corner_path.extrude(1.2)
 
-        tray_outer_half = tray_outer_corner + tray_outer_corner.mirror("YZ")
+        self.bottom = self.quarter_to_whole(self.bottom_corner)
 
-        self.tray_outer = tray_outer_half + tray_outer_half.mirror("XZ")
+    def calculate_perimeter(self):
+        """
+        Returns CadQuery object that is the bottom tray, majority of the
+        filament base.
+        """
+        top_outer_corner = self.top_corner_path.extrude(-self.top_vertical_height)
+
+        self.create_flat_bottom()
+
+        fairing_outer_corner = (
+            top_outer_corner.faces("<Z").add(self.bottom_corner.faces(">Z")).loft()
+        )
+
+        self.tray_outer = self.quarter_to_whole(top_outer_corner + fairing_outer_corner)
         self.tray_shell = self.tray_outer.faces("+Z or -Z").shell(
             -self.tray_wall_thickness
         )
         self.tray_inner = self.tray_outer - self.tray_shell
+        self.tray_inner = self.tray_inner.faces("+Z or -Z").chamfer(
+            self.tray_margin / 2
+        )
 
-        bottom_half = bottom_corner + bottom_corner.mirror("YZ")
-        bottom = bottom_half + bottom_half.mirror("XZ")
-
-        return self.tray_shell + bottom
+        self.tray_perimeter = self.tray_outer - self.tray_inner
 
     def show_placeholders(
         self,
@@ -325,4 +351,7 @@ class filament_bag_base:
 if "show_object" in globals():
     fbb = filament_bag_base.preset_mhbuild()
     fbb.show_placeholders()
-    show_object(fbb.tray(), options={"color": "blue", "alpha": 0.5})
+    fbb.calculate_perimeter()
+    show_object(
+        fbb.tray_perimeter + fbb.bottom, options={"color": "blue", "alpha": 0.5}
+    )
