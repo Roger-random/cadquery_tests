@@ -309,6 +309,48 @@ class filament_bag_base:
 
         self.tray_perimeter = self.tray_outer - self.tray_inner
 
+    def generate_bearing_support(self):
+        """
+        Generate the U shape that will support bearing axle
+        """
+        cone_height = (
+            self.tray_margin
+            - self.tray_wall_thickness
+            + self.spool.side_thickness / 2
+            - self.bearing.width / 2
+        )
+        cone = (
+            cq.Workplane("YZ")
+            .transformed(
+                offset=cq.Vector(
+                    self.bearing_offset_y,
+                    self.bearing_offset_z,
+                    self.tray_top_x - self.tray_wall_thickness,
+                )
+            )
+            .circle(self.bearing.diameter_outer / 2)
+            .workplane(offset=-cone_height)
+            .circle(1 + self.bearing.diameter_inner / 2)
+            .loft()
+        )
+
+        slot_width_half = self.bearing.diameter_inner / 2
+        slotted = (
+            cone.faces("+X")
+            .workplane()
+            .lineTo(0, self.bearing.diameter_outer, forConstruction=True)
+            .lineTo(slot_width_half, self.bearing.diameter_outer)
+            .lineTo(slot_width_half, 0)
+            .tangentArcPoint((-slot_width_half, 0), relative=False)
+            .lineTo(-slot_width_half, self.bearing.diameter_outer)
+            .close()
+            .extrude(-cone_height, combine="cut")
+        )
+
+        self.bearing_support = slotted
+
+        return slotted
+
     def show_placeholders(
         self,
         show_object_options={"color": "gray", "alpha": 0.8},
@@ -352,6 +394,8 @@ if "show_object" in globals():
     fbb = filament_bag_base.preset_mhbuild()
     fbb.show_placeholders()
     fbb.calculate_perimeter()
+    fbb.generate_bearing_support()
     show_object(
-        fbb.tray_perimeter + fbb.bottom, options={"color": "blue", "alpha": 0.5}
+        fbb.tray_perimeter + fbb.bottom + fbb.quarter_to_whole(fbb.bearing_support),
+        options={"color": "blue", "alpha": 0.5},
     )
