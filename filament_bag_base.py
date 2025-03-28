@@ -311,8 +311,26 @@ class filament_bag_base:
 
     def generate_bearing_support(self):
         """
-        Generate the U shape that will support bearing axle
+        Generate the U shape that will support bearing axle, as well as the
+        bearing axle itself.
         """
+
+        printable_intersect = (
+            cq.Workplane("YZ")
+            .transformed(
+                offset=cq.Vector(
+                    self.bearing_offset_y,
+                    self.bearing_offset_z,
+                    self.tray_top_x - self.tray_wall_thickness,
+                )
+            )
+            .rect(
+                self.bearing.diameter_inner - 1,
+                self.bearing.diameter_outer + self.spool.side_thickness,
+            )
+            .extrude(-self.tray_top_x)
+        )
+
         cone_height = (
             self.tray_margin
             - self.tray_wall_thickness
@@ -336,20 +354,84 @@ class filament_bag_base:
 
         slot_width_half = self.bearing.diameter_inner / 2
         slotted = (
-            cone.faces("+X")
-            .workplane()
+            cq.Workplane("YZ")
+            .transformed(
+                offset=cq.Vector(
+                    self.bearing_offset_y,
+                    self.bearing_offset_z,
+                    self.tray_top_x - self.tray_wall_thickness,
+                )
+            )
             .lineTo(0, self.bearing.diameter_outer, forConstruction=True)
             .lineTo(slot_width_half, self.bearing.diameter_outer)
             .lineTo(slot_width_half, 0)
             .tangentArcPoint((-slot_width_half, 0), relative=False)
             .lineTo(-slot_width_half, self.bearing.diameter_outer)
             .close()
-            .extrude(-cone_height, combine="cut")
+            .extrude(-cone_height)
+            .intersect(printable_intersect)
+            .rotate(
+                (self.bearing_offset_x, self.bearing_offset_y, self.bearing_offset_z),
+                (
+                    self.bearing_offset_x + 1,
+                    self.bearing_offset_y,
+                    self.bearing_offset_z,
+                ),
+                self.bearing_separation_angle,
+            )
         )
 
-        self.bearing_support = slotted
+        self.bearing_support = cone - slotted
 
-        return slotted
+        ideal_axle_half = (
+            cq.Workplane("YZ")
+            .transformed(
+                offset=cq.Vector(
+                    self.bearing_offset_y,
+                    self.bearing_offset_z,
+                    self.tray_top_x - self.tray_wall_thickness,
+                )
+            )
+            .circle(self.bearing.diameter_inner / 2)
+            .extrude(-cone_height - self.bearing.width)
+            .faces("-X")
+            .workplane()
+            .circle(1 + self.bearing.diameter_inner / 2)
+            .workplane(offset=0.5)
+            .circle(self.bearing.diameter_outer / 2)
+            .loft()
+            .faces("-X")
+            .workplane()
+            .circle(self.bearing.diameter_outer / 2)
+            .workplane(offset=self.spool.side_thickness / 2)
+            .circle(self.spool.side_thickness / 2 + self.bearing.diameter_outer / 2)
+            .loft()
+            .faces("-X")
+            .workplane()
+            .circle((self.bearing.diameter_outer + self.bearing.diameter_inner) / 4)
+            .extrude(
+                self.tray_top_x
+                - self.tray_wall_thickness
+                - cone_height
+                - self.bearing.width
+                - 0.5
+                - self.spool.side_thickness / 2
+            )
+        )
+
+        # Sadly the ideal axle shape is difficult to print on FDM printer, so
+        # take a slice to make it easy to lie flat on the print bed
+        printable_axle_half = ideal_axle_half.intersect(printable_intersect).rotate(
+            (self.bearing_offset_x, self.bearing_offset_y, self.bearing_offset_z),
+            (
+                self.bearing_offset_x + 1,
+                self.bearing_offset_y,
+                self.bearing_offset_z,
+            ),
+            self.bearing_separation_angle,
+        )
+
+        self.bearing_axle = printable_axle_half + printable_axle_half.mirror("YZ")
 
     def show_placeholders(
         self,
@@ -398,4 +480,12 @@ if "show_object" in globals():
     show_object(
         fbb.tray_perimeter + fbb.bottom + fbb.quarter_to_whole(fbb.bearing_support),
         options={"color": "blue", "alpha": 0.5},
+    )
+    show_object(
+        fbb.bearing_axle,
+        options={"color": "green", "alpha": 0.5},
+    )
+    show_object(
+        fbb.bearing_axle.mirror("XZ"),
+        options={"color": "green", "alpha": 0.5},
     )
