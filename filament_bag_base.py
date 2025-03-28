@@ -185,6 +185,7 @@ class filament_bag_base:
         top_vertical_height=40,
         bottom_height_below_spool=30,
         tray_wall_thickness=0.8,
+        axle_hook_height=0.5,
     ):
         # Remember our given parameters
         self.spool = spool
@@ -199,10 +200,10 @@ class filament_bag_base:
         self.bottom_x = bottom_x
         self.bottom_y = bottom_y
         self.tray_wall_thickness = tray_wall_thickness
+        self.axle_hook_height = axle_hook_height
 
         # Make use of those parameters for additional setup calculations
         self.calculate_dimensions()
-        self.create_paths()
 
     def calculate_dimensions(self):
         """
@@ -238,12 +239,8 @@ class filament_bag_base:
         )
         self.tray_bottom_z = -self.bottom_height_below_spool
 
-    def create_paths(self):
-        """
-        Once parameters are set in the constructor, we can calculate some
-        geometries to be referenced during construction
-        """
-        self.top_corner_path = (
+    def top_corner_path(self):
+        return (
             cq.Workplane("XY")
             .transformed(offset=cq.Vector(0, 0, self.tray_top_z))
             .lineTo(0, self.tray_top_y)
@@ -256,7 +253,8 @@ class filament_bag_base:
             .close()
         )
 
-        self.bottom_corner_path = (
+    def bottom_corner_path(self):
+        return (
             cq.Workplane("XY")
             .transformed(offset=cq.Vector(0, 0, self.tray_bottom_z))
             .lineTo(0, self.bottom_y)
@@ -281,7 +279,7 @@ class filament_bag_base:
         """
         Create a flat bottom intended for 3D printing
         """
-        self.bottom_corner = self.bottom_corner_path.extrude(1.2)
+        self.bottom_corner = self.bottom_corner_path().extrude(1.2)
 
         self.bottom = self.quarter_to_whole(self.bottom_corner)
 
@@ -290,7 +288,7 @@ class filament_bag_base:
         Returns CadQuery object that is the bottom tray, majority of the
         filament base.
         """
-        top_outer_corner = self.top_corner_path.extrude(-self.top_vertical_height)
+        top_outer_corner = self.top_corner_path().extrude(-self.top_vertical_height)
 
         self.create_flat_bottom()
 
@@ -368,7 +366,20 @@ class filament_bag_base:
             .tangentArcPoint((-slot_width_half, 0), relative=False)
             .lineTo(-slot_width_half, self.bearing.diameter_outer)
             .close()
-            .extrude(-cone_height)
+            .workplane(offset=-cone_height)
+            .lineTo(0, self.bearing.diameter_outer, forConstruction=True)
+            .lineTo(
+                slot_width_half - self.axle_hook_height, self.bearing.diameter_outer
+            )
+            .lineTo(slot_width_half - self.axle_hook_height, 0)
+            .tangentArcPoint(
+                (-slot_width_half + self.axle_hook_height, 0), relative=False
+            )
+            .lineTo(
+                -slot_width_half + self.axle_hook_height, self.bearing.diameter_outer
+            )
+            .close()
+            .loft()
             .intersect(printable_intersect)
             .rotate(
                 (self.bearing_offset_x, self.bearing_offset_y, self.bearing_offset_z),
@@ -393,7 +404,13 @@ class filament_bag_base:
                 )
             )
             .circle(self.bearing.diameter_inner / 2)
-            .extrude(-cone_height - self.bearing.width)
+            .workplane(offset=-cone_height)
+            .circle(self.bearing.diameter_inner / 2 - self.axle_hook_height)
+            .loft()
+            .faces("-X")
+            .workplane()
+            .circle(self.bearing.diameter_inner / 2)
+            .extrude(self.bearing.width)
             .faces("-X")
             .workplane()
             .circle(1 + self.bearing.diameter_inner / 2)
@@ -477,6 +494,7 @@ if "show_object" in globals():
     fbb.show_placeholders()
     fbb.calculate_perimeter()
     fbb.generate_bearing_support()
+    fbb.generate_dessicant_grate()
     show_object(
         fbb.tray_perimeter + fbb.bottom + fbb.quarter_to_whole(fbb.bearing_support),
         options={"color": "blue", "alpha": 0.5},
