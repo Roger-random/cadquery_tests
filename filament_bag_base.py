@@ -47,26 +47,26 @@ class bearing:
         return bearing(
             diameter_outer=22,
             diameter_inner=8,
-            length=7,
+            width=7,
         )
 
     def __init__(
         self,
         diameter_outer,
         diameter_inner,
-        length,
+        width,
     ):
         self.diameter_outer = diameter_outer
         self.diameter_inner = diameter_inner
-        self.length = length
+        self.width = width
 
     def placeholder(self):
         return (
             cq.Workplane("YZ")
             .circle(self.diameter_outer / 2)
             .circle(self.diameter_inner / 2)
-            .extrude(self.length)
-            .translate((-self.length / 2, 0, 0))
+            .extrude(self.width)
+            .translate((-self.width / 2, 0, 0))
         )
 
 
@@ -94,10 +94,22 @@ class spool:
         Create an instance with dimensions of MatterhHackers Build
         """
         return spool(
-            diamete_outer=200,
+            diameter_outer=200,
             diameter_inner=55,
             width=67.5,
             side_thickness=5,
+        )
+
+    @staticmethod
+    def preset_esun3kg():
+        """
+        Create an instance with dimensions of eSun 3kg
+        """
+        return spool(
+            diameter_outer=270,
+            diameter_inner=52.5,
+            width=100,
+            side_thickness=7,
         )
 
     def __init__(
@@ -221,5 +233,5 @@ class filament_bag_base:
 
 
 if "show_object" in globals():
-    fbb = filament_bag_base(spool.preset_jesse(), bearing.preset_608())
+    fbb = filament_bag_base(spool.preset_esun3kg(), bearing.preset_608())
     fbb.show_placeholders()
