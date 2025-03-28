@@ -169,10 +169,20 @@ class filament_bag_base:
             bottom_x=35,
             bottom_y=100,
             bottom_corner_radius=25,
-            bottom_height_below_spool=22,
+            bottom_height_below_spool=30,
         )
         instance.calculate_perimeter()
         instance.generate_bearing_support()
+        instance.generate_dessicant_grate()
+        instance.generate_filament_exit_subtract()
+
+        instance.base = (
+            instance.tray_perimeter
+            + instance.bottom
+            + instance.bearing_support
+            + instance.dessicant_shelf
+            - instance.filament_exit_subtract
+        )
 
         return instance
 
@@ -187,7 +197,7 @@ class filament_bag_base:
         tray_margin=5,
         top_height_above_bearing=10,
         tray_top_corner_radius=25,
-        top_vertical_height=40,
+        top_vertical_height=45,
         bottom_height_below_spool=30,
         tray_wall_thickness=0.8,
         axle_hook_height=0.5,
@@ -246,21 +256,32 @@ class filament_bag_base:
         )
         self.tray_bottom_z = -self.bottom_height_below_spool
 
-    def top_corner_path(self):
+    def top_corner_outer_path(self, firstLineConstruction: bool):
+        """
+        Only the outer perimeter portion of top_corner_path, not closed.
+        """
         return (
             cq.Workplane("XY")
             .transformed(offset=cq.Vector(0, 0, self.tray_top_z))
-            .lineTo(0, self.tray_top_y)
+            .lineTo(0, self.tray_top_y, forConstruction=firstLineConstruction)
             .lineTo(self.tray_top_x - self.tray_top_corner_radius, self.tray_top_y)
             .tangentArcPoint(
                 (self.tray_top_x, self.tray_top_y - self.tray_top_corner_radius),
                 relative=False,
             )
             .lineTo(self.tray_top_x, 0)
-            .close()
         )
 
+    def top_corner_path(self):
+        """
+        Closed path for one quarter of top section
+        """
+        return self.top_corner_outer_path(firstLineConstruction=False).close()
+
     def bottom_corner_path(self):
+        """
+        Closed path for one quarter of bottom section
+        """
         return (
             cq.Workplane("XY")
             .transformed(offset=cq.Vector(0, 0, self.tray_bottom_z))
@@ -312,22 +333,23 @@ class filament_bag_base:
             self.tray_margin / 2
         )
 
-        filament_exit = (
+        self.tray_perimeter = self.tray_outer - self.tray_inner
+
+    def generate_filament_exit_subtract(self):
+        self.filament_exit_subtract = (
             cq.Workplane("XZ")
             .transformed(
                 offset=cq.Vector(
                     0,
-                    self.tray_top_z
-                    - self.top_vertical_height
-                    + self.filament_exit_diameter,
+                    self.bearing_offset_z
+                    - self.bearing.diameter_outer / 2
+                    + self.filament_exit_diameter / 2,
                     0,
                 )
             )
             .circle(self.filament_exit_diameter / 2)
             .extrude(self.tray_top_y)
         )
-
-        self.tray_perimeter = self.tray_outer - self.tray_inner - filament_exit
 
     def generate_bearing_support(self):
         """
@@ -414,7 +436,7 @@ class filament_bag_base:
             )
         )
 
-        self.bearing_support = cone - slotted
+        self.bearing_support = self.quarter_to_whole(cone - slotted)
 
         ideal_axle_half = (
             cq.Workplane("YZ")
@@ -472,6 +494,50 @@ class filament_bag_base:
 
         self.bearing_axle = printable_axle_half + printable_axle_half.mirror("YZ")
 
+    def generate_dessicant_grate(self):
+        """
+        Generate a shape that, when printed with no top or bottom layers,
+        turns infill into a grate to keep loose dessicant in place.
+        Also generates the shelf that needs to be added to the perimeter to
+        hold this grate.
+        """
+        self.dessicant_grate_height = 3
+        grate_top_z = (
+            self.bearing_offset_z
+            - self.bearing.diameter_outer / 2
+            - self.spool.side_thickness / 2
+        )
+        shelf_size = self.tray_margin
+        shelf_profile = (
+            cq.Workplane("YZ")
+            .lineTo(self.tray_top_y, grate_top_z + shelf_size, forConstruction=True)
+            .lineTo(
+                self.tray_top_y - shelf_size - self.dessicant_grate_height / 2,
+                grate_top_z - self.dessicant_grate_height / 2,
+            )
+            .lineTo(
+                self.tray_top_y - shelf_size - self.dessicant_grate_height / 2,
+                grate_top_z - self.dessicant_grate_height,
+            )
+            .lineTo(
+                self.tray_top_y,
+                grate_top_z - shelf_size - self.dessicant_grate_height * 1.5,
+            )
+            .close()
+        )
+        self.dessicant_shelf = self.quarter_to_whole(
+            shelf_profile.sweep(self.top_corner_outer_path(firstLineConstruction=True))
+        )
+
+        self.dessicant_grate = (
+            self.quarter_to_whole(
+                self.top_corner_path()
+                .extrude(-self.dessicant_grate_height)
+                .translate((0, 0, grate_top_z - self.tray_top_z))
+            )
+            - self.dessicant_shelf
+        )
+
     def show_placeholders(
         self,
         show_object_options={"color": "gray", "alpha": 0.8},
@@ -515,7 +581,7 @@ if "show_object" in globals():
     fbb = filament_bag_base.preset_mhbuild()
     fbb.show_placeholders()
     show_object(
-        fbb.tray_perimeter + fbb.bottom + fbb.quarter_to_whole(fbb.bearing_support),
+        fbb.base,
         options={"color": "blue", "alpha": 0.5},
     )
     show_object(
@@ -525,4 +591,9 @@ if "show_object" in globals():
     show_object(
         fbb.bearing_axle.mirror("XZ"),
         options={"color": "green", "alpha": 0.5},
+    )
+
+    show_object(
+        fbb.dessicant_grate,
+        options={"color": "red", "alpha": 0.5},
     )
