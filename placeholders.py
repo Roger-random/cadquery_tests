@@ -90,11 +90,11 @@ class spool:
         Create an instance with dimensions of MatterhHackers Build
         """
         return spool(
-            diameter_outer=199,
+            diameter_outer=200,
             diameter_inner=54.5,
             width=67.5,
             width_inner=60.5,
-            side_thickness=5,
+            side_thickness=4,
         )
 
     @staticmethod
