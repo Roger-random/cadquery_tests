@@ -80,6 +80,7 @@ class spool:
             diameter_outer=200,
             diameter_inner=55,
             width=72.5,
+            width_inner=72.5,  # Need measurement
             side_thickness=5,
         )
 
@@ -90,8 +91,9 @@ class spool:
         """
         return spool(
             diameter_outer=200,
-            diameter_inner=55,
+            diameter_inner=54.5,
             width=67.5,
+            width_inner=60.5,
             side_thickness=5,
         )
 
@@ -104,6 +106,7 @@ class spool:
             diameter_outer=270,
             diameter_inner=52.5,
             width=100,
+            width_inner=98.5,
             side_thickness=7,
         )
 
@@ -112,10 +115,12 @@ class spool:
         diameter_outer,
         diameter_inner,
         width,
+        width_inner,
         side_thickness,
     ):
         self.diameter_outer = diameter_outer
         self.width = width
+        self.width_inner = width_inner
         self.side_thickness = side_thickness
         self.diameter_inner = diameter_inner
 
