@@ -233,7 +233,7 @@ class zoetrope:
             )
             .polygon(
                 nSides=panels,
-                diameter=polygon_diameter - nozzle_diameter * 2,
+                diameter=polygon_diameter - nozzle_diameter * 4,
                 circumscribed=True,
             )
             .extrude(
@@ -250,7 +250,7 @@ class zoetrope:
             .workplane(offset=self.spool_spindle_lip_depth * 2)
             .polygon(
                 nSides=panels,
-                diameter=polygon_diameter - nozzle_diameter * 2,
+                diameter=polygon_diameter - nozzle_diameter * 4,
                 circumscribed=True,
             )
             .loft()
@@ -267,7 +267,7 @@ class zoetrope:
             .circle(
                 self.spool.diameter_outer / 2
                 - self.spool_spindle_lip_depth
-                + nozzle_diameter
+                + nozzle_diameter * 2
             )
             .circle(self.spool.diameter_outer / 2 - self.spool_spindle_lip_depth)
             .extrude(-8)
