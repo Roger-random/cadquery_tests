@@ -1,0 +1,172 @@
+"""
+MIT License
+
+Copyright (c) 2024 Roger Cheng
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
+import math
+import cadquery as cq
+import cadquery.selectors as sel
+from cadquery import exporters
+from placeholders import bearing, spool
+
+# When not running in CQ-Editor, turn log into print
+if "log" not in globals():
+
+    def log(*args):
+        print(args)
+
+
+# When not running in CQ-Editor, turn show_object into no-op
+if "show_object" not in globals():
+
+    def show_object(*args):
+        pass
+
+
+class zoetrope:
+    """
+    A set of 3D printed objects that turn a spent spool of 3D printing filament
+    into the core of a zoetrope for showing short animation.
+    """
+
+    def __init__(
+        self,
+        spool=spool.preset_mhbuild(),
+        bearing=bearing.preset_608(),
+        spool_spindle_thickness=1.2,
+        spool_spindle_lip_depth=2.4,
+    ):
+        self.spool = spool
+        self.bearing = bearing
+        self.spool_spindle_thickness = spool_spindle_thickness
+        self.spool_spindle_lip_depth = spool_spindle_lip_depth
+
+    def bearing_offset(self):
+        """
+        Returns a tuple of 3 numbers representing the X/Y/Z offset for calling
+        bearing.placeholder().translate()
+        """
+        return (
+            self.spool.width_inner / 2
+            - self.bearing.width / 2
+            + self.spool_spindle_thickness,
+            0,
+            0,
+        )
+
+    def spool_spindle(self):
+        """
+        Returns a CadQuery object that fits in the center of a spent spool and
+        supports a bearing.
+        """
+        lip = (
+            cq.Workplane("YZ")
+            .circle(self.spool.diameter_inner / 2 + self.spool_spindle_lip_depth)
+            .extrude(self.spool_spindle_thickness)
+        )
+
+        body = (
+            cq.Workplane("YZ")
+            .circle(self.spool.diameter_inner / 2)
+            .extrude(-self.spool_spindle_thickness)
+        )
+
+        bearing_support = (
+            cq.Workplane("YZ")
+            .circle(self.bearing.diameter_outer / 2 + self.spool_spindle_lip_depth)
+            .extrude(-self.bearing.width)
+        )
+
+        bearing_cutout = (
+            cq.Workplane("YZ")
+            .transformed(offset=cq.Vector(0, 0, self.spool_spindle_thickness + 1))
+            .circle(self.bearing.diameter_outer / 2)
+            .extrude(-self.bearing.width - 1)
+            .faces("<X")
+            .workplane()
+            .circle(self.bearing.diameter_outer / 2)
+            .workplane(offset=self.spool_spindle_thickness)
+            .circle(self.bearing.diameter_outer / 2 - self.spool_spindle_thickness)
+            .loft()
+        )
+
+        return (lip + body + bearing_support - bearing_cutout).translate(
+            (self.spool.width_inner / 2, 0, 0)
+        )
+
+    def bearing_shim(self):
+        """
+        Small cylinder that shims between the center of 608 bearings (8mm) and
+        a 1/4"-20 threaded rod (Just under 6mm)
+        """
+        return (
+            cq.Workplane("YZ")
+            .circle(self.bearing.diameter_inner / 2)
+            .circle(3.1)
+            .extrude(self.bearing.width / 2, both=True)
+        )
+
+    def spool_center_spacer(self):
+        """
+        Cylinder that blocks out space between two bearings. Necessary to prevent
+        bearings from seizing up when we tighten the fastening nuts.
+        """
+        return (
+            cq.Workplane("YZ")
+            .circle(self.bearing.diameter_inner / 2 + self.spool_spindle_lip_depth)
+            .circle(3.1)
+            .extrude(
+                self.spool.width_inner / 2
+                - self.bearing.width
+                + self.spool_spindle_thickness,
+                both=True,
+            )
+        )
+
+
+if "show_object" in globals():
+    z = zoetrope()
+
+    # show_object(
+    #     z.spool.placeholder(),
+    #     options={"color": "white", "alpha": 0.2},
+    # )
+    show_object(
+        z.bearing.placeholder().translate(z.bearing_offset()),
+        options={"color": "white", "alpha": 0.2},
+    )
+    # show_object(
+    #     z.bearing.placeholder().translate(z.bearing_offset()).mirror("YZ"),
+    #     options={"color": "white", "alpha": 0.2},
+    # )
+    show_object(
+        z.spool_spindle(),
+        options={"color": "blue", "alpha": 0.5},
+    )
+    show_object(
+        z.bearing_shim().translate(z.bearing_offset()),
+        options={"color": "green", "alpha": 0.5},
+    )
+    show_object(
+        z.spool_center_spacer(),
+        options={"color": "red", "alpha": 0.5},
+    )
