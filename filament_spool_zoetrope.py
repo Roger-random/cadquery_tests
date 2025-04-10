@@ -183,11 +183,13 @@ class zoetrope:
         A cylinder that wraps the outside perimeter of the spool, divided
         into the given number of panels.
         """
+        nozzle_diameter = 0.4
+        polygon_diameter = self.spool.diameter_outer + nozzle_diameter * 4
         flat_lip = (
             cq.Workplane("YZ")
             .polygon(
                 nSides=panels,
-                diameter=self.spool.diameter_outer + self.spool_spindle_lip_depth,
+                diameter=polygon_diameter,
                 circumscribed=True,
             )
             .circle(self.spool.diameter_outer / 2 - self.spool_spindle_lip_depth)
@@ -197,7 +199,7 @@ class zoetrope:
             cq.Workplane("YZ")
             .polygon(
                 nSides=panels,
-                diameter=self.spool.diameter_outer + self.spool_spindle_lip_depth,
+                diameter=polygon_diameter,
                 circumscribed=True,
             )
             .circle(self.spool.diameter_outer / 2)
@@ -207,21 +209,69 @@ class zoetrope:
             cq.Workplane("YZ")
             .polygon(
                 nSides=panels,
-                diameter=self.spool.diameter_outer + self.spool_spindle_lip_depth,
+                diameter=polygon_diameter,
                 circumscribed=True,
             )
-            .extrude(self.spool_spindle_lip_depth, both=True)
+            .extrude(self.spool_spindle_lip_depth)
         )
-        bevel_lip_cutout_half = (
+        bevel_lip_cutout = (
             cq.Workplane("YZ")
             .circle(self.spool.diameter_outer / 2 - self.spool_spindle_lip_depth)
             .workplane(offset=self.spool_spindle_lip_depth)
             .circle(self.spool.diameter_outer / 2)
             .loft()
         )
-        bevel_lip_cutout = bevel_lip_cutout_half + bevel_lip_cutout_half.mirror("YZ")
 
         bevel = bevel_lip_outer - bevel_lip_cutout
+
+        perimeter_middle = (
+            cq.Workplane("YZ")
+            .polygon(
+                nSides=panels,
+                diameter=polygon_diameter,
+                circumscribed=True,
+            )
+            .polygon(
+                nSides=panels,
+                diameter=polygon_diameter - nozzle_diameter * 2,
+                circumscribed=True,
+            )
+            .extrude(
+                self.spool.width / 2
+                - self.spool.side_thickness
+                - self.spool_spindle_lip_depth,
+                both=True,
+            )
+        )
+
+        bevel_upper_lip_loft = (
+            cq.Workplane("YZ")
+            .circle(self.spool.diameter_outer / 2 - self.spool_spindle_lip_depth)
+            .workplane(offset=self.spool_spindle_lip_depth * 2)
+            .polygon(
+                nSides=panels,
+                diameter=polygon_diameter - nozzle_diameter * 2,
+                circumscribed=True,
+            )
+            .loft()
+        )
+
+        bevel_upper = (
+            bevel_lip_outer
+            + bevel_lip_outer.translate((self.spool_spindle_lip_depth, 0, 0))
+            - bevel_upper_lip_loft
+        )
+
+        interrupter_ring = (
+            cq.Workplane("YZ")
+            .circle(
+                self.spool.diameter_outer / 2
+                - self.spool_spindle_lip_depth
+                + nozzle_diameter
+            )
+            .circle(self.spool.diameter_outer / 2 - self.spool_spindle_lip_depth)
+            .extrude(-8)
+        )
 
         perimeter = (
             flat_lip.translate((self.spool.width / 2, 0, 0))
@@ -236,6 +286,25 @@ class zoetrope:
                     0,
                     0,
                 )
+            )
+            + perimeter_middle
+            + bevel_upper.translate(
+                (
+                    -self.spool.width / 2 + self.spool.side_thickness,
+                    0,
+                    0,
+                )
+            )
+            + spool_clamp.translate((-self.spool.width / 2, 0, 0))
+            + bevel.translate(
+                (
+                    -self.spool.width / 2 - self.spool_spindle_lip_depth,
+                    0,
+                    0,
+                )
+            )
+            + interrupter_ring.translate(
+                (-self.spool.width / 2 - self.spool_spindle_lip_depth, 0, 0)
             )
         )
 
