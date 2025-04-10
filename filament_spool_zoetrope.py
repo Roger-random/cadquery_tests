@@ -142,24 +142,61 @@ class zoetrope:
             )
         )
 
+    def handle_static(self):
+        """
+        3D object representing the larger handle which stays still relative
+        to the spinning motion.
+        """
+        handle_volume = (
+            cq.Workplane("YZ")
+            .circle(50)
+            .extrude(-5)
+            .faces("<X")
+            .workplane()
+            .circle(50)
+            .workplane(offset=10)
+            .circle(20)
+            .loft()
+            .faces("<X")
+            .workplane()
+            .circle(20)
+            .extrude(85)
+        )
+
+        handle_intersect = (
+            cq.Workplane("YZ").rect(100, 20 / math.sin(math.radians(60))).extrude(-200)
+        )
+
+        threaded_rod = cq.Workplane("YZ").circle(3.1).extrude(-200)
+
+        handle = handle_volume.intersect(handle_intersect) - threaded_rod
+
+        handle = handle.translate((-self.spool.width / 2 - self.bearing.width, 0, 0))
+
+        return handle
+
 
 if "show_object" in globals():
     z = zoetrope()
 
-    # show_object(
-    #     z.spool.placeholder(),
-    #     options={"color": "white", "alpha": 0.2},
-    # )
+    show_object(
+        z.spool.placeholder(),
+        options={"color": "white", "alpha": 0.2},
+    )
     show_object(
         z.bearing.placeholder().translate(z.bearing_offset()),
         options={"color": "white", "alpha": 0.2},
     )
-    # show_object(
-    #     z.bearing.placeholder().translate(z.bearing_offset()).mirror("YZ"),
-    #     options={"color": "white", "alpha": 0.2},
-    # )
+    show_object(
+        z.bearing.placeholder().translate(z.bearing_offset()).mirror("YZ"),
+        options={"color": "white", "alpha": 0.2},
+    )
     show_object(
         z.spool_spindle(),
+        options={"color": "blue", "alpha": 0.5},
+    )
+    show_object(
+        z.spool_spindle().mirror("YZ"),
         options={"color": "blue", "alpha": 0.5},
     )
     show_object(
@@ -167,6 +204,14 @@ if "show_object" in globals():
         options={"color": "green", "alpha": 0.5},
     )
     show_object(
+        z.bearing_shim().translate(z.bearing_offset()).mirror("YZ"),
+        options={"color": "green", "alpha": 0.5},
+    )
+    show_object(
         z.spool_center_spacer(),
         options={"color": "red", "alpha": 0.5},
+    )
+    show_object(
+        z.handle_static(),
+        options={"color": "purple", "alpha": 0.5},
     )
