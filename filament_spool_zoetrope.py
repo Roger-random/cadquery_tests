@@ -175,6 +175,87 @@ class zoetrope:
 
         return handle
 
+    def spool_perimeter(
+        self,
+        panels=16,
+    ):
+        """
+        A cylinder that wraps the outside perimeter of the spool, divided
+        into the given number of panels.
+        """
+        flat_lip = (
+            cq.Workplane("YZ")
+            .polygon(
+                nSides=panels,
+                diameter=self.spool.diameter_outer + self.spool_spindle_lip_depth,
+                circumscribed=True,
+            )
+            .circle(self.spool.diameter_outer / 2 - self.spool_spindle_lip_depth)
+            .extrude(self.spool_spindle_thickness)
+        )
+        spool_clamp = (
+            cq.Workplane("YZ")
+            .polygon(
+                nSides=panels,
+                diameter=self.spool.diameter_outer + self.spool_spindle_lip_depth,
+                circumscribed=True,
+            )
+            .circle(self.spool.diameter_outer / 2)
+            .extrude(self.spool.side_thickness)
+        )
+        bevel_lip_outer = (
+            cq.Workplane("YZ")
+            .polygon(
+                nSides=panels,
+                diameter=self.spool.diameter_outer + self.spool_spindle_lip_depth,
+                circumscribed=True,
+            )
+            .extrude(self.spool_spindle_lip_depth, both=True)
+        )
+        bevel_lip_cutout_half = (
+            cq.Workplane("YZ")
+            .circle(self.spool.diameter_outer / 2 - self.spool_spindle_lip_depth)
+            .workplane(offset=self.spool_spindle_lip_depth)
+            .circle(self.spool.diameter_outer / 2)
+            .loft()
+        )
+        bevel_lip_cutout = bevel_lip_cutout_half + bevel_lip_cutout_half.mirror("YZ")
+
+        bevel = bevel_lip_outer - bevel_lip_cutout
+
+        perimeter = (
+            flat_lip.translate((self.spool.width / 2, 0, 0))
+            + spool_clamp.translate(
+                (self.spool.width / 2 - self.spool.side_thickness, 0, 0)
+            )
+            + bevel.translate(
+                (
+                    self.spool.width / 2
+                    - self.spool.side_thickness
+                    - self.spool_spindle_lip_depth,
+                    0,
+                    0,
+                )
+            )
+        )
+
+        perimeter = perimeter.rotate((0, 0, 0), (1, 0, 0), 180 / panels)
+
+        slitter = (
+            cq.Workplane("YZ")
+            .line(self.spool.diameter_outer, 0)
+            .line(0, 0.1)
+            .line(-self.spool.diameter_outer, 0)
+            .close()
+            .extrude(self.spool.width, both=True)
+        )
+
+        perimeter = perimeter - slitter
+
+        perimeter = perimeter.rotate((0, 0, 0), (1, 0, 0), -180 / panels)
+
+        return perimeter
+
 
 if "show_object" in globals():
     z = zoetrope()
@@ -214,4 +295,8 @@ if "show_object" in globals():
     show_object(
         z.handle_static(),
         options={"color": "purple", "alpha": 0.5},
+    )
+    show_object(
+        z.spool_perimeter(),
+        options={"color": "#ABC", "alpha": 0.5},
     )
