@@ -26,130 +26,13 @@ import math
 import cadquery as cq
 import cadquery.selectors as sel
 from cadquery import exporters
+from placeholders import bearing, spool
 
 # When not running in CQ-Editor, turn log into print
 if "log" not in globals():
 
     def log(*args):
         print(args)
-
-
-class bearing:
-    """
-    Placeholder for a bearing for the purpose of design layout and
-    visualization. No need to print this - use real bearings!
-    """
-
-    @staticmethod
-    def preset_608():
-        """
-        Create an instance with dimensions of generic 608 bearings
-        """
-        return bearing(
-            diameter_outer=22,
-            diameter_inner=8,
-            width=7,
-        )
-
-    def __init__(
-        self,
-        diameter_outer,
-        diameter_inner,
-        width,
-    ):
-        self.diameter_outer = diameter_outer
-        self.diameter_inner = diameter_inner
-        self.width = width
-
-    def placeholder(self):
-        return (
-            cq.Workplane("YZ")
-            .circle(self.diameter_outer / 2)
-            .circle(self.diameter_inner / 2)
-            .extrude(self.width)
-            .translate((-self.width / 2, 0, 0))
-        )
-
-
-class spool:
-    """
-    Placeholder for a filament spool for the purpose of design layout and
-    visualization. No need to print this - use real spools!
-    """
-
-    @staticmethod
-    def preset_jesse():
-        """
-        Create an instance with dimensions of Printed Solid Jesse
-        """
-        return spool(
-            diameter_outer=200,
-            diameter_inner=55,
-            width=72.5,
-            side_thickness=5,
-        )
-
-    @staticmethod
-    def preset_mhbuild():
-        """
-        Create an instance with dimensions of MatterhHackers Build
-        """
-        return spool(
-            diameter_outer=200,
-            diameter_inner=55,
-            width=67.5,
-            side_thickness=5,
-        )
-
-    @staticmethod
-    def preset_esun3kg():
-        """
-        Create an instance with dimensions of eSun 3kg
-        """
-        return spool(
-            diameter_outer=270,
-            diameter_inner=52.5,
-            width=100,
-            side_thickness=7,
-        )
-
-    def __init__(
-        self,
-        diameter_outer,
-        diameter_inner,
-        width,
-        side_thickness,
-    ):
-        self.diameter_outer = diameter_outer
-        self.width = width
-        self.side_thickness = side_thickness
-        self.diameter_inner = diameter_inner
-
-    def placeholder(self):
-        """
-        Generate a shape centered around origin that is a visual representation
-        (not intended for printing) of a filament spool.
-        """
-        center = (
-            cq.Workplane("YZ")
-            .circle(self.diameter_inner / 2 + self.side_thickness)
-            .circle(self.diameter_inner / 2)
-            .extrude(self.width / 2)
-        )
-
-        side = (
-            cq.Workplane("YZ")
-            .transformed(offset=cq.Vector(0, 0, self.width / 2))
-            .circle(self.diameter_outer / 2)
-            .circle(self.diameter_inner / 2 + self.side_thickness)
-            .extrude(-self.side_thickness)
-        )
-
-        half = center + side
-
-        spool = half + half.mirror("YZ")
-
-        return spool
 
 
 class acrylic_bottom_panel:
@@ -314,6 +197,9 @@ class filament_bag_base:
         ).fillet(panel.border)
 
         instance.base = assemble_base
+        instance.panel_placeholder = panel.placeholder().translate(
+            (0, 0, instance.tray_bottom_z + panel.minimum_thickness / 2)
+        )
 
         return instance
 
@@ -725,8 +611,11 @@ if "show_object" in globals():
         fbb.bearing_axle.mirror("XZ"),
         options={"color": "green", "alpha": 0.5},
     )
-
     show_object(
         fbb.dessicant_grate,
         options={"color": "red", "alpha": 0.5},
+    )
+    show_object(
+        fbb.panel_placeholder,
+        options={"color": "white", "alpha": 0.1},
     )
