@@ -54,11 +54,13 @@ class zoetrope:
         bearing=bearing.preset_608(),
         spool_spindle_thickness=1.2,
         spool_spindle_lip_depth=2.4,
+        nozzle_diameter=0.4,
     ):
         self.spool = spool
         self.bearing = bearing
         self.spool_spindle_thickness = spool_spindle_thickness
         self.spool_spindle_lip_depth = spool_spindle_lip_depth
+        self.nozzle_diameter = nozzle_diameter
 
     def bearing_offset(self):
         """
@@ -171,7 +173,9 @@ class zoetrope:
 
         handle = handle_volume.intersect(handle_intersect) - threaded_rod
 
-        handle = handle.translate((-self.spool.width / 2 - self.bearing.width, 0, 0))
+        handle = handle.translate(
+            (-self.spool.width_inner / 2 - self.bearing.width, 0, 0)
+        )
 
         return handle
 
@@ -183,8 +187,7 @@ class zoetrope:
         A cylinder that wraps the outside perimeter of the spool, divided
         into the given number of panels.
         """
-        nozzle_diameter = 0.4
-        polygon_diameter = self.spool.diameter_outer + nozzle_diameter * 4
+        polygon_diameter = self.spool.diameter_outer + self.nozzle_diameter * 4
         flat_lip = (
             cq.Workplane("YZ")
             .polygon(
@@ -233,7 +236,7 @@ class zoetrope:
             )
             .polygon(
                 nSides=panels,
-                diameter=polygon_diameter - nozzle_diameter * 4,
+                diameter=polygon_diameter - self.nozzle_diameter * 4,
                 circumscribed=True,
             )
             .extrude(
@@ -250,7 +253,7 @@ class zoetrope:
             .workplane(offset=self.spool_spindle_lip_depth * 2)
             .polygon(
                 nSides=panels,
-                diameter=polygon_diameter - nozzle_diameter * 4,
+                diameter=polygon_diameter - self.nozzle_diameter * 4,
                 circumscribed=True,
             )
             .loft()
@@ -267,7 +270,7 @@ class zoetrope:
             .circle(
                 self.spool.diameter_outer / 2
                 - self.spool_spindle_lip_depth
-                + nozzle_diameter * 2
+                + self.nozzle_diameter * 2
             )
             .circle(self.spool.diameter_outer / 2 - self.spool_spindle_lip_depth)
             .extrude(-8)
@@ -325,6 +328,121 @@ class zoetrope:
 
         return perimeter
 
+    def sensor_clip(
+        self,
+        clip_thickness=2.4,
+        pcb_length=37,
+        pcb_width=11.5,
+        pcb_thickness=1.6,
+        bottom_gap=2,
+        sensor_center_to_end=16.5,
+        sensor_center_to_gap=11,
+        mounting_gap_width=1.7,
+        mounting_gap_depth=1.8,
+        arm_thickness=4,
+    ):
+        """
+        Small clip to mount the photo interruptor sensor salvaged from an
+        inkjet printer
+        """
+        main_volume = (
+            cq.Workplane("XZ")
+            # Y+ direction clips to the end
+            .line(0, sensor_center_to_end + clip_thickness)
+            .line(clip_thickness + bottom_gap + pcb_thickness + clip_thickness, 0)
+            .line(0, -clip_thickness * 2)
+            .line(-clip_thickness, 0)
+            .line(0, clip_thickness)
+            .line(-pcb_thickness, 0)
+            .line(0, -clip_thickness)
+            .line(-bottom_gap, 0)
+            .line(0, -sensor_center_to_end + clip_thickness)
+            # Returned to Y=0, now on to Y- direction for mounting gap
+            .line(0, -sensor_center_to_gap)
+            .line(bottom_gap + pcb_thickness, 0)
+            .line(0, -mounting_gap_width)
+            .line(-bottom_gap - pcb_thickness, 0)
+            .lineTo(clip_thickness, -pcb_length + sensor_center_to_end)
+            .line(-clip_thickness, 0)
+            .close()
+            .extrude(pcb_width)
+        )
+
+        mounting_gap_subtract = (
+            cq.Workplane("XY")
+            .lineTo(clip_thickness + bottom_gap, 0, forConstruction=True)
+            .line(pcb_thickness, 0)
+            .line(0, -pcb_width + mounting_gap_depth)
+            .line(-pcb_thickness, 0)
+            .close()
+            .extrude(-pcb_length)
+        )
+
+        sensor_clip_offset_x = (
+            -self.spool.width / 2 - 14 - bottom_gap - clip_thickness - pcb_thickness
+        )
+        sensor_clip_offset_z = (
+            self.spool.diameter_outer / 2
+            - self.spool_spindle_lip_depth
+            - self.nozzle_diameter
+        )
+
+        sensor_clip = (main_volume - mounting_gap_subtract).translate(
+            (
+                sensor_clip_offset_x,
+                pcb_width / 2,
+                sensor_clip_offset_z,
+            )
+        )
+
+        bearing_clearance_cone_height = 2
+        handle_height_half = 10 / math.sin(math.radians(60))
+        handle_mount_width = self.bearing.width - bearing_clearance_cone_height
+
+        bearing_clearance_cone = (
+            cq.Workplane("YZ")
+            .circle(self.bearing.diameter_inner / 2 + 2)
+            .workplane(offset=-bearing_clearance_cone_height)
+            .circle(handle_height_half)
+            .loft()
+            .translate((-self.spool.width_inner / 2, 0, 0))
+        ).intersect(
+            cq.Workplane("YZ")
+            .rect(pcb_width, handle_height_half * 2)
+            .extrude(-self.spool.width)
+        )
+
+        sensor_arm = (
+            cq.Workplane("XZ")
+            .lineTo(
+                -self.spool.width_inner / 2 - bearing_clearance_cone_height,
+                handle_height_half,
+                forConstruction=True,
+            )
+            .line(0, -handle_height_half * 2)
+            .line(-arm_thickness, -arm_thickness)
+            .line(-handle_mount_width, 0)
+            .line(0, arm_thickness)
+            .line(arm_thickness, 0)
+            .line(0, handle_height_half * 2)
+            .line(-arm_thickness, 0)
+            .lineTo(
+                sensor_clip_offset_x - arm_thickness + clip_thickness,
+                sensor_clip_offset_z - (pcb_length - sensor_center_to_end),
+            )
+            .lineTo(
+                sensor_clip_offset_x,
+                sensor_clip_offset_z + sensor_center_to_end + clip_thickness,
+            )
+            .line(clip_thickness, -pcb_length - clip_thickness)
+            .close()
+            .extrude(pcb_width / 2, both=True)
+        )
+
+        threaded_rod_clear = cq.Workplane("YZ").circle(3.1).extrude(-200)
+
+        return (sensor_clip + sensor_arm + bearing_clearance_cone) - threaded_rod_clear
+
 
 if "show_object" in globals():
     z = zoetrope()
@@ -368,4 +486,8 @@ if "show_object" in globals():
     show_object(
         z.spool_perimeter(),
         options={"color": "#ABC", "alpha": 0.5},
+    )
+    show_object(
+        z.sensor_clip(),
+        options={"color": "yellow", "alpha": 0.8},
     )
