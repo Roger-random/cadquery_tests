@@ -52,7 +52,7 @@ class tool_hook:
         self.channel_size = channel_size
         self.inside_slope_degrees = 23
         self.inside_slope_radians = math.radians(self.inside_slope_degrees)
-        self.hook_thickness = nozzle_diameter * 8
+        self.hook_thickness = 6
         self.tray_lip_radius_inner = 10
         self.tray_lip_radius_outer = self.tray_lip_radius_inner + self.hook_thickness
         self.threaded_rod_diameter_clear = 6.5
@@ -67,7 +67,7 @@ class tool_hook:
         self,
         width=5,
         inside_leg=30,
-        outside_leg=30,
+        outside_leg=1,
         channel_right=True,
         rib_left=True,
     ):
@@ -203,8 +203,8 @@ class tool_hook:
         """
         return self.hook(
             width=self.channel_size * 2,
-            inside_leg=self.hook_thickness / 2,
-            outside_leg=self.hook_thickness / 2,
+            inside_leg=1,
+            outside_leg=1,
             channel_right=True,
             rib_left=False,
         )
@@ -217,21 +217,49 @@ class tool_hook:
         """
         return self.hook(
             width=self.channel_size * 2,
-            inside_leg=self.hook_thickness / 2,
-            outside_leg=self.hook_thickness / 2,
+            inside_leg=1,
+            outside_leg=1,
             channel_right=False,
             rib_left=True,
         )
+
+    def chuck_key_3jaw(self):
+        """
+        Tool clip corresponding to custom-made 3-jaw chuck key
+        """
+        size = 30
+        height = 35
+        hook_base = self.hook(width=size)
+
+        chuck_surround = (
+            cq.Workplane("XY")
+            .line(size, 0)
+            .line(0, -size)
+            .line(-size, 0)
+            .close()
+            .extrude(-height)
+            .edges("|Y")
+            .fillet(self.hook_thickness / 2)
+        )
+
+        chuck_clearance = (
+            cq.Workplane("XY")
+            .transformed(offset=(size / 2, -size / 2))
+            .rect(21, 21)
+            .extrude(-height)
+        )
+
+        return hook_base + chuck_surround - chuck_clearance
 
     def rotate_for_print(self, body):
         return body.rotate((0, 0, 0), (1, 0, 0), -90)
 
 
 th = tool_hook()
-show_object(th.hook(), options={"color": "white", "alpha": 0.5})
+show_object(th.chuck_key_3jaw(), options={"color": "white", "alpha": 0.5})
 
 show_object(
-    th.plate_left().translate((0, -5, 0)), options={"color": "green", "alpha": 0.5}
+    th.plate_left().translate((0, -30, 0)), options={"color": "green", "alpha": 0.5}
 )
 show_object(
     th.plate_right().translate((0, th.channel_size * 2, 0)),
