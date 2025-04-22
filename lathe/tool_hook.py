@@ -47,14 +47,15 @@ class tool_hook:
     Logan 555 lathe
     """
 
-    def __init__(self):
+    def __init__(self, channel_size=2):
         nozzle_diameter = 0.4
+        self.channel_size = channel_size
         self.inside_slope_degrees = 23
         self.inside_slope_radians = math.radians(self.inside_slope_degrees)
-        self.hook_thickness = nozzle_diameter * 6
+        self.hook_thickness = nozzle_diameter * 8
         self.tray_lip_radius_inner = 10
         self.tray_lip_radius_outer = self.tray_lip_radius_inner + self.hook_thickness
-        self.threaded_rod_diameter_clear = 6.3
+        self.threaded_rod_diameter_clear = 6.5
         self.hook_top = (
             self.tray_lip_radius_outer
             + self.threaded_rod_diameter_clear
@@ -62,7 +63,14 @@ class tool_hook:
         )
         pass
 
-    def hook(self, width=5, inside_leg=30, outside_leg=30):
+    def hook(
+        self,
+        width=5,
+        inside_leg=30,
+        outside_leg=30,
+        channel_right=True,
+        rib_left=True,
+    ):
         blend_length = 10
         blend_x = blend_length * math.cos(self.inside_slope_radians)
         blend_y = blend_length * math.sin(self.inside_slope_radians)
@@ -71,10 +79,10 @@ class tool_hook:
             .line(self.tray_lip_radius_inner, 0, forConstruction=True)
             .line(self.hook_thickness, 0)
             .line(0, self.hook_top)
+            .line(-self.hook_thickness, 0)
             .bezier(
                 [
-                    (self.tray_lip_radius_outer, self.hook_top),
-                    (self.threaded_rod_diameter_clear, self.hook_top),
+                    (self.tray_lip_radius_inner, self.hook_top),
                     (0, self.hook_top),
                     (
                         -self.tray_lip_radius_outer
@@ -124,12 +132,14 @@ class tool_hook:
             .extrude(width)
         )
 
+        rod_center_x = self.tray_lip_radius_inner - self.threaded_rod_diameter_clear / 2
+        rod_center_z = self.tray_lip_radius_outer + self.threaded_rod_diameter_clear / 2
         rod_clearance = (
             cq.Workplane("XZ")
             .transformed(
                 offset=cq.Vector(
-                    self.tray_lip_radius_inner - self.threaded_rod_diameter_clear / 2,
-                    self.tray_lip_radius_outer + self.threaded_rod_diameter_clear / 2,
+                    rod_center_x,
+                    rod_center_z,
                     0,
                 )
             )
@@ -137,8 +147,93 @@ class tool_hook:
             .extrude(width)
         )
 
-        return hook_top + hook_inner + hook_outer - rod_clearance
+        # Assemble hook body from components
+        hook_body = hook_top + hook_inner + hook_outer - rod_clearance
+
+        # Translate to add alignment ribs/channels
+        hook_body = hook_body.translate((-rod_center_x, 0, -rod_center_z))
+
+        vertical_channel_subtract = (
+            cq.Workplane("XY")
+            .line(self.channel_size, 0)
+            .line(-self.channel_size, -self.channel_size)
+            .line(-self.channel_size, self.channel_size)
+            .close()
+            .extrude(-50)
+        )
+
+        horizontal_channel_subtract = (
+            cq.Workplane("YZ")
+            .line(0, self.channel_size)
+            .line(-self.channel_size, -self.channel_size)
+            .line(self.channel_size, -self.channel_size)
+            .close()
+            .extrude(-50)
+        )
+
+        hook = hook_body
+
+        if rib_left:
+            vertical_rib_add = hook_body.intersect(vertical_channel_subtract).translate(
+                (0, -width, 0)
+            )
+            horizontal_rib_add = hook_body.intersect(
+                horizontal_channel_subtract
+            ).translate((0, -width, 0))
+            hook = hook + vertical_rib_add + horizontal_rib_add
+
+        if channel_right:
+            hook = hook - vertical_channel_subtract - horizontal_channel_subtract
+
+        # Final translation to ease adding tool-specific features
+        hook = hook.translate(
+            (
+                -self.threaded_rod_diameter_clear / 2,
+                0,
+                -self.threaded_rod_diameter_clear / 2 - self.hook_thickness,
+            )
+        )
+        return hook
+
+    def plate_left(self):
+        """
+        Blank plate that holds no tool but has channels on the right side
+        to accommodate adjacent holder rib. Presents a flat surface on the
+        left, no rib.
+        """
+        return self.hook(
+            width=self.channel_size * 2,
+            inside_leg=self.hook_thickness / 2,
+            outside_leg=self.hook_thickness / 2,
+            channel_right=True,
+            rib_left=False,
+        )
+
+    def plate_right(self):
+        """
+        Blank plate that holds no tool but has ribs on the left side
+        to mesh with adjacent holder rib channel. Presents a flat surface on
+        the right with no channel.
+        """
+        return self.hook(
+            width=self.channel_size * 2,
+            inside_leg=self.hook_thickness / 2,
+            outside_leg=self.hook_thickness / 2,
+            channel_right=False,
+            rib_left=True,
+        )
+
+    def rotate_for_print(self, body):
+        return body.rotate((0, 0, 0), (1, 0, 0), -90)
 
 
 th = tool_hook()
 show_object(th.hook(), options={"color": "white", "alpha": 0.5})
+
+show_object(
+    th.plate_left().translate((0, -5, 0)), options={"color": "green", "alpha": 0.5}
+)
+show_object(
+    th.plate_right().translate((0, th.channel_size * 2, 0)),
+    options={"color": "red", "alpha": 0.5},
+)
