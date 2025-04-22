@@ -195,33 +195,63 @@ class tool_hook:
         )
         return hook
 
-    def plate_left(self):
+    def plate_left(self, depth=0, height=30):
         """
         Blank plate that holds no tool but has channels on the right side
         to accommodate adjacent holder rib. Presents a flat surface on the
         left, no rib.
         """
-        return self.hook(
+        hook = self.hook(
             width=self.channel_size * 2,
-            inside_leg=1,
-            outside_leg=1,
+            inside_leg=height,
+            outside_leg=height,
             channel_right=True,
             rib_left=False,
         )
 
-    def plate_right(self):
+        if depth > self.hook_thickness:
+            reinforcement_leg = (
+                cq.Workplane("XZ")
+                .line(depth, 0)
+                .line(0, -height - self.hook_top - self.hook_thickness / 2)
+                .line(-depth, 0)
+                .close()
+                .extrude(self.channel_size * 2)
+                .edges("|Y")
+                .fillet(self.hook_thickness / 2)
+            )
+            hook = hook + reinforcement_leg
+
+        return hook
+
+    def plate_right(self, depth=0, height=30):
         """
         Blank plate that holds no tool but has ribs on the left side
         to mesh with adjacent holder rib channel. Presents a flat surface on
         the right with no channel.
         """
-        return self.hook(
+        hook = self.hook(
             width=self.channel_size * 2,
-            inside_leg=1,
-            outside_leg=1,
+            inside_leg=height,
+            outside_leg=height,
             channel_right=False,
             rib_left=True,
         )
+
+        if depth > self.hook_thickness:
+            reinforcement_leg = (
+                cq.Workplane("XZ")
+                .line(depth, 0)
+                .line(0, -height - self.hook_top - self.hook_thickness / 2)
+                .line(-depth, 0)
+                .close()
+                .extrude(self.channel_size * 2)
+                .edges("|Y")
+                .fillet(self.hook_thickness / 2)
+            )
+            hook = hook + reinforcement_leg
+
+        return hook
 
     def chuck_key_3jaw(self):
         """
@@ -259,9 +289,10 @@ th = tool_hook()
 show_object(th.chuck_key_3jaw(), options={"color": "white", "alpha": 0.5})
 
 show_object(
-    th.plate_left().translate((0, -30, 0)), options={"color": "green", "alpha": 0.5}
+    th.plate_left(depth=30).translate((0, -30, 0)),
+    options={"color": "green", "alpha": 0.5},
 )
 show_object(
-    th.plate_right().translate((0, th.channel_size * 2, 0)),
+    th.plate_right(depth=30).translate((0, th.channel_size * 2, 0)),
     options={"color": "red", "alpha": 0.5},
 )
