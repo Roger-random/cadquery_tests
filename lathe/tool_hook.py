@@ -41,10 +41,6 @@ if "show_object" not in globals():
         pass
 
 
-mm_per_inch = 25.4
-nozzle_diameter = 0.4
-
-
 class tool_hook:
     """
     3D printed hook to hold a tool over the edge of the work table for a
@@ -52,28 +48,48 @@ class tool_hook:
     """
 
     def __init__(self):
-        self.inside_slope_degrees = 25
+        nozzle_diameter = 0.4
+        self.inside_slope_degrees = 23
         self.inside_slope_radians = math.radians(self.inside_slope_degrees)
         self.hook_thickness = nozzle_diameter * 6
-        self.tray_lip_radius_inner = (1 / 4) * mm_per_inch
+        self.tray_lip_radius_inner = 10
         self.tray_lip_radius_outer = self.tray_lip_radius_inner + self.hook_thickness
-        self.hook_height_outside = 30
-        self.hook_height_inside = 30
+        self.threaded_rod_diameter_clear = 6.3
+        self.hook_top = (
+            self.tray_lip_radius_outer
+            + self.threaded_rod_diameter_clear
+            + self.hook_thickness
+        )
         pass
 
-    def hook(self):
+    def hook(self, width=5, inside_leg=30, outside_leg=30):
+        blend_length = 10
+        blend_x = blend_length * math.cos(self.inside_slope_radians)
+        blend_y = blend_length * math.sin(self.inside_slope_radians)
         hook_top = (
             cq.Workplane("XZ")
             .line(self.tray_lip_radius_inner, 0, forConstruction=True)
             .line(self.hook_thickness, 0)
-            .line(0, self.tray_lip_radius_outer)
-            .line(-self.tray_lip_radius_outer, 0)
-            .radiusArc(
-                (
-                    -self.tray_lip_radius_outer * math.cos(self.inside_slope_radians),
-                    self.tray_lip_radius_outer * math.sin(self.inside_slope_radians),
-                ),
-                -self.tray_lip_radius_outer,
+            .line(0, self.hook_top)
+            .bezier(
+                [
+                    (self.tray_lip_radius_outer, self.hook_top),
+                    (self.threaded_rod_diameter_clear, self.hook_top),
+                    (0, self.hook_top),
+                    (
+                        -self.tray_lip_radius_outer
+                        * math.cos(self.inside_slope_radians)
+                        + blend_y,
+                        self.tray_lip_radius_outer * math.sin(self.inside_slope_radians)
+                        + blend_x,
+                    ),
+                    (
+                        -self.tray_lip_radius_outer
+                        * math.cos(self.inside_slope_radians),
+                        self.tray_lip_radius_outer
+                        * math.sin(self.inside_slope_radians),
+                    ),
+                ]
             )
             .lineTo(
                 -self.tray_lip_radius_inner * math.cos(self.inside_slope_radians),
@@ -84,31 +100,44 @@ class tool_hook:
                 self.tray_lip_radius_inner,
             )
             .close()
-            .extrude(20)
+            .extrude(width)
         )
 
         hook_inner = (
             cq.Workplane("XZ")
             .transformed(rotate=cq.Vector(0, 0, -self.inside_slope_degrees))
             .line(-self.tray_lip_radius_inner, 0)
-            .line(0, -self.hook_height_inside)
+            .line(0, -inside_leg)
             .tangentArcPoint((-self.hook_thickness, 0))
-            .line(0, self.hook_height_inside)
+            .line(0, inside_leg)
             .close()
-            .extrude(20)
+            .extrude(width)
         )
 
         hook_outer = (
             cq.Workplane("XZ")
             .line(self.tray_lip_radius_inner, 0)
-            .line(0, -self.hook_height_outside)
+            .line(0, -outside_leg)
             .tangentArcPoint((self.hook_thickness, 0))
-            .line(0, self.hook_height_outside)
+            .line(0, outside_leg)
             .close()
-            .extrude(20)
+            .extrude(width)
         )
 
-        return hook_top + hook_inner + hook_outer
+        rod_clearance = (
+            cq.Workplane("XZ")
+            .transformed(
+                offset=cq.Vector(
+                    self.tray_lip_radius_inner - self.threaded_rod_diameter_clear / 2,
+                    self.tray_lip_radius_outer + self.threaded_rod_diameter_clear / 2,
+                    0,
+                )
+            )
+            .circle(self.threaded_rod_diameter_clear / 2)
+            .extrude(width)
+        )
+
+        return hook_top + hook_inner + hook_outer - rod_clearance
 
 
 th = tool_hook()
