@@ -43,14 +43,14 @@ if "show_object" not in globals():
 
 class apron_lock:
     """
-    3D printed handle for a 3/16" square nut that locks apron (Z-axis) motion
+    3D printed handle for a 3/8" square nut that locks apron (Z-axis) motion
     for a Logan 555 lathe.
     """
 
     def __init__(self):
         pass
 
-    def handle(self, square_side=(3 / 16) * 25.4, handle_length=50):
+    def handle(self, square_side=(3 / 8) * 25.4, handle_length=50):
         """
         Handle for a square nut, intended for Z-axis apron axis lock
         """
