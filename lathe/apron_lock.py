@@ -50,12 +50,12 @@ class apron_lock:
     def __init__(self):
         pass
 
-    def handle(self, square_side=(3 / 8) * 25.4, handle_length=50):
+    def handle(self, square_side=(3 / 8) * 25.4 + 0.2, handle_length=50):
         """
         Handle for a square nut, intended for Z-axis apron axis lock
         """
-        handle_width = square_side * 2.5
-        handle_height = square_side * 2
+        handle_width = square_side * 2.25
+        handle_height = square_side
         handle_end = (
             cq.Workplane("XY")
             .circle(handle_width / 2)
@@ -72,16 +72,23 @@ class apron_lock:
             .extrude(handle_height, both=True)
         )
 
-        handle = (
-            (
-                handle_end
-                + handle_bar
-                + handle_end.translate((0, handle_length, 0))
-                - nut_subtract
+        label = (
+            cq.Workplane("XY")
+            .transformed(rotate=cq.Vector(0, 0, 90))
+            .transformed(
+                offset=cq.Vector(
+                    handle_length / 2 + square_side * 0.75, 0, handle_height / 2 + 0.1
+                )
             )
-            .faces(">Z or <Z")
-            .chamfer(0.6)
+            .text("Z LOCK", 13, -0.6, kind="bold")
         )
+
+        handle = (
+            handle_end
+            + handle_bar
+            + handle_end.translate((0, handle_length, 0))
+            - nut_subtract
+        ).faces(">Z or <Z").chamfer(0.6) - label
 
         return handle
 
