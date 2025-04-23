@@ -47,10 +47,10 @@ class tool_hook:
     Logan 555 lathe
     """
 
-    def __init__(self):
+    def __init__(self, hook_thickness=6):
         self.inside_slope_degrees = 23
         self.inside_slope_radians = math.radians(self.inside_slope_degrees)
-        self.hook_thickness = 6
+        self.hook_thickness = hook_thickness
         self.tray_lip_radius_inner = 10
         self.tray_lip_radius_outer = self.tray_lip_radius_inner + self.hook_thickness
         self.threaded_rod_diameter_clear = 6.5
@@ -280,7 +280,7 @@ class tool_hook:
         return body.rotate((0, 0, 0), (1, 0, 0), -90)
 
 
-th = tool_hook()
+th = tool_hook(hook_thickness=10)
 show_object(
     th.end_plate(depth=26).translate((0, 4, 0)),
     options={"color": "red", "alpha": 0.5},
