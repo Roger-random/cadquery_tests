@@ -178,16 +178,21 @@ class tool_hook:
                 .line(-depth, 0)
                 .close()
                 .extrude(-width)
-                .faces("<Z")
-                .edges("|Y")
-                .fillet(depth / 2.1)
-                .faces(">Z")
-                .edges(">X")
-                .fillet(depth / 2.1)
             )
-            hook = hook + reinforcement_leg
+
+            hook = hook + self.body_corner_roundoff(reinforcement_leg, depth)
 
         return (hook, width)
+
+    def body_corner_roundoff(self, body, depth):
+        return (
+            body.faces("<Z")
+            .edges("|Y")
+            .fillet(depth / 2.01)
+            .faces(">Z")
+            .edges(">X")
+            .fillet(depth / 2.01)
+        )
 
     def chuck_key_3jaw_2piece(self):
         """
@@ -201,36 +206,42 @@ class tool_hook:
             height=100,
         )
 
-    def circular_opening(self, opening_radius, side_wall, height):
+    def circular_opening(
+        self, opening_diameter, side_wall, depth_wall, additional_height
+    ):
         """
         Single-piece clip with cylindrical opening
         """
-        overall_width = opening_radius * 2 + side_wall * 2
+
+        opening_radius = opening_diameter / 2
+        overall_width = opening_diameter + side_wall * 2
+        overall_depth = opening_diameter + depth_wall * 2
+        overall_height = self.hook_top + additional_height
         hook_main = self.hook(width=overall_width)
 
         body = (
             cq.Workplane("XY")
-            .line(overall_width, 0)
-            .line(0, -overall_width)
-            .line(-overall_width, 0)
+            .line(overall_depth, 0)
+            .line(0, overall_width)
+            .line(-overall_depth, 0)
             .close()
-            .extrude(-height)
-            .edges("|Y")
-            .fillet(self.hook_thickness / 2)
+            .extrude(-overall_height)
         )
 
-        opening = (
-            cq.Workplane("XY")
-            .transformed(
-                offset=cq.Vector(
-                    side_wall + opening_radius, -side_wall - opening_radius, 0
-                )
-            )
-            .circle(opening_radius)
-            .extrude(-height)
-        )
+        body = self.body_corner_roundoff(body, overall_depth)
 
-        return hook_main + body - opening
+        # opening = (
+        #     cq.Workplane("XY")
+        #     .transformed(
+        #         offset=cq.Vector(
+        #             side_wall + opening_radius, -side_wall - opening_radius, 0
+        #         )
+        #     )
+        #     .circle(opening_radius)
+        #     .extrude(-height)
+        # )
+
+        return (hook_main + body, overall_width)
 
     def rectangular_opening_2piece(
         self, opening_width, opening_depth, side_wall, depth_wall, height
@@ -295,11 +306,14 @@ show_object(
     options={"color": "red", "alpha": 0.5},
 )
 
-# show_object(
-#     th.circular_opening(6, 2.4, 40).translate((0, y_offset, 0)),
-#     options={"color": "orange", "alpha": 0.5},
-# )
-# y_offset = y_offset - 16.8
+chuck_key_4_jaw, chuck_key_4_jaw_width = th.circular_opening(
+    opening_diameter=12, side_wall=2.4, depth_wall=2.4, additional_height=20
+)
+y_offset -= chuck_key_4_jaw_width
+show_object(
+    chuck_key_4_jaw.translate((0, y_offset, 0)),
+    options={"color": "orange", "alpha": 0.5},
+)
 
 # duo = th.chuck_key_3jaw_2piece()
 # show_object(
