@@ -47,8 +47,7 @@ class tool_hook:
     Logan 555 lathe
     """
 
-    def __init__(self, channel_size=2):
-        self.channel_size = channel_size
+    def __init__(self):
         self.inside_slope_degrees = 23
         self.inside_slope_radians = math.radians(self.inside_slope_degrees)
         self.hook_thickness = 6
@@ -67,8 +66,8 @@ class tool_hook:
         width=5,
         inside_leg=30,
         outside_leg=1,
-        channel_right=True,
-        rib_left=True,
+        channel_right=False,
+        rib_left=False,
     ):
         blend_length = 10
         blend_x = blend_length * math.cos(self.inside_slope_radians)
@@ -147,65 +146,28 @@ class tool_hook:
         )
 
         # Assemble hook body from components
-        hook_body = hook_top + hook_inner + hook_outer - rod_clearance
-
-        # Translate to add alignment ribs/channels
-        hook_body = hook_body.translate((-rod_center_x, 0, -rod_center_z))
-
-        vertical_channel_subtract = (
-            cq.Workplane("XY")
-            .line(self.channel_size, 0)
-            .line(-self.channel_size, -self.channel_size)
-            .line(-self.channel_size, self.channel_size)
-            .close()
-            .extrude(-50)
-        )
-
-        horizontal_channel_subtract = (
-            cq.Workplane("YZ")
-            .line(0, self.channel_size)
-            .line(-self.channel_size, -self.channel_size)
-            .line(self.channel_size, -self.channel_size)
-            .close()
-            .extrude(-50)
-        )
-
-        hook = hook_body
-
-        if rib_left:
-            vertical_rib_add = hook_body.intersect(vertical_channel_subtract).translate(
-                (0, -width, 0)
-            )
-            horizontal_rib_add = hook_body.intersect(
-                horizontal_channel_subtract
-            ).translate((0, -width, 0))
-            hook = hook + vertical_rib_add + horizontal_rib_add
-
-        if channel_right:
-            hook = hook - vertical_channel_subtract - horizontal_channel_subtract
+        hook = hook_top + hook_inner + hook_outer - rod_clearance
 
         # Final translation to ease adding tool-specific features
         hook = hook.translate(
             (
-                -self.threaded_rod_diameter_clear / 2,
+                -rod_center_x - self.threaded_rod_diameter_clear / 2,
                 0,
-                -self.threaded_rod_diameter_clear / 2 - self.hook_thickness,
+                -rod_center_z
+                - self.threaded_rod_diameter_clear / 2
+                - self.hook_thickness,
             )
         )
         return hook
 
-    def plate_left(self, depth=0, height=30):
+    def end_plate(self, width=4, depth=0, height=30):
         """
-        Blank plate that holds no tool but has channels on the right side
-        to accommodate adjacent holder rib. Presents a flat surface on the
-        left, no rib.
+        Blank plate that holds no tool to serve as end plate
         """
         hook = self.hook(
-            width=self.channel_size * 2,
+            width=width,
             inside_leg=height,
             outside_leg=height,
-            channel_right=True,
-            rib_left=False,
         )
 
         if depth > self.hook_thickness:
@@ -215,36 +177,7 @@ class tool_hook:
                 .line(0, -height - self.hook_top - self.hook_thickness / 2)
                 .line(-depth, 0)
                 .close()
-                .extrude(self.channel_size * 2)
-                .edges("|Y")
-                .fillet(self.hook_thickness / 2)
-            )
-            hook = hook + reinforcement_leg
-
-        return hook
-
-    def plate_right(self, depth=0, height=30):
-        """
-        Blank plate that holds no tool but has ribs on the left side
-        to mesh with adjacent holder rib channel. Presents a flat surface on
-        the right with no channel.
-        """
-        hook = self.hook(
-            width=self.channel_size * 2,
-            inside_leg=height,
-            outside_leg=height,
-            channel_right=False,
-            rib_left=True,
-        )
-
-        if depth > self.hook_thickness:
-            reinforcement_leg = (
-                cq.Workplane("XZ")
-                .line(depth, 0)
-                .line(0, -height - self.hook_top - self.hook_thickness / 2)
-                .line(-depth, 0)
-                .close()
-                .extrude(self.channel_size * 2)
+                .extrude(width)
                 .edges("|Y")
                 .fillet(self.hook_thickness / 2)
             )
@@ -349,7 +282,7 @@ class tool_hook:
 
 th = tool_hook()
 show_object(
-    th.plate_right(depth=26).translate((0, th.channel_size * 2, 0)),
+    th.end_plate(depth=26).translate((0, 4, 0)),
     options={"color": "red", "alpha": 0.5},
 )
 
@@ -373,6 +306,6 @@ show_object(
 y_offset = y_offset - 26
 
 show_object(
-    th.plate_left(depth=26).translate((0, y_offset, 0)),
+    th.end_plate(depth=26).translate((0, y_offset, 0)),
     options={"color": "green", "alpha": 0.5},
 )
