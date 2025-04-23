@@ -48,7 +48,6 @@ class tool_hook:
     """
 
     def __init__(self, channel_size=2):
-        nozzle_diameter = 0.4
         self.channel_size = channel_size
         self.inside_slope_degrees = 23
         self.inside_slope_radians = math.radians(self.inside_slope_degrees)
@@ -253,46 +252,127 @@ class tool_hook:
 
         return hook
 
-    def chuck_key_3jaw(self):
+    def chuck_key_3jaw_2piece(self):
         """
         Tool clip corresponding to custom-made 3-jaw chuck key
         """
-        size = 30
-        height = 35
-        hook_base = self.hook(width=size)
+        return self.rectangular_opening_2piece(
+            opening_width=21,
+            opening_depth=21,
+            side_wall=2.5,
+            depth_wall=2.5,
+            height=100,
+        )
 
-        chuck_surround = (
+    def circular_opening(self, opening_radius, side_wall, height):
+        """
+        Single-piece clip with cylindrical opening
+        """
+        overall_width = opening_radius * 2 + side_wall * 2
+        hook_main = self.hook(width=overall_width)
+
+        body = (
             cq.Workplane("XY")
-            .line(size, 0)
-            .line(0, -size)
-            .line(-size, 0)
+            .line(overall_width, 0)
+            .line(0, -overall_width)
+            .line(-overall_width, 0)
             .close()
             .extrude(-height)
             .edges("|Y")
             .fillet(self.hook_thickness / 2)
         )
 
-        chuck_clearance = (
+        opening = (
             cq.Workplane("XY")
-            .transformed(offset=(size / 2, -size / 2))
-            .rect(21, 21)
+            .transformed(
+                offset=cq.Vector(
+                    side_wall + opening_radius, -side_wall - opening_radius, 0
+                )
+            )
+            .circle(opening_radius)
             .extrude(-height)
         )
 
-        return hook_base + chuck_surround - chuck_clearance
+        return hook_main + body - opening
+
+    def rectangular_opening_2piece(
+        self, opening_width, opening_depth, side_wall, depth_wall, height
+    ):
+        """
+        Two-piece clip with rectangular opening
+        """
+        main_width = opening_width + side_wall
+        overall_width = opening_width + side_wall * 2
+        overall_depth = opening_depth + depth_wall * 2
+
+        hook_main = self.hook(width=main_width)
+
+        hook_main_body = (
+            cq.Workplane("XY")
+            .line(overall_depth, 0)
+            .line(0, -main_width)
+            .line(-overall_depth, 0)
+            .close()
+            .extrude(-height)
+            .edges("|Y")
+            .fillet(self.hook_thickness / 2)
+        )
+
+        opening_clearance = (
+            cq.Workplane("XY")
+            .transformed(offset=(overall_width / 2, -overall_depth / 2))
+            .rect(opening_width, opening_depth)
+            .extrude(-height)
+        )
+
+        main = hook_main + hook_main_body - opening_clearance
+
+        hook_side = self.hook(width=side_wall)
+        hook_side_body = (
+            cq.Workplane("XY")
+            .line(overall_depth, 0)
+            .line(0, -side_wall)
+            .line(-overall_depth, 0)
+            .close()
+            .extrude(-height)
+            .edges("|Y")
+            .fillet(self.hook_thickness / 2)
+        )
+
+        side = hook_side + hook_side_body
+
+        return (main, main_width, side)
 
     def rotate_for_print(self, body):
         return body.rotate((0, 0, 0), (1, 0, 0), -90)
 
 
 th = tool_hook()
-show_object(th.chuck_key_3jaw(), options={"color": "white", "alpha": 0.5})
+show_object(
+    th.plate_right(depth=26).translate((0, th.channel_size * 2, 0)),
+    options={"color": "red", "alpha": 0.5},
+)
+
+y_offset = 0
 
 show_object(
-    th.plate_left(depth=30).translate((0, -30, 0)),
-    options={"color": "green", "alpha": 0.5},
+    th.circular_opening(6, 2.4, 40).translate((0, y_offset, 0)),
+    options={"color": "orange", "alpha": 0.5},
+)
+y_offset = y_offset - 16.8
+
+duo = th.chuck_key_3jaw_2piece()
+show_object(
+    duo[0].translate((0, y_offset, 0)), options={"color": "white", "alpha": 0.5}
 )
 show_object(
-    th.plate_right(depth=30).translate((0, th.channel_size * 2, 0)),
-    options={"color": "red", "alpha": 0.5},
+    duo[2].translate((0, y_offset - duo[1], 0)),
+    options={"color": "white", "alpha": 0.5},
+)
+
+y_offset = y_offset - 26
+
+show_object(
+    th.plate_left(depth=26).translate((0, y_offset, 0)),
+    options={"color": "green", "alpha": 0.5},
 )
