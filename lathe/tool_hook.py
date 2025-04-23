@@ -106,7 +106,7 @@ class tool_hook:
                 self.tray_lip_radius_inner,
             )
             .close()
-            .extrude(width)
+            .extrude(-width)
         )
 
         hook_inner = (
@@ -117,7 +117,7 @@ class tool_hook:
             .tangentArcPoint((-self.hook_thickness, 0))
             .line(0, inside_leg)
             .close()
-            .extrude(width)
+            .extrude(-width)
         )
 
         hook_outer = (
@@ -127,7 +127,7 @@ class tool_hook:
             .tangentArcPoint((self.hook_thickness, 0))
             .line(0, outside_leg)
             .close()
-            .extrude(width)
+            .extrude(-width)
         )
 
         rod_center_x = self.tray_lip_radius_inner - self.threaded_rod_diameter_clear / 2
@@ -142,7 +142,7 @@ class tool_hook:
                 )
             )
             .circle(self.threaded_rod_diameter_clear / 2)
-            .extrude(width)
+            .extrude(-width)
         )
 
         # Assemble hook body from components
@@ -167,7 +167,7 @@ class tool_hook:
         hook = self.hook(
             width=width,
             inside_leg=height,
-            outside_leg=height,
+            outside_leg=1,
         )
 
         if depth > self.hook_thickness:
@@ -177,13 +177,17 @@ class tool_hook:
                 .line(0, -height - self.hook_top - self.hook_thickness / 2)
                 .line(-depth, 0)
                 .close()
-                .extrude(width)
+                .extrude(-width)
+                .faces("<Z")
                 .edges("|Y")
-                .fillet(self.hook_thickness / 2)
+                .fillet(depth / 2.1)
+                .faces(">Z")
+                .edges(">X")
+                .fillet(depth / 2.1)
             )
             hook = hook + reinforcement_leg
 
-        return hook
+        return (hook, width)
 
     def chuck_key_3jaw_2piece(self):
         """
@@ -276,36 +280,39 @@ class tool_hook:
 
         return (main, main_width, side)
 
-    def rotate_for_print(self, body):
-        return body.rotate((0, 0, 0), (1, 0, 0), -90)
+
+def rotate_for_print(body):
+    return body.rotate((0, 0, 0), (1, 0, 0), -90)
 
 
 th = tool_hook(hook_thickness=10)
+y_offset = 0
+
+end_plate, end_plate_width = th.end_plate(depth=26)
+y_offset -= end_plate_width
 show_object(
-    th.end_plate(depth=26).translate((0, 4, 0)),
+    end_plate.translate((0, y_offset, 0)),
     options={"color": "red", "alpha": 0.5},
 )
 
-y_offset = 0
+# show_object(
+#     th.circular_opening(6, 2.4, 40).translate((0, y_offset, 0)),
+#     options={"color": "orange", "alpha": 0.5},
+# )
+# y_offset = y_offset - 16.8
 
-show_object(
-    th.circular_opening(6, 2.4, 40).translate((0, y_offset, 0)),
-    options={"color": "orange", "alpha": 0.5},
-)
-y_offset = y_offset - 16.8
+# duo = th.chuck_key_3jaw_2piece()
+# show_object(
+#     duo[0].translate((0, y_offset, 0)), options={"color": "white", "alpha": 0.5}
+# )
+# show_object(
+#     duo[2].translate((0, y_offset - duo[1], 0)),
+#     options={"color": "white", "alpha": 0.5},
+# )
 
-duo = th.chuck_key_3jaw_2piece()
-show_object(
-    duo[0].translate((0, y_offset, 0)), options={"color": "white", "alpha": 0.5}
-)
-show_object(
-    duo[2].translate((0, y_offset - duo[1], 0)),
-    options={"color": "white", "alpha": 0.5},
-)
+# y_offset = y_offset - 26
 
-y_offset = y_offset - 26
-
-show_object(
-    th.end_plate(depth=26).translate((0, y_offset, 0)),
-    options={"color": "green", "alpha": 0.5},
-)
+# show_object(
+#     th.end_plate(depth=26).translate((0, y_offset, 0)),
+#     options={"color": "green", "alpha": 0.5},
+# )
