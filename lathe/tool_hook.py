@@ -47,7 +47,7 @@ class tool_hook:
     Logan 555 lathe
     """
 
-    def __init__(self, hook_thickness=6):
+    def __init__(self, hook_thickness=6, inside_leg_length=30):
         self.inside_slope_degrees = 23
         self.inside_slope_radians = math.radians(self.inside_slope_degrees)
         self.hook_thickness = hook_thickness
@@ -59,12 +59,16 @@ class tool_hook:
             + self.threaded_rod_diameter_clear
             + self.hook_thickness
         )
+        self.inside_leg_length = inside_leg_length
+        self.hook_inner_x = (
+            self.tray_lip_radius_outer * 2
+            + self.inside_leg_length * math.sin(self.inside_slope_radians)
+        )
         pass
 
     def hook(
         self,
         width=5,
-        inside_leg=30,
         outside_leg=1,
         channel_right=False,
         rib_left=False,
@@ -106,18 +110,18 @@ class tool_hook:
                 self.tray_lip_radius_inner,
             )
             .close()
-            .extrude(-width)
+            .extrude(width / 2, both=True)
         )
 
         hook_inner = (
             cq.Workplane("XZ")
             .transformed(rotate=cq.Vector(0, 0, -self.inside_slope_degrees))
             .line(-self.tray_lip_radius_inner, 0)
-            .line(0, -inside_leg)
+            .line(0, -self.inside_leg_length)
             .tangentArcPoint((-self.hook_thickness, 0))
-            .line(0, inside_leg)
+            .line(0, self.inside_leg_length)
             .close()
-            .extrude(-width)
+            .extrude(width / 2, both=True)
         )
 
         hook_outer = (
@@ -127,7 +131,7 @@ class tool_hook:
             .tangentArcPoint((self.hook_thickness, 0))
             .line(0, outside_leg)
             .close()
-            .extrude(-width)
+            .extrude(width / 2, both=True)
         )
 
         rod_center_x = self.tray_lip_radius_inner - self.threaded_rod_diameter_clear / 2
@@ -142,7 +146,7 @@ class tool_hook:
                 )
             )
             .circle(self.threaded_rod_diameter_clear / 2)
-            .extrude(-width)
+            .extrude(width / 2, both=True)
         )
 
         # Assemble hook body from components
@@ -160,24 +164,21 @@ class tool_hook:
         )
         return hook
 
-    def end_plate(self, width=4, depth=0, height=30):
+    def blank_holder(self, width=4, depth=0, additional_height=30):
         """
-        Blank plate that holds no tool to serve as end plate
+        Returns the blank holder volume that can be used as end plate
+        but more typically a tool-specific cavity will be subtracted.
         """
-        hook = self.hook(
-            width=width,
-            inside_leg=height,
-            outside_leg=1,
-        )
+        hook = self.hook(width=width)
 
         if depth > self.hook_thickness:
             reinforcement_leg = (
                 cq.Workplane("XZ")
                 .line(depth, 0)
-                .line(0, -height - self.hook_top - self.hook_thickness / 2)
+                .line(0, -self.hook_top - additional_height)
                 .line(-depth, 0)
                 .close()
-                .extrude(-width)
+                .extrude(width / 2, both=True)
             )
 
             hook = hook + self.body_corner_roundoff(reinforcement_leg, depth)
@@ -185,6 +186,9 @@ class tool_hook:
         return (hook, width)
 
     def body_corner_roundoff(self, body, depth):
+        """
+        Fillet the outer corners to reduce liklihood of print lifting
+        """
         return (
             body.faces("<Z")
             .edges("|Y")
@@ -217,31 +221,21 @@ class tool_hook:
         overall_width = opening_diameter + side_wall * 2
         overall_depth = opening_diameter + depth_wall * 2
         overall_height = self.hook_top + additional_height
-        hook_main = self.hook(width=overall_width)
 
-        body = (
+        volume, volume_width = self.blank_holder(
+            width=overall_width,
+            depth=overall_depth,
+            additional_height=additional_height,
+        )
+
+        subtract = (
             cq.Workplane("XY")
-            .line(overall_depth, 0)
-            .line(0, overall_width)
-            .line(-overall_depth, 0)
-            .close()
+            .transformed(offset=cq.Vector(opening_radius + depth_wall, 0, 0))
+            .circle(opening_radius)
             .extrude(-overall_height)
         )
 
-        body = self.body_corner_roundoff(body, overall_depth)
-
-        # opening = (
-        #     cq.Workplane("XY")
-        #     .transformed(
-        #         offset=cq.Vector(
-        #             side_wall + opening_radius, -side_wall - opening_radius, 0
-        #         )
-        #     )
-        #     .circle(opening_radius)
-        #     .extrude(-height)
-        # )
-
-        return (hook_main + body, overall_width)
+        return (volume - subtract, overall_width)
 
     def rectangular_opening_2piece(
         self, opening_width, opening_depth, side_wall, depth_wall, height
@@ -292,28 +286,71 @@ class tool_hook:
         return (main, main_width, side)
 
 
-def rotate_for_print(body):
-    return body.rotate((0, 0, 0), (1, 0, 0), -90)
+def transform_for_display(
+    body: cq.Shape, x_offset=0, y_offset=0, sides_on_bed=True, show_object_options=None
+):
+    left_split = body.workplane().split(keepTop=True)
+    right_split = body.workplane().split(keepBottom=True)
+
+    left_display = left_split.translate((0, y_offset, 0))
+    right_display = right_split.translate((0, y_offset, 0))
+
+    if sides_on_bed:
+        left_print = left_split.rotate((0, 0, 0), (1, 0, 0), 90).translate(
+            (-x_offset, 5, 0)
+        )
+        right_print = right_split.rotate((0, 0, 0), (1, 0, 0), -90).translate(
+            (-x_offset, -5, 0)
+        )
+    else:
+        left_print = left_split.rotate((0, 0, 0), (1, 0, 0), -90).translate(
+            (-x_offset, -5, 0)
+        )
+        right_print = right_split.rotate((0, 0, 0), (1, 0, 0), 90).translate(
+            (-x_offset, 5, 0)
+        )
+
+    if show_object_options:
+        show_object(left_display, options=show_object_options)
+        show_object(right_display, options=show_object_options)
+        show_object(left_print, options=show_object_options)
+        show_object(right_print, options=show_object_options)
+
+    return (left_display, right_display, left_print, right_print)
 
 
 th = tool_hook(hook_thickness=10)
 y_offset = 0
+x_offset = 0
 
-end_plate, end_plate_width = th.end_plate(depth=26)
-y_offset -= end_plate_width
-show_object(
-    end_plate.translate((0, y_offset, 0)),
-    options={"color": "red", "alpha": 0.5},
+module_depth = 30
+
+tool_holder, tool_holder_width = th.circular_opening(
+    opening_diameter=12, side_wall=5, depth_wall=5, additional_height=20
 )
 
-chuck_key_4_jaw, chuck_key_4_jaw_width = th.circular_opening(
-    opening_diameter=12, side_wall=2.4, depth_wall=2.4, additional_height=20
+x_offset += th.hook_inner_x
+
+transform_for_display(
+    tool_holder,
+    x_offset=x_offset,
+    y_offset=y_offset,
+    sides_on_bed=True,
+    show_object_options={"color": "green", "alpha": 0.5},
 )
-y_offset -= chuck_key_4_jaw_width
-show_object(
-    chuck_key_4_jaw.translate((0, y_offset, 0)),
-    options={"color": "orange", "alpha": 0.5},
+
+end_plate, end_plate_width = th.blank_holder(
+    width=8, depth=module_depth, additional_height=40
 )
+
+transform_for_display(
+    end_plate,
+    x_offset=x_offset,
+    y_offset=y_offset,
+    show_object_options={"color": "red", "alpha": 0.5},
+    sides_on_bed=True,
+)
+
 
 # duo = th.chuck_key_3jaw_2piece()
 # show_object(
