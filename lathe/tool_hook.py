@@ -358,11 +358,11 @@ def chuck_key_4_jaw(th: tool_hook):
     tool_holder, tool_holder_width = th.circular_opening(
         opening_diameter=20,
         opening_height=1,
-        taper_height=10,
+        taper_height=30,
         shaft_diameter=12,
-        side_wall=5,
-        depth_wall=5,
-        additional_height=20,
+        side_wall=1,
+        depth_wall=1,
+        additional_height=50,
     )
 
     transform_for_display(
@@ -430,4 +430,4 @@ def end_plates(th: tool_hook):
 
 
 th = tool_hook(hook_thickness=10)
-chuck_key_3_jaw(th)
+chuck_key_4_jaw(th)
