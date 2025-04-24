@@ -221,7 +221,7 @@ class tool_hook:
         additional_height,
     ):
         """
-        Single-piece clip with cylindrical opening
+        Tool holder with cylindrical channel
         """
 
         opening_radius = opening_diameter / 2
@@ -253,6 +253,50 @@ class tool_hook:
         )
 
         return (volume - subtract, overall_width)
+
+    def rectangular_opening(
+        self,
+        opening_width,
+        opening_depth,
+        opening_height,
+        taper_height,
+        channel_width,
+        channel_depth,
+        side_wall,
+        depth_wall,
+        additional_height,
+    ):
+        """
+        Tool holder with rectangular channel
+        """
+
+        overall_width = opening_width + side_wall * 2
+        overall_depth = opening_depth + depth_wall * 2
+
+        volume, volume_width = self.blank_holder(
+            width=overall_width,
+            depth=overall_depth,
+            additional_height=additional_height,
+        )
+        subtract = (
+            cq.Workplane("XY")
+            .rect(opening_depth, opening_width)
+            .extrude(-opening_height)
+            .faces("<Z")
+            .workplane()
+            .rect(opening_depth, opening_width)
+            .workplane(offset=taper_height)
+            .rect(channel_depth, channel_width)
+            .loft()
+            .faces("<Z")
+            .workplane()
+            .rect(channel_depth, channel_width)
+            .extrude(additional_height + th.hook_top)
+        )
+
+        subtract = subtract.translate((depth_wall + opening_depth / 2, 0, 0))
+
+        return volume - subtract
 
 
 def transform_for_display(
@@ -288,10 +332,29 @@ def transform_for_display(
     return (left_display, right_display, left_print, right_print)
 
 
-def chuck_key_4_jaw(th: tool_hook):
-    y_offset = 0
-    x_offset = th.hook_inner_x + 20
+def chuck_key_3_jaw(th: tool_hook):
+    tool_holder = th.rectangular_opening(
+        opening_width=27,
+        opening_depth=27,
+        opening_height=1,
+        taper_height=10,
+        channel_width=21,
+        channel_depth=21,
+        side_wall=3,
+        depth_wall=3,
+        additional_height=70,
+    )
 
+    transform_for_display(
+        tool_holder,
+        x_offset=th.hook_inner_x + 20,
+        y_offset=0,
+        sides_on_bed=True,
+        show_object_options={"color": "green", "alpha": 0.5},
+    )
+
+
+def chuck_key_4_jaw(th: tool_hook):
     tool_holder, tool_holder_width = th.circular_opening(
         opening_diameter=20,
         opening_height=1,
@@ -304,17 +367,14 @@ def chuck_key_4_jaw(th: tool_hook):
 
     transform_for_display(
         tool_holder,
-        x_offset=x_offset,
-        y_offset=y_offset,
+        x_offset=th.hook_inner_x + 20,
+        y_offset=0,
         sides_on_bed=True,
         show_object_options={"color": "green", "alpha": 0.5},
     )
 
 
 def hex_key_5_32(th: tool_hook):
-    y_offset = 0
-    x_offset = th.hook_inner_x + 20
-
     tool_holder, tool_holder_width = th.circular_opening(
         opening_diameter=15,
         opening_height=20,
@@ -327,16 +387,14 @@ def hex_key_5_32(th: tool_hook):
 
     transform_for_display(
         tool_holder,
-        x_offset=x_offset,
-        y_offset=y_offset,
+        x_offset=th.hook_inner_x + 20,
+        y_offset=0,
         sides_on_bed=True,
         show_object_options={"color": "green", "alpha": 0.5},
     )
 
 
 def hex_key_3_16(th: tool_hook):
-    y_offset = 0
-    x_offset = th.hook_inner_x + 20
 
     tool_holder, tool_holder_width = th.circular_opening(
         opening_diameter=18,
@@ -350,29 +408,26 @@ def hex_key_3_16(th: tool_hook):
 
     transform_for_display(
         tool_holder,
-        x_offset=x_offset,
-        y_offset=y_offset,
+        x_offset=th.hook_inner_x + 20,
+        y_offset=0,
         sides_on_bed=True,
         show_object_options={"color": "green", "alpha": 0.5},
     )
 
 
 def end_plates(th: tool_hook):
-    y_offset = 0
-    x_offset = th.hook_inner_x + 20
-
     end_plate = th.hook(width=10, outside_leg=50)
 
     end_plate = end_plate.faces(">Z").edges(">X").fillet(th.hook_thickness * 0.9)
 
     transform_for_display(
         end_plate,
-        x_offset=x_offset,
-        y_offset=y_offset,
+        x_offset=th.hook_inner_x + 20,
+        y_offset=0,
         sides_on_bed=True,
         show_object_options={"color": "red", "alpha": 0.5},
     )
 
 
 th = tool_hook(hook_thickness=10)
-end_plates(th)
+chuck_key_3_jaw(th)
