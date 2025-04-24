@@ -252,7 +252,7 @@ class tool_hook:
             .extrude(overall_height)
         )
 
-        return (volume - subtract, overall_width)
+        return volume - subtract
 
     def rectangular_opening(
         self,
@@ -298,6 +298,38 @@ class tool_hook:
 
         return volume - subtract
 
+    def peg(
+        self,
+        peg_end_diameter,
+        peg_length,
+        peg_angle,
+        side_margin,
+    ):
+        overall_width = peg_end_diameter + side_margin * 2
+        peg_overall_length = self.hook_thickness + peg_length + peg_end_diameter / 2
+
+        peg_hook = self.hook(width=overall_width, outside_leg=50)
+
+        peg_hook = peg_hook.faces(">Z").edges(">X").fillet(th.hook_thickness * 0.9)
+
+        peg_end = (
+            cq.Workplane("YZ")
+            .sphere(peg_end_diameter / 2)
+            .translate((peg_overall_length, 0, 0))
+        )
+
+        peg_shaft = (
+            cq.Workplane("YZ").circle(peg_end_diameter / 3).extrude(peg_overall_length)
+        )
+
+        peg = peg_end + peg_shaft
+
+        peg = peg.translate((0, 0, -peg_end_diameter / 3)).rotate(
+            (0, 0, 0), (0, 1, 0), -peg_angle
+        )
+
+        return peg_hook + peg
+
 
 def transform_for_display(
     body: cq.Shape, x_offset=0, y_offset=0, sides_on_bed=True, show_object_options=None
@@ -310,17 +342,17 @@ def transform_for_display(
 
     if sides_on_bed:
         left_print = left_split.rotate((0, 0, 0), (1, 0, 0), 90).translate(
-            (-x_offset, 5, 0)
+            (-x_offset, 15, 0)
         )
         right_print = right_split.rotate((0, 0, 0), (1, 0, 0), -90).translate(
-            (-x_offset, -5, 0)
+            (-x_offset, -15, 0)
         )
     else:
         left_print = left_split.rotate((0, 0, 0), (1, 0, 0), -90).translate(
-            (-x_offset, -5, 0)
+            (-x_offset, -15, 0)
         )
         right_print = right_split.rotate((0, 0, 0), (1, 0, 0), 90).translate(
-            (-x_offset, 5, 0)
+            (-x_offset, 15, 0)
         )
 
     if show_object_options:
@@ -355,7 +387,7 @@ def chuck_key_3_jaw(th: tool_hook):
 
 
 def chuck_key_4_jaw(th: tool_hook):
-    tool_holder, tool_holder_width = th.circular_opening(
+    tool_holder = th.circular_opening(
         opening_diameter=20,
         opening_height=1,
         taper_height=30,
@@ -375,7 +407,7 @@ def chuck_key_4_jaw(th: tool_hook):
 
 
 def hex_key_5_32(th: tool_hook):
-    tool_holder, tool_holder_width = th.circular_opening(
+    tool_holder = th.circular_opening(
         opening_diameter=15,
         opening_height=20,
         taper_height=30,
@@ -396,7 +428,7 @@ def hex_key_5_32(th: tool_hook):
 
 def hex_key_3_16(th: tool_hook):
 
-    tool_holder, tool_holder_width = th.circular_opening(
+    tool_holder = th.circular_opening(
         opening_diameter=18,
         opening_height=25,
         taper_height=30,
@@ -429,5 +461,17 @@ def end_plates(th: tool_hook):
     )
 
 
+def peg_11_16(th: tool_hook):
+    peg_hook = th.peg(peg_end_diameter=17, peg_length=15, peg_angle=15, side_margin=7)
+
+    transform_for_display(
+        peg_hook,
+        x_offset=th.hook_inner_x + 20,
+        y_offset=0,
+        sides_on_bed=False,
+        show_object_options={"color": "blue", "alpha": 0.5},
+    )
+
+
 th = tool_hook(hook_thickness=10)
-hex_key_3_16(th)
+peg_11_16(th)
