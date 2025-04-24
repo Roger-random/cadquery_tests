@@ -328,7 +328,15 @@ class tool_hook:
             (0, 0, 0), (0, 1, 0), -peg_angle
         )
 
-        return peg_hook + peg
+        assembly = peg_hook + peg
+
+        assembly = assembly.edges(
+            sel.NearestToPointSelector(
+                (self.hook_thickness, 0, -peg_end_diameter * 0.6)
+            )
+        ).fillet((overall_width - peg_end_diameter * 0.8) / 2)
+
+        return assembly
 
 
 def transform_for_display(
@@ -473,5 +481,17 @@ def peg_11_16(th: tool_hook):
     )
 
 
+def peg_7_8(th: tool_hook):
+    peg_hook = th.peg(peg_end_diameter=22, peg_length=15, peg_angle=15, side_margin=5)
+
+    transform_for_display(
+        peg_hook,
+        x_offset=th.hook_inner_x + 20,
+        y_offset=0,
+        sides_on_bed=False,
+        show_object_options={"color": "blue", "alpha": 0.5},
+    )
+
+
 th = tool_hook(hook_thickness=10)
-peg_11_16(th)
+peg_7_8(th)
