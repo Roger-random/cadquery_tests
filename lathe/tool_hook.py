@@ -211,7 +211,14 @@ class tool_hook:
         )
 
     def circular_opening(
-        self, opening_diameter, side_wall, depth_wall, additional_height
+        self,
+        opening_diameter,
+        opening_height,
+        taper_height,
+        shaft_diameter,
+        side_wall,
+        depth_wall,
+        additional_height,
     ):
         """
         Single-piece clip with cylindrical opening
@@ -232,58 +239,20 @@ class tool_hook:
             cq.Workplane("XY")
             .transformed(offset=cq.Vector(opening_radius + depth_wall, 0, 0))
             .circle(opening_radius)
-            .extrude(-overall_height)
+            .extrude(-opening_height)
+            .faces("<Z")
+            .workplane()
+            .circle(opening_radius)
+            .workplane(offset=taper_height)
+            .circle(shaft_diameter / 2)
+            .loft()
+            .faces("<Z")
+            .workplane()
+            .circle(shaft_diameter / 2)
+            .extrude(overall_height)
         )
 
         return (volume - subtract, overall_width)
-
-    def rectangular_opening_2piece(
-        self, opening_width, opening_depth, side_wall, depth_wall, height
-    ):
-        """
-        Two-piece clip with rectangular opening
-        """
-        main_width = opening_width + side_wall
-        overall_width = opening_width + side_wall * 2
-        overall_depth = opening_depth + depth_wall * 2
-
-        hook_main = self.hook(width=main_width)
-
-        hook_main_body = (
-            cq.Workplane("XY")
-            .line(overall_depth, 0)
-            .line(0, -main_width)
-            .line(-overall_depth, 0)
-            .close()
-            .extrude(-height)
-            .edges("|Y")
-            .fillet(self.hook_thickness / 2)
-        )
-
-        opening_clearance = (
-            cq.Workplane("XY")
-            .transformed(offset=(overall_width / 2, -overall_depth / 2))
-            .rect(opening_width, opening_depth)
-            .extrude(-height)
-        )
-
-        main = hook_main + hook_main_body - opening_clearance
-
-        hook_side = self.hook(width=side_wall)
-        hook_side_body = (
-            cq.Workplane("XY")
-            .line(overall_depth, 0)
-            .line(0, -side_wall)
-            .line(-overall_depth, 0)
-            .close()
-            .extrude(-height)
-            .edges("|Y")
-            .fillet(self.hook_thickness / 2)
-        )
-
-        side = hook_side + hook_side_body
-
-        return (main, main_width, side)
 
 
 def transform_for_display(
@@ -321,15 +290,19 @@ def transform_for_display(
 
 th = tool_hook(hook_thickness=10)
 y_offset = 0
-x_offset = 0
+x_offset = th.hook_inner_x
 
 module_depth = 30
 
 tool_holder, tool_holder_width = th.circular_opening(
-    opening_diameter=12, side_wall=5, depth_wall=5, additional_height=20
+    opening_diameter=20,
+    opening_height=1,
+    taper_height=10,
+    shaft_diameter=12,
+    side_wall=5,
+    depth_wall=5,
+    additional_height=20,
 )
-
-x_offset += th.hook_inner_x
 
 transform_for_display(
     tool_holder,
@@ -338,32 +311,3 @@ transform_for_display(
     sides_on_bed=True,
     show_object_options={"color": "green", "alpha": 0.5},
 )
-
-end_plate, end_plate_width = th.blank_holder(
-    width=8, depth=module_depth, additional_height=40
-)
-
-transform_for_display(
-    end_plate,
-    x_offset=x_offset,
-    y_offset=y_offset,
-    show_object_options={"color": "red", "alpha": 0.5},
-    sides_on_bed=True,
-)
-
-
-# duo = th.chuck_key_3jaw_2piece()
-# show_object(
-#     duo[0].translate((0, y_offset, 0)), options={"color": "white", "alpha": 0.5}
-# )
-# show_object(
-#     duo[2].translate((0, y_offset - duo[1], 0)),
-#     options={"color": "white", "alpha": 0.5},
-# )
-
-# y_offset = y_offset - 26
-
-# show_object(
-#     th.end_plate(depth=26).translate((0, y_offset, 0)),
-#     options={"color": "green", "alpha": 0.5},
-# )
