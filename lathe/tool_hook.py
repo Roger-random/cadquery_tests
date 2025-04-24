@@ -357,5 +357,22 @@ def hex_key_3_16(th: tool_hook):
     )
 
 
+def end_plates(th: tool_hook):
+    y_offset = 0
+    x_offset = th.hook_inner_x + 20
+
+    end_plate = th.hook(width=10, outside_leg=50)
+
+    end_plate = end_plate.faces(">Z").edges(">X").fillet(th.hook_thickness * 0.9)
+
+    transform_for_display(
+        end_plate,
+        x_offset=x_offset,
+        y_offset=y_offset,
+        sides_on_bed=True,
+        show_object_options={"color": "red", "alpha": 0.5},
+    )
+
+
 th = tool_hook(hook_thickness=10)
-hex_key_3_16(th)
+end_plates(th)
