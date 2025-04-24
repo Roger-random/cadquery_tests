@@ -378,11 +378,11 @@ def hex_key_5_32(th: tool_hook):
     tool_holder, tool_holder_width = th.circular_opening(
         opening_diameter=15,
         opening_height=20,
-        taper_height=10,
+        taper_height=30,
         shaft_diameter=5,
-        side_wall=5,
-        depth_wall=5,
-        additional_height=20,
+        side_wall=3,
+        depth_wall=3,
+        additional_height=50,
     )
 
     transform_for_display(
@@ -399,11 +399,11 @@ def hex_key_3_16(th: tool_hook):
     tool_holder, tool_holder_width = th.circular_opening(
         opening_diameter=18,
         opening_height=25,
-        taper_height=10,
+        taper_height=30,
         shaft_diameter=6.5,
-        side_wall=5,
-        depth_wall=5,
-        additional_height=20,
+        side_wall=3,
+        depth_wall=3,
+        additional_height=50,
     )
 
     transform_for_display(
@@ -430,4 +430,4 @@ def end_plates(th: tool_hook):
 
 
 th = tool_hook(hook_thickness=10)
-chuck_key_4_jaw(th)
+hex_key_3_16(th)
