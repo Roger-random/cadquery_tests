@@ -288,26 +288,74 @@ def transform_for_display(
     return (left_display, right_display, left_print, right_print)
 
 
+def chuck_key_4_jaw(th: tool_hook):
+    y_offset = 0
+    x_offset = th.hook_inner_x + 20
+
+    tool_holder, tool_holder_width = th.circular_opening(
+        opening_diameter=20,
+        opening_height=1,
+        taper_height=10,
+        shaft_diameter=12,
+        side_wall=5,
+        depth_wall=5,
+        additional_height=20,
+    )
+
+    transform_for_display(
+        tool_holder,
+        x_offset=x_offset,
+        y_offset=y_offset,
+        sides_on_bed=True,
+        show_object_options={"color": "green", "alpha": 0.5},
+    )
+
+
+def hex_key_5_32(th: tool_hook):
+    y_offset = 0
+    x_offset = th.hook_inner_x + 20
+
+    tool_holder, tool_holder_width = th.circular_opening(
+        opening_diameter=15,
+        opening_height=20,
+        taper_height=10,
+        shaft_diameter=5,
+        side_wall=5,
+        depth_wall=5,
+        additional_height=20,
+    )
+
+    transform_for_display(
+        tool_holder,
+        x_offset=x_offset,
+        y_offset=y_offset,
+        sides_on_bed=True,
+        show_object_options={"color": "green", "alpha": 0.5},
+    )
+
+
+def hex_key_3_16(th: tool_hook):
+    y_offset = 0
+    x_offset = th.hook_inner_x + 20
+
+    tool_holder, tool_holder_width = th.circular_opening(
+        opening_diameter=18,
+        opening_height=25,
+        taper_height=10,
+        shaft_diameter=6.5,
+        side_wall=5,
+        depth_wall=5,
+        additional_height=20,
+    )
+
+    transform_for_display(
+        tool_holder,
+        x_offset=x_offset,
+        y_offset=y_offset,
+        sides_on_bed=True,
+        show_object_options={"color": "green", "alpha": 0.5},
+    )
+
+
 th = tool_hook(hook_thickness=10)
-y_offset = 0
-x_offset = th.hook_inner_x
-
-module_depth = 30
-
-tool_holder, tool_holder_width = th.circular_opening(
-    opening_diameter=20,
-    opening_height=1,
-    taper_height=10,
-    shaft_diameter=12,
-    side_wall=5,
-    depth_wall=5,
-    additional_height=20,
-)
-
-transform_for_display(
-    tool_holder,
-    x_offset=x_offset,
-    y_offset=y_offset,
-    sides_on_bed=True,
-    show_object_options={"color": "green", "alpha": 0.5},
-)
+hex_key_3_16(th)
