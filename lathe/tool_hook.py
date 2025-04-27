@@ -493,5 +493,45 @@ def peg_7_8(th: tool_hook):
     )
 
 
+def mt2_chuck(th: tool_hook):
+    tool_holder = th.circular_opening(
+        opening_diameter=20,
+        opening_height=1,
+        taper_height=70,
+        shaft_diameter=16,
+        side_wall=18,
+        depth_wall=3,
+        additional_height=50,
+    )
+
+    transform_for_display(
+        tool_holder,
+        x_offset=th.hook_inner_x + 20,
+        y_offset=0,
+        sides_on_bed=True,
+        show_object_options={"color": "green", "alpha": 0.5},
+    )
+
+
+def jacobs_chuck_key(th: tool_hook):
+    tool_holder = th.circular_opening(
+        opening_diameter=15.5,
+        opening_height=1,
+        taper_height=30,
+        shaft_diameter=8.5,
+        side_wall=4,
+        depth_wall=3,
+        additional_height=40,
+    )
+
+    transform_for_display(
+        tool_holder,
+        x_offset=th.hook_inner_x + 20,
+        y_offset=0,
+        sides_on_bed=True,
+        show_object_options={"color": "green", "alpha": 0.5},
+    )
+
+
 th = tool_hook(hook_thickness=10)
-peg_7_8(th)
+jacobs_chuck_key(th)
