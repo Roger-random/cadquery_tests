@@ -74,59 +74,95 @@ class endmill_storage_grid:
             x=cell_size, y=cell_size, z=self.tray_height
         )
 
-    def cylinderical(self, tool_diameter, tool_length):
-        """
-        Generate a tray sufficient to accommodate a cylindrical tool of the
-        given diameter. Depth of cylindrical cavity is the given tool length
-        minus the exposed length as specified in constructor.
-        """
-        grid_units = math.ceil(
+    def cylinders(self, diameters, lengths):
+        assert len(diameters) == len(lengths)
+
+        grid_units_y = math.ceil(
             (
-                tool_diameter
+                max(diameters)
                 + self.cavity_clearance * 2
                 + self.generator.dovetail_protrusion * 2
             )
             / self.cell_size
         )
 
-        volume = self.generator.label_tray(grid_units, grid_units, wall_thickness=0)
-
-        radius = tool_diameter / 2
-        cavity_depth = tool_length - self.exposed_height
-
-        subtract = (
-            cq.Workplane("XY")
-            .circle(radius + self.funnel_lip)
-            .workplane(offset=-self.funnel_depth)
-            .circle(radius + self.cavity_clearance)
-            .loft()
-            .faces("<Z")
-            .workplane()
-            .circle(radius + self.cavity_clearance)
-            .extrude(cavity_depth - self.funnel_depth)
-            .translate(
-                (
-                    grid_units * self.cell_size / 2,
-                    grid_units * self.cell_size / 2,
-                    self.tray_height,
-                )
+        grid_units_x = math.ceil(
+            (
+                sum(diameters)
+                + self.cavity_clearance * (len(diameters) + 1)
+                + self.generator.dovetail_protrusion * 2
+                + self.funnel_lip * 2
             )
+            / self.cell_size
+        )
+        spacing_x = ((grid_units_x * self.cell_size) - sum(diameters)) / (
+            len(diameters) + 1
         )
 
-        return volume - subtract
+        translate_x = spacing_x
 
-    def chamfer_endmill_120deg_7_16(self):
-        """
-        7/16" diameter shank 2-flute endmill with 120 degree tip
-        """
-        return self.cylinderical(25.4 * (7 / 16), 53)
+        volume = self.generator.label_tray(grid_units_x, grid_units_y, wall_thickness=0)
 
-    def endmill_4_flute_1_2(self):
+        for i in range(len(diameters)):
+            radius = diameters[i] / 2
+            cavity_depth = lengths[i] - self.exposed_height
+
+            subtract = (
+                cq.Workplane("XY")
+                .circle(radius + self.funnel_lip)
+                .workplane(offset=-self.funnel_depth)
+                .circle(radius + self.cavity_clearance)
+                .loft()
+                .faces("<Z")
+                .workplane()
+                .circle(radius + self.cavity_clearance)
+                .extrude(cavity_depth - self.funnel_depth)
+                .translate(
+                    (
+                        translate_x + radius,
+                        grid_units_y * self.cell_size / 2,
+                        self.tray_height,
+                    )
+                )
+            )
+
+            volume = volume - subtract
+
+            translate_x += diameters[i] + spacing_x
+
+        return volume
+
+    def chamfer_endmills(self):
         """
-        1/2" diameter 4-flute endmill bought from Chuck's shop clearance
+        Two chamfer endmills from Chuck's shop clearance. Both 7/16 diameter
+        shank but with different lengths. (And different cutting angles, but
+        that doesn't matter here.)
         """
-        return self.cylinderical(25.4 * 0.5, 83.3)
+        inch_7_16 = 25.4 * (7 / 16)
+        return self.cylinders(diameters=(inch_7_16, inch_7_16), lengths=(63.5, 53))
+
+    def corner_rounding_endmills(self):
+        """
+        Two corner rounding endmills from Chuck's shop clearance. Challenge
+        the generator with two different diameters and lengths! (And different
+        fillet radii but again that doesn't matter here.)
+        """
+        return self.cylinders(diameters=(15.9, 11.2), lengths=(76, 64))
+
+    def dovetail_endmills(self):
+        """
+        Two identical dovetail cutting endmills from Chuck's shop clearance.
+        """
+        return self.cylinders(diameters=(19, 19), lengths=(54, 54))
+
+    def standard_and_roughing_1_2(self):
+        """
+        Two 1/2" diameter 4-flute endmills bought from Chuck's shop clearance
+        The shorter one is a roughing endmill and I hope it doesn't matter here.
+        """
+        inch_1_2 = 25.4 * (1 / 2)
+        return self.cylinders(diameters=(inch_1_2, inch_1_2), lengths=(67, 83))
 
 
 esg = endmill_storage_grid()
-show_object(esg.chamfer_endmill_120deg_7_16())
+show_object(esg.standard_and_roughing_1_2())
