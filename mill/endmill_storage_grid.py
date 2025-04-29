@@ -163,6 +163,16 @@ class endmill_storage_grid:
         inch_1_2 = 25.4 * (1 / 2)
         return self.cylinders(diameters=(inch_1_2, inch_1_2), lengths=(67, 83))
 
+    def long_endmills(self):
+        """
+        Longest of the bunch, 4" or nearly so.
+        """
+        inch_3_4 = 25.4 * (3 / 4)
+        return self.cylinders(
+            diameters=(15.9, inch_3_4, inch_3_4),
+            lengths=(97, 92, 99),
+        )
+
 
 esg = endmill_storage_grid()
-show_object(esg.standard_and_roughing_1_2())
+show_object(esg.long_endmills())
