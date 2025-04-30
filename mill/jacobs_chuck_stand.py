@@ -94,12 +94,22 @@ class arbor_morse_taper_placeholder:
             .loft()
         )
 
+        # Don't need to emulate Jacobs taper yet, so a placeholder cylinder
+        # should suffice. Using tang length as something in the neighborhood
+        # and would be a function of arbor size.
+        shaft_volume = (
+            shaft_volume.faces("<Z")
+            .workplane()
+            .circle(bottom_radius)
+            .extrude(self.tang_length)
+        )
+
         tang_revolve_subtract = (
             cq.Workplane("XZ")
             .lineTo(
                 self.tang_width / 2, -(self.tang_width / 2) * math.sin(math.radians(8))
             )
-            .lineTo(self.tang_width / 2, -self.tang_length)
+            .lineTo(self.tang_width / 2, -self.tang_length * 0.5)
             .line(self.basic_diameter, 0)
             .line(0, self.tang_length * 2)
             .lineTo(0, self.tang_length * 2)
@@ -134,6 +144,19 @@ class arbor_morse_taper_placeholder:
         )
 
         return shaft
+
+    def test_box(self, padding_size):
+        size = self.radius_at_z(0) + padding_size
+        box_half = (
+            cq.Workplane("XY")
+            .lineTo(size, 0)
+            .lineTo(size, size)
+            .lineTo(0, size)
+            .close()
+            .extrude(self.length_overall + padding_size)
+        )
+
+        return box_half + box_half.mirror("YZ")
 
     @staticmethod
     def preset_2mt():
@@ -176,6 +199,12 @@ class jacobs_chuck_stand:
         pass
 
 
-arbor_2mt = arbor_morse_taper_placeholder.preset_2mt()
+arbor = arbor_morse_taper_placeholder.preset_2mt()
 
-show_object(arbor_2mt.with_tang(), options={"color": "green", "alpha": 0.5})
+placeholder = arbor.with_tang()
+
+show_object(placeholder, options={"color": "green", "alpha": 0.5})
+
+test_box = arbor.test_box(padding_size=5).edges("|Z").fillet(2.5) - placeholder
+
+show_object(test_box)
