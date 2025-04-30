@@ -254,7 +254,7 @@ class jacobs_chuck_placeholder:
             sleeve_diameter_front_wide=47.5,
             sleeve_diameter_front_narrow=47.3,
             sleeve_diameter_front_taper_height=6.1,
-            sleeve_length=43,
+            sleeve_length=40.5,
             body_nose_diameter=36.31,
             body_nose_diameter_narrow=28.3,
             body_nose_diameter_taper_height=6.8,
@@ -277,6 +277,7 @@ class jacobs_chuck_placeholder:
             .extrude(
                 self.back_to_sleeve_height
                 + self.sleeve_length
+                - self.back_taper_height
                 - self.sleeve_diameter_front_taper_height
                 - self.sleeve_diameter_gear_taper_height
             )
@@ -377,7 +378,7 @@ test_box = (
         chuck.sleeve_diameter_center + 10,
         chuck.body_closed_length + arbor.length_overall + 10,
     )
-    .extrude(1)
+    .extrude(2)
     .edges("|Y")
     .fillet(20)
 )
