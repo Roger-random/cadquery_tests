@@ -94,14 +94,16 @@ class arbor_morse_taper_placeholder:
             .loft()
         )
 
-        # Don't need to emulate Jacobs taper yet, so a placeholder cylinder
-        # should suffice. Using tang length as something in the neighborhood
-        # and would be a function of arbor size.
+        # Don't need to emulate Jacobs taper yet, so a placeholder taper
+        # continuation should suffice. Using tang length as something in the
+        # neighborhood and would be a function of arbor size.
         shaft_volume = (
             shaft_volume.faces("<Z")
             .workplane()
             .circle(bottom_radius)
-            .extrude(self.tang_length)
+            .workplane(offset=self.tang_length)
+            .circle(self.radius_at_z(-self.tang_length))
+            .loft()
         )
 
         tang_revolve_subtract = (
@@ -109,7 +111,7 @@ class arbor_morse_taper_placeholder:
             .lineTo(
                 self.tang_width / 2, -(self.tang_width / 2) * math.sin(math.radians(8))
             )
-            .lineTo(self.tang_width / 2, -self.tang_length * 0.5)
+            .lineTo(self.tang_width / 2, -self.tang_length)
             .line(self.basic_diameter, 0)
             .line(0, self.tang_length * 2)
             .lineTo(0, self.tang_length * 2)
@@ -185,8 +187,164 @@ class jacobs_chuck_placeholder:
     Part nomenclature from http://www.jacobschuck.com/tech-support/
     """
 
-    def __init__(self):
-        pass
+    def __init__(
+        self,
+        back_diameter_narrow,
+        back_diameter_wide,
+        back_taper_height,
+        back_to_sleeve_height,
+        sleeve_diameter_back_narrow,
+        sleeve_diameter_back_wide,
+        sleeve_diameter_back_taper_height,
+        sleeve_diameter_center,
+        sleeve_diameter_center_height,
+        sleeve_diameter_front_wide,
+        sleeve_diameter_front_narrow,
+        sleeve_diameter_front_taper_height,
+        sleeve_length,
+        body_nose_diameter,
+        body_nose_diameter_narrow,
+        body_nose_diameter_taper_height,
+        body_open_length,
+        body_closed_length,
+        jaws_diameter_wide,
+        jaws_diameter_narrow,
+    ):
+        self.back_diameter_narrow = back_diameter_narrow
+        self.back_diameter_wide = back_diameter_wide
+        self.back_taper_height = back_taper_height
+        self.back_to_sleeve_height = back_to_sleeve_height
+        self.sleeve_diameter_back_narrow = sleeve_diameter_back_narrow
+        self.sleeve_diameter_back_wide = sleeve_diameter_back_wide
+        self.sleeve_diameter_back_taper_height = sleeve_diameter_back_taper_height
+        self.sleeve_diameter_center = sleeve_diameter_center
+        self.sleeve_diameter_center_height = sleeve_diameter_center_height
+        self.sleeve_diameter_front_wide = sleeve_diameter_front_wide
+        self.sleeve_diameter_front_narrow = sleeve_diameter_front_narrow
+        self.sleeve_diameter_front_taper_height = sleeve_diameter_front_taper_height
+        self.sleeve_length = sleeve_length
+        self.body_nose_diameter = body_nose_diameter
+        self.body_nose_diameter_narrow = body_nose_diameter_narrow
+        self.body_nose_diameter_taper_height = body_nose_diameter_taper_height
+        self.body_open_length = body_open_length
+        self.body_closed_length = body_closed_length
+        self.jaws_diameter_wide = jaws_diameter_wide
+        self.jaws_diameter_narrow = jaws_diameter_narrow
+
+        self.sleeve_start_height = back_taper_height + back_to_sleeve_height
+        self.sleeve_diameter_gear_taper_height = (
+            sleeve_length
+            - sleeve_diameter_back_taper_height
+            - sleeve_diameter_center_height
+            - sleeve_diameter_front_taper_height
+        )
+
+    @staticmethod
+    def preset_6a():
+        return jacobs_chuck_placeholder(
+            back_diameter_narrow=38.8,
+            back_diameter_wide=42.6,
+            back_taper_height=1.3,
+            back_to_sleeve_height=1,
+            sleeve_diameter_back_narrow=47.4,
+            sleeve_diameter_back_wide=49,
+            sleeve_diameter_back_taper_height=1.2,
+            sleeve_diameter_center=49,
+            sleeve_diameter_center_height=32.6,
+            sleeve_diameter_front_wide=47.5,
+            sleeve_diameter_front_narrow=47.3,
+            sleeve_diameter_front_taper_height=6.1,
+            sleeve_length=43,
+            body_nose_diameter=36.31,
+            body_nose_diameter_narrow=28.3,
+            body_nose_diameter_taper_height=6.8,
+            body_open_length=64.02,
+            body_closed_length=84,
+            jaws_diameter_wide=21,
+            jaws_diameter_narrow=11.6,
+        )
+
+    def body(self):
+        return (
+            cq.Workplane("XY")
+            .circle(self.back_diameter_narrow / 2)
+            .workplane(-self.back_taper_height)
+            .circle(self.back_diameter_wide / 2)
+            .loft()
+            .faces("<Z")
+            .workplane()
+            .circle(self.back_diameter_wide / 2)
+            .extrude(
+                self.back_to_sleeve_height
+                + self.sleeve_length
+                - self.sleeve_diameter_front_taper_height
+                - self.sleeve_diameter_gear_taper_height
+            )
+            .faces("<Z")
+            .workplane()
+            .circle(self.back_diameter_wide / 2)
+            .workplane(
+                offset=self.sleeve_diameter_gear_taper_height
+                + self.sleeve_diameter_front_taper_height
+            )
+            .circle(self.body_nose_diameter / 2)
+            .loft()
+            .faces("<Z")
+            .workplane()
+            .circle(self.body_nose_diameter / 2)
+            .extrude(
+                self.body_open_length
+                - self.body_nose_diameter_taper_height
+                - self.sleeve_length
+                - self.back_to_sleeve_height
+            )
+            .faces("<Z")
+            .workplane()
+            .circle(self.body_nose_diameter / 2)
+            .workplane(offset=self.body_nose_diameter_taper_height)
+            .circle(self.body_nose_diameter_narrow / 2)
+            .loft()
+        )
+
+    def sleeve(self):
+        return (
+            cq.Workplane("XY")
+            .transformed(offset=cq.Vector(0, 0, -self.sleeve_start_height))
+            .circle(self.sleeve_diameter_back_narrow / 2)
+            .workplane(offset=-self.sleeve_diameter_back_taper_height)
+            .circle(self.sleeve_diameter_back_wide / 2)
+            .loft()
+            .faces("<Z")
+            .workplane()
+            .circle(self.sleeve_diameter_center / 2)
+            .extrude(self.sleeve_diameter_center_height)
+            .faces("<Z")
+            .workplane()
+            .circle(self.sleeve_diameter_front_wide / 2)
+            .workplane(offset=self.sleeve_diameter_front_taper_height)
+            .circle(self.sleeve_diameter_front_narrow / 2)
+            .loft()
+            .faces("<Z")
+            .workplane()
+            .circle(self.sleeve_diameter_front_narrow / 2)
+            .workplane(offset=self.sleeve_diameter_gear_taper_height)
+            .circle(self.body_nose_diameter / 2)
+            .loft()
+        )
+
+    def jaws(self):
+        return (
+            cq.Workplane("XY")
+            .transformed(offset=cq.Vector(0, 0, -self.body_open_length))
+            .circle(self.jaws_diameter_wide / 2)
+            .workplane(offset=self.body_open_length - self.body_closed_length)
+            .circle(self.jaws_diameter_narrow / 2)
+            .loft()
+        )
+
+    def placeholder(self):
+
+        return self.body() + self.sleeve() + self.jaws()
 
 
 class jacobs_chuck_stand:
@@ -201,10 +359,27 @@ class jacobs_chuck_stand:
 
 arbor = arbor_morse_taper_placeholder.preset_2mt()
 
-placeholder = arbor.with_tang()
+placeholder = arbor.with_tang().translate((0, 0, 6))
+
+
+# test_box = arbor.test_box(padding_size=5).edges("|Z").fillet(2.5) - placeholder
+# show_object(test_box)
+
+chuck = jacobs_chuck_placeholder.preset_6a()
+
+placeholder += chuck.placeholder()
 
 show_object(placeholder, options={"color": "green", "alpha": 0.5})
 
-test_box = arbor.test_box(padding_size=5).edges("|Z").fillet(2.5) - placeholder
+test_box = (
+    cq.Workplane("XZ")
+    .rect(
+        chuck.sleeve_diameter_center + 10,
+        chuck.body_closed_length + arbor.length_overall + 10,
+    )
+    .extrude(1)
+    .edges("|Y")
+    .fillet(20)
+)
 
-show_object(test_box)
+show_object(test_box - placeholder)
