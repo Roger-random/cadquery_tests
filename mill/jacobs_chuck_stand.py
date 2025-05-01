@@ -317,9 +317,15 @@ class jacobs_chuck_placeholder:
 
         key_hole_subtract = (
             cq.Workplane("XZ")
-            .transformed(offset=cq.Vector(0, -self.key_hole_height, 0))
+            .transformed(
+                offset=cq.Vector(
+                    0,
+                    -self.key_hole_height,
+                    -self.jaws_diameter_wide / 2,
+                )
+            )
             .circle(self.key_hole_diameter / 2)
-            .extrude(self.body_nose_diameter)
+            .extrude(-self.body_nose_diameter)
         )
 
         return (
@@ -376,17 +382,39 @@ class jacobs_chuck_stand:
     pulled from placeholder classes for chuck and arbor.
     """
 
-    def __init__(self):
-        pass
+    def __init__(
+        self,
+        chuck: jacobs_chuck_placeholder,
+        arbor: arbor_morse_taper_placeholder,
+        arbor_offset: float,
+        gap_snug: float = 0.2,
+        gap_loose: float = 0.6,
+    ):
+        self.chuck = chuck
+        self.arbor = arbor
+        self.arbor_offset = arbor_offset
+        self.gap_snug = gap_snug
+        self.gap_loose = gap_loose
+
+    @staticmethod
+    def preset_6a_2mt():
+        """
+        Dimensions corresponding to the chuck being used for Logan 955 lathe
+        """
+        return jacobs_chuck_stand(
+            chuck=jacobs_chuck_placeholder.preset_6a(),
+            arbor=arbor_morse_taper_placeholder.preset_2mt(),
+            arbor_offset=6,
+        )
+
+    def chuck_and_arbor(self) -> cq.Shape:
+        return (
+            self.arbor.with_tang().translate((0, 0, self.arbor_offset))
+            + self.chuck.assembly()
+        )
 
 
-def jacobs_6a_2mt():
-    arbor = arbor_morse_taper_placeholder.preset_2mt().with_tang().translate((0, 0, 6))
-    chuck = jacobs_chuck_placeholder.preset_6a().assembly()
-
-    return arbor + chuck
-
-
-placeholder: cq.Shape = jacobs_6a_2mt()
-
-show_object(placeholder, options={"color": "green", "alpha": 0.5})
+show_object(
+    jacobs_chuck_stand.preset_6a_2mt().chuck_and_arbor(),
+    options={"color": "green", "alpha": 0.5},
+)
