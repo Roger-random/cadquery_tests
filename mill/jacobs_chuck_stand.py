@@ -297,6 +297,33 @@ class jacobs_chuck_placeholder:
             key_hole_center_to_nose=14.7,
         )
 
+    @staticmethod
+    def preset_18n():
+        return jacobs_chuck_placeholder(
+            back_diameter_narrow=42.7,
+            back_diameter_wide=65.99,
+            back_taper_height=6.2,
+            back_to_sleeve_height=7.3,
+            sleeve_diameter_back_narrow=71,
+            sleeve_diameter_back_wide=74,
+            sleeve_diameter_back_taper_height=8,
+            sleeve_diameter_center=72.26,
+            sleeve_diameter_center_height=36.8,
+            sleeve_diameter_front_wide=74,
+            sleeve_diameter_front_narrow=69,
+            sleeve_diameter_front_taper_height=12.5,
+            sleeve_length=59.7,
+            body_nose_diameter=53.05,
+            body_nose_diameter_narrow=35.3,
+            body_nose_diameter_taper_height=11,
+            body_open_length=99.86,
+            body_closed_length=129,
+            jaws_diameter_wide=27.6,
+            jaws_diameter_narrow=12.5,
+            key_hole_diameter=9.5,
+            key_hole_center_to_nose=23,
+        )
+
     def body(self):
         return (
             cq.Workplane("XY")
