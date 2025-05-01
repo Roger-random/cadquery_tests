@@ -209,6 +209,8 @@ class jacobs_chuck_placeholder:
         body_closed_length,
         jaws_diameter_wide,
         jaws_diameter_narrow,
+        key_hole_diameter,
+        key_hole_center_to_nose,
     ):
         self.back_diameter_narrow = back_diameter_narrow
         self.back_diameter_wide = back_diameter_wide
@@ -230,7 +232,10 @@ class jacobs_chuck_placeholder:
         self.body_closed_length = body_closed_length
         self.jaws_diameter_wide = jaws_diameter_wide
         self.jaws_diameter_narrow = jaws_diameter_narrow
+        self.key_hole_diameter = key_hole_diameter
+        self.key_hole_center_to_nose = key_hole_center_to_nose
 
+        # Calculated values
         self.sleeve_start_height = back_taper_height + back_to_sleeve_height
         self.sleeve_diameter_gear_taper_height = (
             sleeve_length
@@ -238,6 +243,7 @@ class jacobs_chuck_placeholder:
             - sleeve_diameter_center_height
             - sleeve_diameter_front_taper_height
         )
+        self.key_hole_height = body_open_length - key_hole_center_to_nose
 
     @staticmethod
     def preset_6a():
@@ -262,10 +268,12 @@ class jacobs_chuck_placeholder:
             body_closed_length=84.5,
             jaws_diameter_wide=21,
             jaws_diameter_narrow=11.6,
+            key_hole_diameter=7.98,
+            key_hole_center_to_nose=14.7,
         )
 
     def body(self):
-        return (
+        body = (
             cq.Workplane("XY")
             .circle(self.back_diameter_narrow / 2)
             .workplane(-self.back_taper_height)
@@ -307,6 +315,20 @@ class jacobs_chuck_placeholder:
             .loft()
         )
 
+        key_hole_subtract = (
+            cq.Workplane("XZ")
+            .transformed(offset=cq.Vector(0, -self.key_hole_height, 0))
+            .circle(self.key_hole_diameter / 2)
+            .extrude(self.body_nose_diameter)
+        )
+
+        return (
+            body
+            - key_hole_subtract
+            - key_hole_subtract.rotate((0, 0, 0), (0, 0, 1), 120)
+            - key_hole_subtract.rotate((0, 0, 0), (0, 0, 1), -120)
+        )
+
     def sleeve(self):
         return (
             cq.Workplane("XY")
@@ -343,7 +365,7 @@ class jacobs_chuck_placeholder:
             .loft()
         )
 
-    def placeholder(self):
+    def assembly(self):
 
         return self.body() + self.sleeve() + self.jaws()
 
@@ -358,29 +380,13 @@ class jacobs_chuck_stand:
         pass
 
 
-arbor = arbor_morse_taper_placeholder.preset_2mt()
+def jacobs_6a_2mt():
+    arbor = arbor_morse_taper_placeholder.preset_2mt().with_tang().translate((0, 0, 6))
+    chuck = jacobs_chuck_placeholder.preset_6a().assembly()
 
-placeholder = arbor.with_tang().translate((0, 0, 6))
+    return arbor + chuck
 
 
-# test_box = arbor.test_box(padding_size=5).edges("|Z").fillet(2.5) - placeholder
-# show_object(test_box)
-
-chuck = jacobs_chuck_placeholder.preset_6a()
-
-placeholder += chuck.placeholder()
+placeholder: cq.Shape = jacobs_6a_2mt()
 
 show_object(placeholder, options={"color": "green", "alpha": 0.5})
-
-test_box = (
-    cq.Workplane("XZ")
-    .rect(
-        chuck.sleeve_diameter_center + 10,
-        chuck.body_closed_length + arbor.length_overall + 10,
-    )
-    .extrude(2)
-    .edges("|Y")
-    .fillet(20)
-)
-
-show_object(test_box - placeholder)
