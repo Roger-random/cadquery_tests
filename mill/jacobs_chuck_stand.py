@@ -437,6 +437,7 @@ class jacobs_chuck_stand:
 
     def keyhole_pin(
         self,
+        gap: float = 0.05,
         pin_end_chamfer=1,
         inner_gap: float = 2,
         exposed_length: float = 15,
@@ -450,7 +451,7 @@ class jacobs_chuck_stand:
                     -self.chuck.jaws_diameter_wide / 2 - inner_gap,
                 )
             )
-            .circle((self.chuck.key_hole_diameter / 2) - self.gap_snug)
+            .circle((self.chuck.key_hole_diameter / 2) - gap / 2)
             .extrude(
                 -(self.chuck.body_nose_diameter / 2)
                 + (self.chuck.jaws_diameter_wide / 2)
@@ -466,21 +467,20 @@ class jacobs_chuck_stand:
     def fit_test(
         self,
         pin: bool = True,
+        pin_gap: float = 0.05,
         width: float = 10.0,
-        additional_thickness: float = 0,
+        additional_thickness: float = 5,
     ):
         sleeve_radius = self.chuck.sleeve_diameter_center / 2
         jaw_radius = self.chuck.jaws_diameter_wide / 2
         thickness_half = (
-            (self.chuck.key_hole_diameter / 2)
-            - self.gap_snug
-            + additional_thickness / 2
-        )
+            self.chuck.key_hole_diameter - pin_gap + additional_thickness
+        ) / 2
         volume = (
             cq.Workplane("YZ")
-            .lineTo(0, sleeve_radius, forConstruction=True)
-            .line(self.gap_loose, 0)
-            .tangentArcPoint((sleeve_radius, -sleeve_radius))
+            .lineTo(0, width, forConstruction=True)
+            .line(self.gap_loose + sleeve_radius - width, 0)
+            .tangentArcPoint((width, -width))
             .line(
                 0,
                 -self.chuck.sleeve_length
@@ -495,17 +495,17 @@ class jacobs_chuck_stand:
                 -self.chuck.sleeve_length - self.chuck.sleeve_start_height,
             )
             .lineTo(sleeve_radius + self.gap_loose + width, 0)
-            .tangentArcPoint((-sleeve_radius - width, sleeve_radius + width))
-            .line(-self.gap_loose, 0)
+            .tangentArcPoint((-width * 2, width * 2))
+            .line(-self.gap_loose - sleeve_radius + width, 0)
             .close()
             .extrude(thickness_half, both=True)
         )
         test_piece = volume - self.arbor_subtract_snug() - self.nose_subtract_snug()
 
         if pin:
-            test_piece += self.keyhole_pin(exposed_length=width)
+            test_piece += self.keyhole_pin(gap=pin_gap, exposed_length=width)
         else:
-            test_piece -= self.keyhole_pin(exposed_length=width * 3)
+            test_piece -= self.keyhole_pin(gap=pin_gap, exposed_length=width * 3)
 
         return test_piece
 
