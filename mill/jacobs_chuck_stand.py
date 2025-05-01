@@ -52,18 +52,16 @@ class arbor_morse_taper_placeholder:
 
     def __init__(
         self,
-        taper,
-        basic_diameter,
-        basic_diameter_z,
-        taper_length,
-        tapered_diameter,
-        length_overall,
-        tang_width,
-        tang_length,
-        tang_thickness,
-        tang_base_radius,
+        basic_diameter,  # D
+        basic_diameter_z,  # a
+        taper_length,  # l5 min
+        tapered_diameter,  # d5 H11
+        length_overall,  # l4 max
+        tang_width,  # d3 max
+        tang_length,  # e max
+        tang_thickness,  # b h13
+        tang_base_radius,  # R max
     ):
-        self.taper = taper
         self.basic_diameter = basic_diameter
         self.basic_diameter_z = basic_diameter_z
         self.taper_length = taper_length
@@ -163,7 +161,6 @@ class arbor_morse_taper_placeholder:
     @staticmethod
     def preset_2mt():
         return arbor_morse_taper_placeholder(
-            taper=0.04995,
             basic_diameter=17.78,
             basic_diameter_z=5,
             taper_length=67,
@@ -173,6 +170,34 @@ class arbor_morse_taper_placeholder:
             tang_length=16,
             tang_thickness=6.3,
             tang_base_radius=6,
+        )
+
+    @staticmethod
+    def preset_3mt():
+        return arbor_morse_taper_placeholder(
+            basic_diameter=23.825,
+            basic_diameter_z=5,
+            taper_length=84,
+            tapered_diameter=20.2,
+            length_overall=99,
+            tang_width=18.5,
+            tang_length=20,
+            tang_thickness=7.9,
+            tang_base_radius=7,
+        )
+
+    @staticmethod
+    def preset_4mt():
+        return arbor_morse_taper_placeholder(
+            basic_diameter=31.267,
+            basic_diameter_z=6.5,
+            taper_length=107,
+            tapered_diameter=26.5,
+            length_overall=124,
+            tang_width=24.5,
+            tang_length=24,
+            tang_thickness=11.9,
+            tang_base_radius=8,
         )
 
 
@@ -510,14 +535,18 @@ class jacobs_chuck_stand:
         return test_piece
 
 
-stand = jacobs_chuck_stand.preset_6a_2mt()
+# stand = jacobs_chuck_stand.preset_6a_2mt()
 
-show_object(
-    stand.chuck_and_arbor(),
-    options={"color": "green", "alpha": 0.5},
-)
+# show_object(
+#     stand.chuck_and_arbor(),
+#     options={"color": "green", "alpha": 0.5},
+# )
 
-show_object(
-    stand.fit_test(),
-    options={"color": "blue", "alpha": 0.5},
-)
+# show_object(
+#     stand.fit_test(),
+#     options={"color": "blue", "alpha": 0.5},
+# )
+
+arbor = arbor_morse_taper_placeholder.preset_4mt()
+
+show_object((arbor.test_box(padding_size=3).edges("|Y").fillet(3) - arbor.with_tang()))
