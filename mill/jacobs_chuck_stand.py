@@ -273,7 +273,7 @@ class jacobs_chuck_placeholder:
         )
 
     def body(self):
-        body = (
+        return (
             cq.Workplane("XY")
             .circle(self.back_diameter_narrow / 2)
             .workplane(-self.back_taper_height)
@@ -315,6 +315,7 @@ class jacobs_chuck_placeholder:
             .loft()
         )
 
+    def keyhole_subtract(self):
         key_hole_subtract = (
             cq.Workplane("XZ")
             .transformed(
@@ -329,10 +330,9 @@ class jacobs_chuck_placeholder:
         )
 
         return (
-            body
-            - key_hole_subtract
-            - key_hole_subtract.rotate((0, 0, 0), (0, 0, 1), 120)
-            - key_hole_subtract.rotate((0, 0, 0), (0, 0, 1), -120)
+            key_hole_subtract
+            + key_hole_subtract.rotate((0, 0, 0), (0, 0, 1), 120)
+            + key_hole_subtract.rotate((0, 0, 0), (0, 0, 1), -120)
         )
 
     def sleeve(self):
@@ -373,7 +373,7 @@ class jacobs_chuck_placeholder:
 
     def assembly(self):
 
-        return self.body() + self.sleeve() + self.jaws()
+        return self.body() + self.sleeve() + self.jaws() - self.keyhole_subtract()
 
 
 class jacobs_chuck_stand:
@@ -388,7 +388,7 @@ class jacobs_chuck_stand:
         arbor: arbor_morse_taper_placeholder,
         arbor_offset: float,
         gap_snug: float = 0.2,
-        gap_loose: float = 0.6,
+        gap_loose: float = 1.0,
     ):
         self.chuck = chuck
         self.arbor = arbor
@@ -413,8 +413,111 @@ class jacobs_chuck_stand:
             + self.chuck.assembly()
         )
 
+    def nose_subtract_snug(self) -> cq.Shape:
+        nose_intersect = (
+            cq.Workplane("XY")
+            .transformed(
+                offset=cq.Vector(
+                    0, 0, -self.chuck.back_to_sleeve_height - self.chuck.sleeve_length
+                )
+            )
+            .circle(self.chuck.sleeve_diameter_center)
+            .extrude(-self.chuck.body_closed_length)
+        )
+        nose = self.chuck.body().intersect(nose_intersect)
+        return nose + nose.shell(self.gap_snug)
+
+    def sleeve_subtract_loose(self) -> cq.Shape:
+        sleeve = self.chuck.sleeve()
+        return sleeve + sleeve.shell(self.gap_loose)
+
+    def arbor_subtract_snug(self) -> cq.Shape:
+        arbor = self.arbor.with_tang().translate((0, 0, self.arbor_offset))
+        return arbor + arbor.shell(self.gap_snug)
+
+    def keyhole_pin(
+        self,
+        pin_end_chamfer=1,
+        inner_gap: float = 2,
+        exposed_length: float = 15,
+    ) -> cq.Shape:
+        cylinder: cq.Shape = (
+            cq.Workplane("XZ")
+            .transformed(
+                offset=cq.Vector(
+                    0,
+                    -self.chuck.key_hole_height,
+                    -self.chuck.jaws_diameter_wide / 2 - inner_gap,
+                )
+            )
+            .circle((self.chuck.key_hole_diameter / 2) - self.gap_snug)
+            .extrude(
+                -(self.chuck.body_nose_diameter / 2)
+                + (self.chuck.jaws_diameter_wide / 2)
+                + inner_gap
+                - exposed_length
+            )
+        )
+
+        pin = cylinder.faces("<Y").chamfer(pin_end_chamfer)
+
+        return pin
+
+    def fit_test(
+        self,
+        pin: bool = True,
+        width: float = 10.0,
+        additional_thickness: float = 0,
+    ):
+        sleeve_radius = self.chuck.sleeve_diameter_center / 2
+        jaw_radius = self.chuck.jaws_diameter_wide / 2
+        thickness_half = (
+            (self.chuck.key_hole_diameter / 2)
+            - self.gap_snug
+            + additional_thickness / 2
+        )
+        volume = (
+            cq.Workplane("YZ")
+            .lineTo(0, sleeve_radius, forConstruction=True)
+            .line(self.gap_loose, 0)
+            .tangentArcPoint((sleeve_radius, -sleeve_radius))
+            .line(
+                0,
+                -self.chuck.sleeve_length
+                - self.chuck.sleeve_start_height
+                - self.gap_loose,
+            )
+            .line(jaw_radius - self.gap_loose - sleeve_radius, 0)
+            .lineTo(jaw_radius, -self.chuck.body_closed_length)
+            .line(width, 0)
+            .lineTo(
+                sleeve_radius + self.gap_loose + width,
+                -self.chuck.sleeve_length - self.chuck.sleeve_start_height,
+            )
+            .lineTo(sleeve_radius + self.gap_loose + width, 0)
+            .tangentArcPoint((-sleeve_radius - width, sleeve_radius + width))
+            .line(-self.gap_loose, 0)
+            .close()
+            .extrude(thickness_half, both=True)
+        )
+        test_piece = volume - self.arbor_subtract_snug() - self.nose_subtract_snug()
+
+        if pin:
+            test_piece += self.keyhole_pin(exposed_length=width)
+        else:
+            test_piece -= self.keyhole_pin(exposed_length=width * 3)
+
+        return test_piece
+
+
+stand = jacobs_chuck_stand.preset_6a_2mt()
 
 show_object(
-    jacobs_chuck_stand.preset_6a_2mt().chuck_and_arbor(),
+    stand.chuck_and_arbor(),
     options={"color": "green", "alpha": 0.5},
+)
+
+show_object(
+    stand.fit_test(),
+    options={"color": "blue", "alpha": 0.5},
 )
