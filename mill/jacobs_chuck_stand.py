@@ -303,11 +303,11 @@ class jacobs_chuck_placeholder:
             back_diameter_narrow=42.7,
             back_diameter_wide=65.99,
             back_taper_height=6.2,
-            back_to_sleeve_height=7.3,
+            back_to_sleeve_height=1.3,
             sleeve_diameter_back_narrow=71,
             sleeve_diameter_back_wide=74,
             sleeve_diameter_back_taper_height=8,
-            sleeve_diameter_center=72.26,
+            sleeve_diameter_center=76.26,
             sleeve_diameter_center_height=36.8,
             sleeve_diameter_front_wide=74,
             sleeve_diameter_front_narrow=69,
@@ -322,6 +322,33 @@ class jacobs_chuck_placeholder:
             jaws_diameter_narrow=12.5,
             key_hole_diameter=9.5,
             key_hole_center_to_nose=23,
+        )
+
+    @staticmethod
+    def preset_20n():
+        return jacobs_chuck_placeholder(
+            back_diameter_narrow=51.6,
+            back_diameter_wide=81.62,
+            back_taper_height=8,
+            back_to_sleeve_height=2.6,
+            sleeve_diameter_back_narrow=86.7,
+            sleeve_diameter_back_wide=90,
+            sleeve_diameter_back_taper_height=9.3,
+            sleeve_diameter_center=92.3,
+            sleeve_diameter_center_height=42.3,
+            sleeve_diameter_front_wide=90,
+            sleeve_diameter_front_narrow=86.5,
+            sleeve_diameter_front_taper_height=13.9,
+            sleeve_length=68,
+            body_nose_diameter=65,
+            body_nose_diameter_narrow=49,
+            body_nose_diameter_taper_height=9.5,
+            body_open_length=107,
+            body_closed_length=137,
+            jaws_diameter_wide=38,
+            jaws_diameter_narrow=23,
+            key_hole_diameter=11.18,
+            key_hole_center_to_nose=20,
         )
 
     def body(self):
@@ -459,6 +486,26 @@ class jacobs_chuck_stand:
             arbor_offset=6,
         )
 
+    def preset_18n_3mt():
+        """
+        Dimensions corresponding to the Jacobs 18N with MT3 from Chuck
+        """
+        return jacobs_chuck_stand(
+            chuck=jacobs_chuck_placeholder.preset_18n(),
+            arbor=arbor_morse_taper_placeholder.preset_3mt(),
+            arbor_offset=9.8,
+        )
+
+    def preset_20n_4mt():
+        """
+        Dimensions corresponding to the Jacobs 18N with MT3 from Chuck
+        """
+        return jacobs_chuck_stand(
+            chuck=jacobs_chuck_placeholder.preset_20n(),
+            arbor=arbor_morse_taper_placeholder.preset_4mt(),
+            arbor_offset=9.8,
+        )
+
     def chuck_and_arbor(self) -> cq.Shape:
         return (
             self.arbor.with_tang().translate((0, 0, self.arbor_offset))
@@ -562,18 +609,14 @@ class jacobs_chuck_stand:
         return test_piece
 
 
-# stand = jacobs_chuck_stand.preset_6a_2mt()
+stand = jacobs_chuck_stand.preset_20n_4mt()
 
-# show_object(
-#     stand.chuck_and_arbor(),
-#     options={"color": "green", "alpha": 0.5},
-# )
+show_object(
+    stand.chuck_and_arbor(),
+    options={"color": "green", "alpha": 0.5},
+)
 
-# show_object(
-#     stand.fit_test(),
-#     options={"color": "blue", "alpha": 0.5},
-# )
-
-arbor = arbor_morse_taper_placeholder.preset_4mt()
-
-show_object((arbor.test_box(padding_size=3).edges("|Y").fillet(3) - arbor.with_tang()))
+show_object(
+    stand.fit_test(),
+    options={"color": "blue", "alpha": 0.5},
+)
