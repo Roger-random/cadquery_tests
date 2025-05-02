@@ -338,8 +338,8 @@ class jacobs_chuck_placeholder:
             sleeve_diameter_center_height=42.3,
             sleeve_diameter_front_wide=90,
             sleeve_diameter_front_narrow=86.5,
-            sleeve_diameter_front_taper_height=13.9,
-            sleeve_length=68,
+            sleeve_diameter_front_taper_height=13,
+            sleeve_length=67,
             body_nose_diameter=65,
             body_nose_diameter_narrow=49,
             body_nose_diameter_taper_height=9.5,
@@ -347,7 +347,7 @@ class jacobs_chuck_placeholder:
             body_closed_length=137,
             jaws_diameter_wide=38,
             jaws_diameter_narrow=23,
-            key_hole_diameter=11.18,
+            key_hole_diameter=11.2,
             key_hole_center_to_nose=20,
         )
 
@@ -503,7 +503,7 @@ class jacobs_chuck_stand:
         return jacobs_chuck_stand(
             chuck=jacobs_chuck_placeholder.preset_20n(),
             arbor=arbor_morse_taper_placeholder.preset_4mt(),
-            arbor_offset=9.8,
+            arbor_offset=13.3,
         )
 
     def chuck_and_arbor(self) -> cq.Shape:
@@ -578,15 +578,15 @@ class jacobs_chuck_stand:
         volume = (
             cq.Workplane("YZ")
             .lineTo(0, width, forConstruction=True)
-            .line(self.gap_loose + sleeve_radius - width, 0)
+            .line(self.chuck.sleeve_diameter_back_narrow / 2 - width, 0)
             .tangentArcPoint((width, -width))
-            .line(
-                0,
-                -self.chuck.sleeve_length
-                - self.chuck.sleeve_start_height
-                - self.gap_loose,
+            .lineTo(
+                self.chuck.sleeve_diameter_back_narrow / 2,
+                -self.chuck.back_taper_height,
             )
-            .line(jaw_radius - self.gap_loose - sleeve_radius, 0)
+            .lineTo(
+                jaw_radius, -self.chuck.sleeve_start_height - self.chuck.sleeve_length
+            )
             .lineTo(jaw_radius, -self.chuck.body_closed_length)
             .line(width, 0)
             .lineTo(
@@ -599,7 +599,13 @@ class jacobs_chuck_stand:
             .close()
             .extrude(thickness_half, both=True)
         )
-        test_piece = volume - self.arbor_subtract_snug() - self.nose_subtract_snug()
+        # show_object(volume)
+        test_piece = (
+            volume
+            - self.arbor_subtract_snug()
+            - self.sleeve_subtract_loose()
+            - self.nose_subtract_snug()
+        )
 
         if pin:
             test_piece += self.keyhole_pin(gap=pin_gap, exposed_length=width)
