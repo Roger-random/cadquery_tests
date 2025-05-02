@@ -45,6 +45,10 @@ def inch_to_mm(dimension_inch: float):
     return 25.4 * dimension_inch
 
 
+def mm_to_inch(dimension_mm: float):
+    return dimension_mm / 25.4
+
+
 class bridgeport_quill_placeholder:
     def __init__(self):
         self.spring_cover_diameter = inch_to_mm(2.75)
@@ -121,11 +125,213 @@ class bridgeport_quill_placeholder:
 
 
 class quill_speed_handle:
-    def __init__(self):
-        pass
+    def __init__(
+        self,
+        quill: bridgeport_quill_placeholder,
+        cylinder_diameter: float = inch_to_mm(2),
+        cylinder_length: float = inch_to_mm(1.5),
+        cylinder_hub_gap: float = inch_to_mm(0.125),
+        slot_width: float = inch_to_mm(0.5),
+        hinge_pin_diameter: float = inch_to_mm(0.26),
+        lock_pin_diameter: float = inch_to_mm(0.2),
+        pin_spring_hole_diameter: float = inch_to_mm(0.3),
+        pin_spring_hole_depth: float = inch_to_mm(0.5),
+        pin_spring_length: float = inch_to_mm(0.425),
+        pin_spring_range: float = inch_to_mm(0.3),
+        handle_rotation_degree: float = 15,  # For display purposes
+    ):
+        self.quill = quill
+        self.cylinder_radius = cylinder_diameter / 2
+        self.cylinder_length = cylinder_length
+        self.slot_width = slot_width
+        self.cylinder_hub_gap = cylinder_hub_gap
+        self.hinge_pin_diameter = hinge_pin_diameter
+        self.lock_pin_diameter = lock_pin_diameter
+        self.pin_spring_hole_diameter = pin_spring_hole_diameter
+        self.pin_spring_hole_depth = pin_spring_hole_depth
+        self.pin_spring_length = pin_spring_length
+        self.pin_spring_range = pin_spring_range
+        self.handle_rotation_degree = handle_rotation_degree
 
+    def display_rotation(self, object):
+        return object.rotate(
+            (
+                self.quill.quill_pinion_hub_thickness
+                + self.cylinder_hub_gap
+                + self.slot_width / 2,
+                self.quill.pin_hole_circle_diameter / 2,
+                0,
+            ),
+            (
+                self.quill.quill_pinion_hub_thickness
+                + self.cylinder_hub_gap
+                + self.slot_width / 2,
+                self.quill.pin_hole_circle_diameter / 2,
+                1,
+            ),
+            self.handle_rotation_degree,
+        )
+
+    def cylinder(self):
+        volume = (
+            cq.Workplane("YZ")
+            .circle(self.cylinder_radius)
+            .circle(self.quill.quill_pinion_hub_diameter / 2)
+            .extrude(self.cylinder_length)
+        )
+
+        slot_subtract = (
+            cq.Workplane("XZ")
+            .lineTo(
+                self.quill.quill_pinion_hub_thickness + self.cylinder_hub_gap,
+                self.slot_width / 2,
+                forConstruction=True,
+            )
+            .line(self.cylinder_length, 0)
+            .line(0, -self.slot_width)
+            .line(-self.cylinder_length, 0)
+            .close()
+            .extrude(self.cylinder_radius * 2, both=True)
+        )
+
+        slot_subtract_rotated = self.display_rotation(slot_subtract)
+
+        spring_pin_subtract = (
+            cq.Workplane("YZ")
+            .transformed(
+                offset=cq.Vector(
+                    -self.quill.pin_hole_circle_diameter / 2,
+                    0,
+                    self.quill.quill_pinion_hub_thickness,
+                )
+            )
+            .circle(self.pin_spring_hole_diameter / 2)
+            .extrude(self.pin_spring_hole_depth, both=True)
+        )
+
+        lock_pin_subtract = (
+            cq.Workplane("YZ")
+            .transformed(
+                offset=cq.Vector(-self.quill.pin_hole_circle_diameter / 2, 0, 0)
+            )
+            .circle(self.lock_pin_diameter / 2)
+            .extrude(self.cylinder_length, both=True)
+        )
+
+        locator_subtract = (
+            cq.Workplane("XZ")
+            .transformed(
+                offset=cq.Vector(
+                    self.quill.base_to_slot_1
+                    + self.quill.slot_1
+                    + self.quill.slot_1_to_slot_2
+                    + self.quill.slot_2 / 2,
+                    self.quill.slot_diameter / 2,
+                    0,
+                )
+            )
+            .circle(self.quill.slot_2 * 0.75)
+            .extrude(self.cylinder_radius, both=True)
+        )
+
+        cylinder = (
+            volume
+            - slot_subtract
+            - slot_subtract_rotated
+            - self.hinge_pin(length=self.cylinder_radius * 2)
+            - spring_pin_subtract
+            - lock_pin_subtract
+            - locator_subtract
+            - locator_subtract.mirror("XY")
+        )
+
+        return cylinder
+
+    def lock_pin(self):
+        shoulder_height = (
+            self.quill.quill_pinion_hub_thickness
+            + self.cylinder_hub_gap
+            - self.pin_spring_length
+            + self.pin_spring_range
+        )
+        log(
+            f"Diameter {mm_to_inch(self.lock_pin_diameter)} to shoulder height {mm_to_inch(shoulder_height)} then {mm_to_inch(self.pin_spring_hole_diameter)} for spring length {mm_to_inch(self.pin_spring_length)}"
+        )
+        return (
+            cq.Workplane("YZ")
+            .transformed(
+                offset=cq.Vector(-self.quill.pin_hole_circle_diameter / 2, 0, 0)
+            )
+            .circle(self.lock_pin_diameter / 2)
+            .extrude(shoulder_height)
+            .faces(">X")
+            .workplane()
+            .circle(self.pin_spring_hole_diameter / 2)
+            .extrude(self.pin_spring_length)
+        )
+
+    def hinge_pin(self, length: float):
+        return (
+            cq.Workplane("XY")
+            .transformed(
+                offset=cq.Vector(
+                    self.quill.quill_pinion_hub_thickness
+                    + self.cylinder_hub_gap
+                    + self.slot_width / 2,
+                    self.quill.pin_hole_circle_diameter / 2,
+                    0,
+                )
+            )
+            .circle(self.hinge_pin_diameter / 2)
+            .extrude(length / 2, both=True)
+        )
+
+    def handle(self, length: float, gap: float = inch_to_mm(0.01)):
+
+        handle_side = self.slot_width - gap
+        return (
+            cq.Workplane("XZ")
+            .transformed(
+                offset=cq.Vector(
+                    self.quill.quill_pinion_hub_thickness + self.cylinder_hub_gap,
+                    handle_side / 2,
+                    -self.cylinder_radius,
+                )
+            )
+            .line(handle_side, 0)
+            .line(0, -handle_side)
+            .line(-handle_side, 0)
+            .close()
+            .extrude(length)
+            .edges("|Z")
+            .fillet(handle_side * 0.2)
+        ) - self.hinge_pin(handle_side * 25)
+
+
+quill = bridgeport_quill_placeholder()
+handle = quill_speed_handle(quill=quill)
 
 show_object(
-    bridgeport_quill_placeholder().placeholder(),
+    quill.placeholder(),
     options={"color": "gray", "alpha": 0.75},
+)
+
+show_object(
+    handle.cylinder(),
+    options={"color": "blue", "alpha": 0.25},
+)
+
+show_object(
+    handle.lock_pin(),
+    options={"color": "red", "alpha": 0.5},
+)
+
+show_object(
+    handle.hinge_pin(50),
+    options={"color": "red", "alpha": 0.5},
+)
+
+show_object(
+    handle.display_rotation(handle.handle(75)),
+    options={"color": "green", "alpha": 0.5},
 )
