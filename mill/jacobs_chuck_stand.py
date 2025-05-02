@@ -503,7 +503,7 @@ class jacobs_chuck_stand:
         return jacobs_chuck_stand(
             chuck=jacobs_chuck_placeholder.preset_20n(),
             arbor=arbor_morse_taper_placeholder.preset_4mt(),
-            arbor_offset=13.3,
+            arbor_offset=13.5,
         )
 
     def chuck_and_arbor(self) -> cq.Shape:
@@ -614,8 +614,123 @@ class jacobs_chuck_stand:
 
         return test_piece
 
+    def cone_style(self, tilt_degrees: float = 10):
+        volume: cq.Shape = (
+            cq.Workplane("XY")
+            .transformed(
+                offset=cq.Vector(
+                    0,
+                    self.chuck.sleeve_diameter_center / 2
+                    + self.arbor.basic_diameter / 2,
+                    self.arbor_offset,
+                )
+            )
+            .circle((self.arbor.basic_diameter / 2) * 0.8)
+            .extrude(self.arbor.basic_diameter * 0.2)
+            .faces("<Z")
+            .workplane()
+            .circle((self.arbor.basic_diameter / 2))
+            .extrude(self.arbor_offset + self.chuck.sleeve_start_height)
+            .faces("<Z")
+            .workplane()
+            .circle((self.arbor.basic_diameter / 2))
+            .workplane()
+            .transformed(
+                rotate=cq.Vector(tilt_degrees, 0, 0),
+                offset=cq.Vector(
+                    0,
+                    self.chuck.sleeve_diameter_center / 2,
+                    self.chuck.body_closed_length,
+                ),
+            )
+            .circle((self.chuck.sleeve_diameter_center * 0.75))
+            .loft()
+        )
 
-stand = jacobs_chuck_stand.preset_20n_4mt()
+        jaw_subtract: cq.Shape = (
+            cq.Workplane("XY")
+            .transformed(
+                offset=cq.Vector(
+                    0,
+                    -self.chuck.jaws_diameter_wide / 2,
+                    -self.chuck.body_open_length
+                    + self.chuck.body_nose_diameter_taper_height,
+                )
+            )
+            .circle(self.chuck.jaws_diameter_wide)
+            .workplane(offset=-self.chuck.body_closed_length)
+            .circle(self.chuck.sleeve_diameter_center * 0.75)
+            .loft()
+        )
+
+        return (
+            volume
+            - jaw_subtract
+            - self.nose_subtract_snug()
+            - self.sleeve_subtract_loose()
+            + self.keyhole_pin()
+        )
+
+    def arbor_ring(self):
+        arbor_ring_height = self.arbor.basic_diameter * 0.2
+        arbor_ring_z = self.arbor_offset
+        back_ring_center_y = (
+            self.chuck.sleeve_diameter_center / 2 + self.arbor.basic_diameter / 2
+        )
+        back_ring_offset = cq.Vector(
+            0,
+            back_ring_center_y,
+            arbor_ring_z,
+        )
+        back_ring_outer: cq.Shape = (
+            cq.Workplane("XY")
+            .transformed(offset=back_ring_offset)
+            .circle(self.arbor.basic_diameter / 2)
+            .extrude(arbor_ring_height)
+        )
+
+        back_ring_inner: cq.Shape = (
+            cq.Workplane("XY")
+            .transformed(offset=back_ring_offset)
+            .circle((self.arbor.basic_diameter / 2) * 0.8)
+            .extrude(arbor_ring_height)
+        )
+
+        rod_width_half = self.arbor.basic_diameter / 8
+        connecting_rod = (
+            cq.Workplane("XY")
+            .transformed(offset=cq.Vector(0, 0, arbor_ring_z))
+            .line(rod_width_half, 0)
+            .line(0, back_ring_center_y)
+            .line(-rod_width_half * 2, 0)
+            .line(0, -back_ring_center_y)
+            .close()
+            .extrude(arbor_ring_height)
+        )
+
+        front_ring_outer = (
+            cq.Workplane("XY")
+            .transformed(offset=cq.Vector(0, 0, arbor_ring_z))
+            .circle(self.arbor.basic_diameter * 0.65)
+            .extrude(arbor_ring_height)
+        )
+
+        arbor_ring = (
+            (
+                back_ring_outer
+                + connecting_rod
+                + front_ring_outer
+                - back_ring_inner
+                - self.arbor.with_tang().translate((0, 0, self.arbor_offset))
+            )
+            .faces("<Z")
+            .chamfer(rod_width_half / 4)
+        )
+        arbor_ring
+        return arbor_ring
+
+
+stand = jacobs_chuck_stand.preset_6a_2mt()
 
 show_object(
     stand.chuck_and_arbor(),
@@ -623,6 +738,11 @@ show_object(
 )
 
 show_object(
-    stand.fit_test(),
+    stand.cone_style(),
     options={"color": "blue", "alpha": 0.5},
+)
+
+show_object(
+    stand.arbor_ring(),
+    options={"color": "purple", "alpha": 0.5},
 )
