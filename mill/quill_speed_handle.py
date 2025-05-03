@@ -124,6 +124,9 @@ class bridgeport_quill_placeholder:
         return placeholder
 
 
+extra_gap = 0.25
+
+
 class quill_speed_handle:
     def __init__(
         self,
@@ -132,10 +135,10 @@ class quill_speed_handle:
         cylinder_length: float = inch_to_mm(1.5),
         cylinder_hub_gap: float = inch_to_mm(0.125),
         slot_width: float = inch_to_mm(0.5),
-        hinge_pin_diameter: float = inch_to_mm(0.26),
-        lock_pin_diameter: float = inch_to_mm(0.2),
-        pin_spring_hole_diameter: float = inch_to_mm(0.3),
-        pin_spring_hole_depth: float = inch_to_mm(0.5),
+        hinge_pin_diameter: float = inch_to_mm(0.26) + extra_gap,
+        lock_pin_diameter: float = inch_to_mm(0.2) + extra_gap,
+        pin_spring_hole_diameter: float = inch_to_mm(0.3) + extra_gap * 2,
+        pin_spring_hole_depth: float = inch_to_mm(0.4),
         pin_spring_length: float = inch_to_mm(0.425),
         pin_spring_range: float = inch_to_mm(0.3),
         handle_rotation_degree: float = 15,  # For display purposes
@@ -176,7 +179,7 @@ class quill_speed_handle:
         volume = (
             cq.Workplane("YZ")
             .circle(self.cylinder_radius)
-            .circle(self.quill.quill_pinion_hub_diameter / 2)
+            .circle(extra_gap + self.quill.quill_pinion_hub_diameter / 2)
             .extrude(self.cylinder_length)
         )
 
