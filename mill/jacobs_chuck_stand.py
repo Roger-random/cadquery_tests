@@ -466,12 +466,14 @@ class jacobs_chuck_stand:
         chuck: jacobs_chuck_placeholder,
         arbor: arbor_morse_taper_placeholder,
         arbor_offset: float,
+        chuck_key_handle_diameter_loose: float,
         gap_snug: float = 0.2,
         gap_loose: float = 1.0,
     ):
         self.chuck = chuck
         self.arbor = arbor
         self.arbor_offset = arbor_offset
+        self.chuck_key_handle_diameter_loose = chuck_key_handle_diameter_loose
         self.gap_snug = gap_snug
         self.gap_loose = gap_loose
 
@@ -484,8 +486,10 @@ class jacobs_chuck_stand:
             chuck=jacobs_chuck_placeholder.preset_6a(),
             arbor=arbor_morse_taper_placeholder.preset_2mt(),
             arbor_offset=6,
+            chuck_key_handle_diameter_loose=9,
         )
 
+    @staticmethod
     def preset_18n_3mt():
         """
         Dimensions corresponding to the Jacobs 18N with MT3 from Chuck
@@ -494,8 +498,10 @@ class jacobs_chuck_stand:
             chuck=jacobs_chuck_placeholder.preset_18n(),
             arbor=arbor_morse_taper_placeholder.preset_3mt(),
             arbor_offset=9.8,
+            chuck_key_handle_diameter_loose=10.5,
         )
 
+    @staticmethod
     def preset_20n_4mt():
         """
         Dimensions corresponding to the Jacobs 18N with MT3 from Chuck
@@ -504,6 +510,7 @@ class jacobs_chuck_stand:
             chuck=jacobs_chuck_placeholder.preset_20n(),
             arbor=arbor_morse_taper_placeholder.preset_4mt(),
             arbor_offset=13.5,
+            chuck_key_handle_diameter_loose=11,
         )
 
     def chuck_and_arbor(self) -> cq.Shape:
@@ -615,6 +622,7 @@ class jacobs_chuck_stand:
         return test_piece
 
     def cone_style(self, tilt_degrees: float = 10):
+        edge_rounding = self.chuck.jaws_diameter_narrow * 0.2
         volume: cq.Shape = (
             cq.Workplane("XY")
             .transformed(
@@ -663,12 +671,62 @@ class jacobs_chuck_stand:
             .loft()
         )
 
+        chuck_key_handle_subtract: cq.Shape = (
+            cq.Workplane("XY")
+            .transformed(
+                offset=cq.Vector(
+                    0,
+                    self.chuck.sleeve_diameter_center / 2
+                    + self.arbor.basic_diameter / 2,
+                    0,
+                )
+            )
+            .circle(self.chuck_key_handle_diameter_loose / 2)
+            .extrude(
+                self.chuck.body_closed_length + self.arbor.length_overall, both=True
+            )
+        )
+
+        base_volume = volume - jaw_subtract
+
+        chuck_mid_open_z = (
+            -(self.chuck.body_open_length + self.chuck.body_closed_length) / 2
+        )
+
+        sharp_edge = base_volume.edges(
+            sel.NearestToPointSelector(
+                (
+                    self.chuck.body_nose_diameter / 2,
+                    -self.chuck.body_nose_diameter_narrow,
+                    chuck_mid_open_z,
+                )
+            )
+        )
+
+        base_volume = sharp_edge.fillet(edge_rounding)
+
+        sharp_edge = base_volume.edges(
+            sel.NearestToPointSelector(
+                (
+                    -self.chuck.body_nose_diameter / 2,
+                    -self.chuck.body_nose_diameter_narrow,
+                    chuck_mid_open_z,
+                )
+            )
+        )
+
+        base_volume = sharp_edge.fillet(edge_rounding)
+
         return (
-            volume
-            - jaw_subtract
-            - self.nose_subtract_snug()
-            - self.sleeve_subtract_loose()
-            + self.keyhole_pin()
+            (
+                base_volume
+                - self.nose_subtract_snug()
+                - self.sleeve_subtract_loose()
+                + self.keyhole_pin()
+                - chuck_key_handle_subtract
+            )
+            .faces("<Z")
+            .chamfer(edge_rounding / 2)
         )
 
     def arbor_ring(self):
@@ -730,7 +788,7 @@ class jacobs_chuck_stand:
         return arbor_ring
 
 
-stand = jacobs_chuck_stand.preset_6a_2mt()
+stand = jacobs_chuck_stand.preset_18n_3mt()
 
 show_object(
     stand.chuck_and_arbor(),
