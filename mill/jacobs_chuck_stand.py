@@ -37,7 +37,7 @@ if "log" not in globals():
 # When not running in CQ-Editor, turn show_object into no-op
 if "show_object" not in globals():
 
-    def show_object(*args):
+    def show_object(*args, **kwargs):
         pass
 
 
@@ -788,7 +788,7 @@ class jacobs_chuck_stand:
         return arbor_ring
 
 
-stand = jacobs_chuck_stand.preset_18n_3mt()
+stand = jacobs_chuck_stand.preset_20n_4mt()
 
 show_object(
     stand.chuck_and_arbor(),
