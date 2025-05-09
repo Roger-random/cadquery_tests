@@ -34,6 +34,13 @@ if "log" not in globals():
         print(args)
 
 
+# When not running in CQ-Editor, turn show_object into no-op
+if "show_object" not in globals():
+
+    def show_object(*args, **kwargs):
+        pass
+
+
 class dessicant_container_lid_drill_jig:
     """
     Jig to hold the lid of a small stell container
