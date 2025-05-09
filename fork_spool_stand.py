@@ -92,8 +92,8 @@ class fork_spool_stand:
 
 
 stand = fork_spool_stand(
-    fork_external_diameter=30,
-    fork_height=200,
+    fork_external_diameter=29,
+    fork_height=130,
     spool_internal_diameter=52,
     spool_height=100,
 )
