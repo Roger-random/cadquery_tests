@@ -61,7 +61,7 @@ class bridgeport_quill_placeholder:
         self.slot_1 = inch_to_mm(0.1)
         self.slot_1_to_slot_2 = inch_to_mm(0.2)
         self.slot_2 = inch_to_mm(0.1)
-        self.slot_diameter = inch_to_mm(0.8)  # Need to verify
+        self.slot_diameter = inch_to_mm(0.91)
         self.pin_hole_diameter = inch_to_mm(0.22)
         self.pin_hole_circle_diameter = inch_to_mm(1.375)
 
@@ -137,6 +137,7 @@ class quill_speed_handle:
         slot_width: float = inch_to_mm(0.5),
         hinge_pin_diameter: float = inch_to_mm(0.26) + extra_gap,
         lock_pin_diameter: float = inch_to_mm(0.2) + extra_gap,
+        lock_pin_protrusion: float = inch_to_mm(0.2),
         pin_spring_hole_diameter: float = inch_to_mm(0.3) + extra_gap * 2,
         pin_spring_hole_depth: float = inch_to_mm(0.4),
         pin_spring_length: float = inch_to_mm(0.425),
@@ -150,6 +151,7 @@ class quill_speed_handle:
         self.cylinder_hub_gap = cylinder_hub_gap
         self.hinge_pin_diameter = hinge_pin_diameter
         self.lock_pin_diameter = lock_pin_diameter
+        self.lock_pin_protrusion = lock_pin_protrusion
         self.pin_spring_hole_diameter = pin_spring_hole_diameter
         self.pin_spring_hole_depth = pin_spring_hole_depth
         self.pin_spring_length = pin_spring_length
