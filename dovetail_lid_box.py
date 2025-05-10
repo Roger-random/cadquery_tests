@@ -54,8 +54,8 @@ class box:
         lid_thickness: float = 1.2,
         dovetail_thickness: float = 2.4,
         dovetail_width: float = 3,
-        dovetail_bump_width: float = 0.25,
-        dovetail_bump_radius: float = 50,
+        dovetail_bump_width: float = 0.4,
+        dovetail_bump_radius: float = 5,
         corner_fillet: float = 3,
         face_chamfer: float = 0.8,
     ):
@@ -119,11 +119,12 @@ class box:
             .loft()
         )
 
-        bump_subtract = self.dovetail_bump_profile(cq.Workplane("XY")).extrude(
-            self.height - self.lid_thickness
-        )
+        quarter = majority + edge
 
-        quarter = majority + edge - bump_subtract
+        if self.dovetail_bump_width > 0:
+            quarter = quarter - self.dovetail_bump_profile(cq.Workplane("XY")).extrude(
+                self.height - self.lid_thickness
+            )
 
         half = quarter + quarter.mirror("YZ")
 
@@ -146,9 +147,12 @@ class box:
     def base(self):
         base_subtract_quarter = self.dovetail_profile(cq.Workplane("YZ")).extrude(
             self.length
-        ) - self.dovetail_bump_profile(cq.Workplane("XY")).extrude(
-            self.height - self.lid_thickness
         )
+
+        if self.dovetail_bump_width > 0:
+            base_subtract_quarter = base_subtract_quarter - self.dovetail_bump_profile(
+                cq.Workplane("XY")
+            ).extrude(self.height - self.lid_thickness)
 
         base_subtract_half = base_subtract_quarter + base_subtract_quarter.mirror("YZ")
 
@@ -157,14 +161,38 @@ class box:
         return self.box_volume() - base_subtract
 
 
-test = box(length=inch_to_mm(2), width=inch_to_mm(1), height=inch_to_mm(0.25))
+def bearing_ball_pair():
+    generator = box(
+        length=inch_to_mm(3),
+        width=inch_to_mm(1.75),
+        height=inch_to_mm(1.5),
+        dovetail_bump_width=0,
+    )
+    base = generator.base()
 
-show_object(
-    test.lid(),
-    options={"color": "red", "alpha": 0.5},
-)
+    ball_radius_clear = 17
+    ball_center_x = ball_radius_clear + 1
+    ball_center_y = 1.5
+    ball_center_z = generator.height - generator.lid_thickness - ball_radius_clear
+    ball_subtract = cq.Workplane("XY").sphere(radius=ball_radius_clear) + (
+        cq.Workplane("XY").circle(radius=ball_radius_clear).extrude(ball_radius_clear)
+    )
 
-show_object(
-    test.base(),
-    options={"color": "green", "alpha": 0.5},
-)
+    base = (
+        base
+        - ball_subtract.translate((ball_center_x, ball_center_y, ball_center_z))
+        - ball_subtract.translate((-ball_center_x, -ball_center_y, ball_center_z))
+    )
+
+    show_object(
+        generator.lid(),
+        options={"color": "red", "alpha": 0.5},
+    )
+
+    show_object(
+        base,
+        options={"color": "green", "alpha": 0.5},
+    )
+
+
+bearing_ball_pair()
