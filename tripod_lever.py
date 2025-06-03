@@ -55,17 +55,16 @@ class tripod_lever:
     """
 
     def __init__(self):
-        self.fastener_shaft_radius = 6.1 / 2
-        self.fastener_head_radius = 7.7 / 2
-        self.fastener_shaft_height = 4.8
+        self.fastener_shaft_radius = 6.5 / 2
+        self.fastener_head_radius = 8 / 2
+        self.fastener_shaft_height = 4.7
         self.height = 6.2
         self.wedge_radius_bottom = 7.3
-        self.wedge_radius_top = 12
-        self.wedge_stop_radius = 6.8
-        self.handle_rear_radius = 9.7
+        self.wedge_radius_top = 11.5
+        self.wedge_stop_radius = 7.3
+        self.handle_rear_radius = 10.2
         self.handle_length = 26
         self.handle_wedge_fillet = 4
-        self.handle_lock_entry_fillet = 1
 
     def fastener_volume_subtract(self):
         return (
@@ -131,17 +130,6 @@ class tripod_lever:
                 )
             )
         ).fillet(self.handle_wedge_fillet)
-
-        # Round off the edge where wedge meets dovetail to ease locking entry
-        lever = lever.edges(
-            sel.NearestToPointSelector(
-                pnt=(
-                    -self.handle_rear_radius,
-                    -self.wedge_stop_radius,
-                    self.height / 2,
-                )
-            )
-        ).fillet(self.handle_lock_entry_fillet)
 
         return lever
 
