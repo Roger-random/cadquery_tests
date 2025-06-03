@@ -415,4 +415,4 @@ def supportio():
 
 
 if "show_object" in globals():
-    supportio()
+    assembly_3oz()
