@@ -64,7 +64,7 @@ class tripod_lever:
         self.wedge_stop_radius = 7.3
         self.handle_rear_radius = 10.2
         self.handle_length = 26
-        self.handle_wedge_fillet = 4
+        self.handle_wedge_fillet = 6
 
     def fastener_volume_subtract(self):
         return (
