@@ -52,11 +52,17 @@ class opener:
         self.wedge_width = 3
         self.rim_length_rear = 15
         self.binder_clip_tab_size = 4
-        self.binder_clip_tab_thickness = self.nozzle_diameter * 6
+        self.binder_clip_tab_thickness = 4
         self.tt_hub_radius = 10
         self.tt_hub_thickness = 7
         self.tt_shaft_diameter = 5.6
         self.tt_shaft_thickness = 3.8
+        self.bottom_cone_radius_small = 42.3 / 2
+        self.bottom_cone_radius_large = 44 / 2
+        self.bottom_cone_height = 3
+        self.bottom_cone_bearing_radius = 22.2 / 2
+        self.bottom_cone_bearing_height = 7
+        self.bottom_cone_bearing_lip = 0.5
         self.top_lip_slope = self.rim_radius_outer - self.can_radius_outer
 
     def rim_clip(self):
@@ -112,12 +118,12 @@ class opener:
                 forConstruction=True,
             )
             .line(0, -self.binder_clip_tab_thickness)
-            .line(self.binder_clip_tab_size / 2, self.binder_clip_tab_size)
+            .line(self.binder_clip_tab_size / 4, self.binder_clip_tab_size)
             .line(
-                self.binder_clip_tab_thickness / 2, self.binder_clip_tab_thickness / 2
+                self.binder_clip_tab_thickness / 8, self.binder_clip_tab_thickness / 2
             )
             .line(
-                -self.binder_clip_tab_thickness / 2, self.binder_clip_tab_thickness / 2
+                -self.binder_clip_tab_thickness / 8, self.binder_clip_tab_thickness / 2
             )
             .close()
             .extrude(self.rim_length_rear)
@@ -169,9 +175,44 @@ class opener:
 
         return rim_clip + binder_tab - slot + self.tt_mount_hub()
 
+    def bottom_cone(self):
+        cone = (
+            cq.Workplane("YZ")
+            .circle(radius=self.bottom_cone_radius_small)
+            .workplane(offset=self.bottom_cone_height)
+            .circle(radius=self.bottom_cone_radius_large)
+            .loft()
+            .faces(">X")
+            .workplane()
+            .circle(radius=self.bottom_cone_radius_large)
+            .extrude(
+                self.bottom_cone_bearing_height
+                + self.bottom_cone_bearing_lip
+                - self.bottom_cone_height
+            )
+        )
+
+        bearing_subtract = (
+            cq.Workplane("YZ")
+            .circle(
+                radius=self.bottom_cone_bearing_radius - self.bottom_cone_bearing_lip
+            )
+            .extrude(self.bottom_cone_bearing_lip)
+            .faces(">X")
+            .workplane()
+            .circle(radius=self.bottom_cone_bearing_radius)
+            .extrude(self.bottom_cone_bearing_height)
+        )
+        return (cone - bearing_subtract).faces(">X").chamfer(1)
+
 
 o = opener()
 show_object(
     o.rim_clip_slot(),
+    options={"color": "green", "alpha": 0.5},
+)
+
+show_object(
+    o.bottom_cone().translate((100, 0, 0)),
     options={"color": "green", "alpha": 0.5},
 )
