@@ -45,16 +45,24 @@ class opener:
     def __init__(self):
         self.rim_radius_outer = 59.35 / 2
         self.rim_height = 2.73
+        self.rim_tip_lip = 3
         self.can_radius_outer = 57.8 / 2
         self.nozzle_diameter = 0.4
         self.claw_size = 1
         self.wedge_width = 3
+        self.rim_length_rear = 15
+        self.binder_clip_tab_size = 4
+        self.binder_clip_tab_thickness = self.nozzle_diameter * 6
+        self.tt_hub_radius = 10
+        self.tt_hub_thickness = 7
+        self.tt_shaft_diameter = 5.6
+        self.tt_shaft_thickness = 3.8
         self.top_lip_slope = self.rim_radius_outer - self.can_radius_outer
 
     def rim_clip(self):
         revolve = (
             cq.Workplane("XZ")
-            .lineTo(0, self.rim_radius_outer - 3, forConstruction=True)
+            .lineTo(0, self.rim_radius_outer - self.rim_tip_lip, forConstruction=True)
             .lineTo(0, self.rim_radius_outer)
             .lineTo(self.rim_height, self.rim_radius_outer)
             .lineTo(self.rim_height + self.top_lip_slope, self.can_radius_outer)
@@ -70,20 +78,78 @@ class opener:
                 self.rim_height + self.claw_size + self.wedge_width,
                 self.can_radius_outer + self.wedge_width + self.claw_size,
             )
-            .lineTo(
-                -self.wedge_width,
-                self.can_radius_outer + self.wedge_width + self.claw_size,
+            .line(
+                -self.rim_length_rear,
+                0,
             )
-            .lineTo(-self.wedge_width, self.rim_radius_outer - 3)
+            .line(0, -self.claw_size - self.wedge_width - self.rim_tip_lip)
             .close()
             .revolve(
                 angleDegrees=360,
                 axisStart=cq.Vector(0, 0, 0),
                 axisEnd=cq.Vector(1, 0, 0),
             )
+            .translate(
+                cq.Vector(
+                    self.rim_length_rear
+                    - self.rim_height
+                    - self.claw_size
+                    - self.wedge_width,
+                    0,
+                    0,
+                )
+            )
         )
 
         return revolve
+
+    def binder_clip_tab_half(self):
+        tab_half = (
+            cq.Workplane("YZ")
+            .lineTo(
+                0,
+                self.can_radius_outer + self.wedge_width + self.claw_size,
+                forConstruction=True,
+            )
+            .line(0, -self.binder_clip_tab_thickness)
+            .line(self.binder_clip_tab_size / 2, self.binder_clip_tab_size)
+            .line(
+                self.binder_clip_tab_thickness / 2, self.binder_clip_tab_thickness / 2
+            )
+            .line(
+                -self.binder_clip_tab_thickness / 2, self.binder_clip_tab_thickness / 2
+            )
+            .close()
+            .extrude(self.rim_length_rear)
+        )
+        return tab_half
+
+    def tt_mount_hub(self):
+        hub = (
+            cq.Workplane("YZ")
+            .circle(radius=self.tt_hub_radius)
+            .extrude(self.tt_hub_thickness)
+        )
+        arm = (
+            cq.Workplane("YZ")
+            .rect(
+                xLen=self.tt_hub_radius * 2,
+                yLen=-self.rim_radius_outer,
+                centered=(True, False),
+            )
+            .extrude(self.tt_hub_thickness)
+        )
+
+        motor_shaft_subtract = (
+            cq.Workplane("YZ")
+            .circle(radius=self.tt_shaft_diameter / 2)
+            .extrude(self.tt_hub_thickness)
+        ).intersect(
+            cq.Workplane("YZ")
+            .rect(xLen=self.tt_shaft_thickness, yLen=self.tt_shaft_diameter)
+            .extrude(self.tt_hub_thickness)
+        )
+        return (hub + arm - motor_shaft_subtract).faces("<X").chamfer(1)
 
     def rim_clip_slot(self):
         rim_clip = self.rim_clip()
@@ -95,10 +161,13 @@ class opener:
             .line(self.rim_radius_outer * 2, 0)
             .line(0, -self.rim_radius_outer * 2)
             .close()
-            .extrude(0.1)
+            .extrude(0.1, both=True)
         )
 
-        return rim_clip - slot
+        binder_tab_half = self.binder_clip_tab_half()
+        binder_tab = binder_tab_half + binder_tab_half.mirror("XZ")
+
+        return rim_clip + binder_tab - slot + self.tt_mount_hub()
 
 
 o = opener()
