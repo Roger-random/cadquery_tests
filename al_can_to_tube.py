@@ -47,7 +47,6 @@ class opener:
         self.rim_height = 2.73
         self.rim_tip_lip = 3
         self.can_radius_outer = 57.8 / 2
-        self.nozzle_diameter = 0.4
         self.claw_size = 1
         self.wedge_width = 3
         self.rim_length_rear = 15
@@ -64,6 +63,11 @@ class opener:
         self.bottom_cone_bearing_height = 7
         self.bottom_cone_bearing_lip = 0.5
         self.top_lip_slope = self.rim_radius_outer - self.can_radius_outer
+        self.center_line_height = 55
+        self.extrusion_beam_clear = 20.2
+        self.extrusion_beam_surround = 3
+        self.base_width = 70
+        self.tt_bracket_width = 22.5
 
     def rim_clip(self):
         revolve = (
@@ -205,6 +209,142 @@ class opener:
         )
         return (cone - bearing_subtract).faces(">X").chamfer(1)
 
+    def tt_bracket(self):
+        surround = 4
+        mid_fastener_offset_length = 20.5
+        mid_fastener_offset_width = 17 / 2
+        end_fastener_offset_length = 13.5
+        end_fastener_offset_height = 7.6
+        end_radius = 4
+        side_thickness = 1
+        end_length_offset = 11.7
+        mid_length_offset = 24.6
+        fastener_radius_clear = 3.4 / 2
+
+        bracket_outer = (
+            cq.Workplane("YZ")
+            .line(0, -mid_length_offset)
+            .line(self.tt_bracket_width / 2 + surround, 0)
+            .line(
+                0,
+                mid_length_offset + end_length_offset - end_radius,
+            )
+            .tangentArcPoint(
+                endpoint=(
+                    -end_radius - surround,
+                    end_radius + surround,
+                )
+            )
+            .line(end_radius - self.tt_bracket_width / 2, 0)
+            .close()
+            .extrude(end_fastener_offset_height + side_thickness)
+        )
+
+        bracket_inner = (
+            cq.Workplane("YZ")
+            .line(0, -mid_length_offset)
+            .line(self.tt_bracket_width / 2, 0)
+            .line(
+                0,
+                mid_length_offset + end_length_offset - end_radius,
+            )
+            .tangentArcPoint(endpoint=(-end_radius, end_radius))
+            .line(end_radius - self.tt_bracket_width / 2, 0)
+            .close()
+            .extrude(end_fastener_offset_height)
+            .translate((side_thickness, 0, 0))
+        )
+
+        fastener_subtract = (
+            cq.Workplane("YZ")
+            .circle(radius=fastener_radius_clear)
+            .extrude(side_thickness + end_fastener_offset_height)
+        )
+
+        output_shaft_subtract = (
+            cq.Workplane("YZ").circle(radius=5.7 / 2).extrude(side_thickness)
+        )
+
+        bracket_half = (
+            bracket_outer
+            - bracket_inner
+            - fastener_subtract.translate(
+                (0, mid_fastener_offset_width, -mid_fastener_offset_length)
+            )
+            - fastener_subtract.translate((0, 0, end_fastener_offset_length))
+            - output_shaft_subtract
+        )
+
+        bracket = bracket_half + bracket_half.mirror("XZ")
+
+        return bracket
+
+    def spindle_head(self):
+        leg_width_half = 50
+        leg_length = 18
+        leg_half = (
+            cq.Workplane("YZ")
+            .lineTo(self.tt_bracket_width / 2, 0)
+            .lineTo(
+                leg_width_half,
+                -self.center_line_height
+                - self.extrusion_beam_clear
+                - self.extrusion_beam_surround,
+            )
+            .line(-leg_width_half, 0)
+            .close()
+            .extrude(leg_length)
+        )
+
+        leg_subtract = (
+            cq.Workplane("YZ")
+            .rect(self.tt_bracket_width, self.tt_bracket_width)
+            .extrude(leg_length)
+        )
+
+        beam_surround = (
+            cq.Workplane("YZ")
+            .transformed(
+                offset=cq.Vector(
+                    0,
+                    -self.center_line_height
+                    - self.extrusion_beam_surround
+                    - self.extrusion_beam_clear / 2,
+                )
+            )
+            .rect(
+                self.extrusion_beam_clear + self.extrusion_beam_surround * 2,
+                self.extrusion_beam_clear + self.extrusion_beam_surround * 2,
+            )
+            .rect(self.extrusion_beam_clear, self.extrusion_beam_clear)
+            .extrude(leg_length + 15)
+        )
+
+        fastener_subtract = (
+            cq.Workplane("XZ")
+            .transformed(
+                offset=cq.Vector(
+                    leg_length + 15 / 2,
+                    -self.center_line_height
+                    - self.extrusion_beam_surround
+                    - self.extrusion_beam_clear / 2,
+                    self.extrusion_beam_clear / 2,
+                )
+            )
+            .circle(radius=2.5)
+            .workplane(offset=self.extrusion_beam_surround)
+            .circle(radius=5)
+            .loft()
+        )
+
+        leg = leg_half + leg_half.mirror("XZ")
+        leg = leg.edges("|X").fillet(10)
+        leg = leg.faces(">X or <X").shell(3)
+
+        leg = leg - leg_subtract + self.tt_bracket() + beam_surround - fastener_subtract
+
+        return leg
+
 
 o = opener()
 show_object(
@@ -215,4 +355,9 @@ show_object(
 show_object(
     o.bottom_cone().translate((100, 0, 0)),
     options={"color": "green", "alpha": 0.5},
+)
+
+show_object(
+    o.spindle_head().translate((-20, 0, 0)),
+    options={"color": "blue", "alpha": 0.5},
 )
