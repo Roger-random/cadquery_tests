@@ -43,20 +43,38 @@ if "show_object" not in globals():
 
 class opener:
     def __init__(self):
-        self.inner_lip_radius_outer = 56.4 / 2
-        self.inner_lip_radius_inner = 54 / 2
-        self.inner_lip_radius_clear = 50 / 2
-        self.rim_radius_outer = 59.5 / 2
-        self.inner_lip_depth = 6
+        self.rim_radius_outer = 59.35 / 2
+        self.rim_height = 2.73
+        self.can_radius_outer = 57.8 / 2
         self.nozzle_diameter = 0.4
+        self.claw_size = 1
+        self.wedge_width = 3
+        self.top_lip_slope = self.rim_radius_outer - self.can_radius_outer
 
-    def inner_lip(self):
-        ring = (
+    def rim_clip(self):
+        revolve = (
             cq.Workplane("XZ")
-            .lineTo(0, self.inner_lip_radius_clear, forConstruction=True)
-            .lineTo(0, self.inner_lip_radius_outer)
-            .lineTo(self.inner_lip_depth, self.inner_lip_radius_inner)
-            .line(0, -self.nozzle_diameter)
+            .lineTo(0, self.rim_radius_outer - 3, forConstruction=True)
+            .lineTo(0, self.rim_radius_outer)
+            .lineTo(self.rim_height, self.rim_radius_outer)
+            .lineTo(self.rim_height + self.top_lip_slope, self.can_radius_outer)
+            .lineTo(
+                self.rim_height + self.claw_size + self.top_lip_slope,
+                self.can_radius_outer,
+            )
+            .lineTo(
+                self.rim_height + self.claw_size + self.wedge_width,
+                self.can_radius_outer + self.wedge_width,
+            )
+            .lineTo(
+                self.rim_height + self.claw_size + self.wedge_width,
+                self.can_radius_outer + self.wedge_width + self.claw_size,
+            )
+            .lineTo(
+                -self.wedge_width,
+                self.can_radius_outer + self.wedge_width + self.claw_size,
+            )
+            .lineTo(-self.wedge_width, self.rim_radius_outer - 3)
             .close()
             .revolve(
                 angleDegrees=360,
@@ -65,17 +83,26 @@ class opener:
             )
         )
 
-        ring_base = (
-            cq.Workplane("YZ")
-            .circle(radius=self.rim_radius_outer)
-            .circle(radius=self.inner_lip_radius_clear - 3)
-            .extrude(-2)
+        return revolve
+
+    def rim_clip_slot(self):
+        rim_clip = self.rim_clip()
+
+        slot = (
+            cq.Workplane("XZ")
+            .line(-self.rim_radius_outer, 0)
+            .line(0, self.rim_radius_outer * 2)
+            .line(self.rim_radius_outer * 2, 0)
+            .line(0, -self.rim_radius_outer * 2)
+            .close()
+            .extrude(0.1)
         )
-        return ring + ring_base
+
+        return rim_clip - slot
 
 
 o = opener()
 show_object(
-    o.inner_lip(),
+    o.rim_clip_slot(),
     options={"color": "green", "alpha": 0.5},
 )
