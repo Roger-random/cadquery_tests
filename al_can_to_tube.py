@@ -353,6 +353,64 @@ class opener:
             .extrude(7)
         )
 
+    def spindle_tail(self):
+        length = 15
+        width_half = self.extrusion_beam_clear / 2
+        structure = (
+            cq.Workplane("YZ")
+            .lineTo(width_half, -width_half, forConstruction=True)
+            .lineTo(
+                width_half,
+                -self.center_line_height
+                - self.extrusion_beam_surround
+                - self.extrusion_beam_clear,
+            )
+            .line(-width_half * 2, 0)
+            .lineTo(-width_half, -width_half)
+            .tangentArcPoint(endpoint=cq.Vector(width_half * 2, 0))
+            .close()
+            .extrude(length)
+            .faces(">X or <X")
+            .shell(3)
+        )
+
+        extrusion_top = (
+            cq.Workplane("YZ")
+            .transformed(offset=cq.Vector(0, -self.center_line_height))
+            .rect(
+                xLen=width_half * 2,
+                yLen=-self.extrusion_beam_surround,
+                centered=(True, False),
+            )
+            .extrude(length)
+        )
+
+        fastener_subtract = (
+            cq.Workplane("XZ")
+            .transformed(
+                offset=cq.Vector(
+                    15 / 2,
+                    -self.center_line_height
+                    - self.extrusion_beam_surround
+                    - self.extrusion_beam_clear / 2,
+                    self.extrusion_beam_clear / 2,
+                )
+            )
+            .circle(radius=2.5)
+            .workplane(offset=self.extrusion_beam_surround)
+            .circle(radius=5)
+            .loft()
+        )
+
+        tail_support = (
+            cq.Workplane("YZ").circle(radius=6).extrude(length + 1).translate((-1.0, 0))
+        )
+        bolt_clear = (
+            cq.Workplane("YZ").circle(radius=6.5 / 2).extrude(length, both=True)
+        )
+
+        return structure + extrusion_top + tail_support - fastener_subtract - bolt_clear
+
 
 o = opener()
 show_object(
@@ -372,5 +430,10 @@ show_object(
 
 show_object(
     o.spindle_head().translate((-20, 0, 0)),
+    options={"color": "blue", "alpha": 0.5},
+)
+
+show_object(
+    o.spindle_tail().translate((108, 0, 0)),
     options={"color": "blue", "alpha": 0.5},
 )
