@@ -345,6 +345,14 @@ class opener:
 
         return leg
 
+    def bearing_shim(self):
+        return (
+            cq.Workplane("YZ")
+            .circle(radius=8 / 2)
+            .circle(radius=0.25 * 25.4 / 2)
+            .extrude(7)
+        )
+
 
 o = opener()
 show_object(
@@ -355,6 +363,11 @@ show_object(
 show_object(
     o.bottom_cone().translate((100, 0, 0)),
     options={"color": "green", "alpha": 0.5},
+)
+
+show_object(
+    o.bearing_shim().translate((100, 0, 0)),
+    options={"color": "blue", "alpha": 0.5},
 )
 
 show_object(
