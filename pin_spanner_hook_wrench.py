@@ -71,7 +71,7 @@ class wrench:
         self.snug_fit_margin = 0.2
 
         # Parameter dependent on target workpiece
-        self.pin_diameter = inch_to_mm(0.150)
+        self.pin_diameter = inch_to_mm(0.145)
         self.body_diameter = inch_to_mm(1.05)
         self.pin_hole_radius = self.pin_diameter / 2 + self.snug_fit_margin
         self.arch_radius_inner = self.body_diameter / 2 + self.snug_fit_margin
@@ -112,7 +112,7 @@ class wrench:
             cq.Workplane("YZ")
             .transformed(offset=(0, 0, -self.arch_radius_inner))
             .circle(radius=self.thickness / 2)
-            .extrude(-self.arch_width - self.thickness)
+            .extrude(-self.arch_width * 3)
             .faces("<X")
             .chamfer(length=self.pin_hole_radius)
         )
