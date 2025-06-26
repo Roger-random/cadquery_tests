@@ -68,7 +68,7 @@ class wrench:
 
     def __init__(self):
         # Parameter dependent on 3D printer precision
-        self.snug_fit_margin = 0.2
+        self.snug_fit_margin = 0.1
 
         # Parameter dependent on target workpiece
         self.pin_diameter = inch_to_mm(0.145)
@@ -134,8 +134,30 @@ class wrench:
             .chamfer(length=self.pin_hole_radius)
         )
 
+    def handle_add_2(self):
+        return (
+            cq.Workplane("XY")
+            .lineTo(-self.arch_radius_inner, 0, forConstruction=True)
+            .lineTo(-self.arch_radius_inner, -self.thickness / 2)
+            .lineTo(-self.arch_radius_inner - self.arch_width * 3, -self.thickness / 2)
+            .lineTo(-self.arch_radius_inner - self.arch_width * 3, self.thickness / 2)
+            .lineTo(-self.arch_radius_inner, self.arch_radius_outer)
+            .lineTo(self.arch_radius_inner, self.arch_radius_outer)
+            .lineTo(self.arch_radius_inner + self.handle_length, self.thickness / 2)
+            .lineTo(self.arch_radius_inner + self.handle_length, -self.thickness / 2)
+            .lineTo(self.arch_radius_inner, -self.thickness / 2)
+            .lineTo(self.arch_radius_inner, 0)
+            .radiusArc(
+                endPoint=(-self.arch_radius_inner, 0), radius=-self.arch_radius_inner
+            )
+            .close()
+            .extrude(self.thickness / 2, both=True)
+            .edges("|Z")
+            .fillet(2)
+        )
+
     def wrench(self):
-        wrench = w.arch() + w.pin_add() + w.handle_add() - w.pin_subtract()
+        wrench = w.handle_add_2() - w.pin_subtract()
 
         return wrench
 
