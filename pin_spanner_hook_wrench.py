@@ -75,6 +75,7 @@ class wrench:
         self.body_diameter = inch_to_mm(1.05)
         self.pin_hole_radius = self.pin_diameter / 2 + self.snug_fit_margin
         self.arch_radius_inner = self.body_diameter / 2 + self.snug_fit_margin
+        self.pin_hold_length = 12
 
         # Not sure yet if these will stay ratios of other parameters or if
         # they should be independent parameters by themselves.
@@ -87,7 +88,8 @@ class wrench:
         # Arch width is a tradeoff. Too small would break, too big would
         # prevent articulation necessary for pin to fit. If tradeoff could
         # not be found, would need to add a hinge like metal wrenches.
-        self.arch_width = 4
+        # Alternatively, make the pin retractable so we don't need to flex.
+        self.arch_width = 10
 
         self.arch_radius_outer = self.arch_radius_inner + self.arch_width
 
@@ -112,7 +114,7 @@ class wrench:
             cq.Workplane("YZ")
             .transformed(offset=(0, 0, -self.arch_radius_inner))
             .circle(radius=self.thickness / 2)
-            .extrude(-self.arch_width * 3)
+            .extrude(-self.pin_hold_length)
             .faces("<X")
             .chamfer(length=self.pin_hole_radius)
         )
@@ -139,8 +141,8 @@ class wrench:
             cq.Workplane("XY")
             .lineTo(-self.arch_radius_inner, 0, forConstruction=True)
             .lineTo(-self.arch_radius_inner, -self.thickness / 2)
-            .lineTo(-self.arch_radius_inner - self.arch_width * 3, -self.thickness / 2)
-            .lineTo(-self.arch_radius_inner - self.arch_width * 3, self.thickness / 2)
+            .lineTo(-self.arch_radius_inner - self.pin_hold_length, -self.thickness / 2)
+            .lineTo(-self.arch_radius_inner - self.pin_hold_length, self.thickness / 2)
             .lineTo(-self.arch_radius_inner, self.arch_radius_outer)
             .lineTo(self.arch_radius_inner, self.arch_radius_outer)
             .lineTo(self.arch_radius_inner + self.handle_length, self.thickness / 2)
