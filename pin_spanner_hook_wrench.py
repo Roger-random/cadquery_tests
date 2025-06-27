@@ -75,7 +75,7 @@ class wrench:
         self.body_diameter = inch_to_mm(0.95)
         self.pin_hole_radius = self.pin_diameter / 2 + self.snug_fit_margin
         self.arch_radius_inner = self.body_diameter / 2 + self.snug_fit_margin
-        self.pin_hold_length = 12
+        self.pin_hold_length = 16
 
         # Not sure yet if these will stay ratios of other parameters or if
         # they should be independent parameters by themselves.
