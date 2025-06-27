@@ -71,15 +71,15 @@ class wrench:
         self.snug_fit_margin = 0.1
 
         # Parameter dependent on target workpiece
-        self.pin_diameter = inch_to_mm(0.145)
-        self.body_diameter = inch_to_mm(1.05)
+        self.pin_diameter = inch_to_mm(0.196)
+        self.body_diameter = inch_to_mm(0.95)
         self.pin_hole_radius = self.pin_diameter / 2 + self.snug_fit_margin
         self.arch_radius_inner = self.body_diameter / 2 + self.snug_fit_margin
         self.pin_hold_length = 12
 
         # Not sure yet if these will stay ratios of other parameters or if
         # they should be independent parameters by themselves.
-        self.thickness = self.pin_diameter * 3
+        self.thickness = self.pin_diameter * 3.5
         self.handle_width = self.thickness * 3
 
         # Long enough to get a good hand hold
