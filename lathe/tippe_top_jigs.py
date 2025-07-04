@@ -67,17 +67,6 @@ class tippe_top_jigs:
         # Lathe tool post is designed for cutters of this shank size
         self.tool_height = inch_to_mm(0.75)
 
-        # Extra distance for bar puller claw clearance
-        self.bar_puller_gap = 0.5
-
-        # Bar puller shank
-        self.bar_puller_length = inch_to_mm(1)
-
-        # Where shank should be placed relative to centerline
-        self.bar_puller_centerline_dist = inch_to_mm(1.0)
-        # Bar puller claw
-        self.bar_puller_claw_margin = inch_to_mm(0.15)
-        self.bar_puller_claw = inch_to_mm(0.25)
         pass
 
     def tippe_body_round_exterior_lathe(self):
@@ -111,24 +100,37 @@ class tippe_top_jigs:
             .revolve(angleDegrees=360, axisStart=(0, 0, 0), axisEnd=(0, 1, 0))
         )
 
-    def bar_puller_interface_profile(self):
+    def bar_puller_interface_profile(
+        self,
+        bar_puller_gap=0.5,  # Extra claw clearance
+    ):
+        """
+        Profile used several times to generate bar puller
+        """
         return (
             cq.Workplane("XZ")
-            .lineTo(0, self.tippe_radius + self.bar_puller_gap)
-            .lineTo(-self.tippe_radius * 2, self.tippe_radius + self.bar_puller_gap)
+            .lineTo(0, self.tippe_radius + bar_puller_gap)
+            .lineTo(-self.tippe_radius * 2, self.tippe_radius + bar_puller_gap)
             .line(
-                -self.grip_groove - self.bar_puller_gap,
-                -self.grip_groove - self.bar_puller_gap,
+                -self.grip_groove - bar_puller_gap,
+                -self.grip_groove - bar_puller_gap,
             )
-            .lineTo(-self.tippe_radius * 2 - self.grip_groove - self.bar_puller_gap, 0)
+            .lineTo(-self.tippe_radius * 2 - self.grip_groove - bar_puller_gap, 0)
             .close()
         )
 
-    def bar_puller(self):
+    def bar_puller(
+        self,
+        bar_puller_length=inch_to_mm(1),  # Shank length
+        bar_puller_centerline_dist=inch_to_mm(1.0),  # Shank to centerline distance
+        bar_puller_claw_margin=inch_to_mm(0.15),  # Claw material top and bottom
+        bar_puller_claw=inch_to_mm(0.25),  # Claw thickness
+    ):
         """
         A claw to be mounted on tool post for hooking onto the grip groove
         and pull out bar in preparation for next run.
         """
+
         subtract_cylindrical = self.bar_puller_interface_profile().revolve(
             angleDegrees=180, axisStart=(0, 0, 0), axisEnd=(1, 0, 0)
         )
@@ -146,30 +148,30 @@ class tippe_top_jigs:
         body = (
             # Shank
             cq.Workplane("XZ")
-            .transformed(offset=(0, 0, self.bar_puller_centerline_dist))
+            .transformed(offset=(0, 0, bar_puller_centerline_dist))
             .lineTo(puller_min, 0, forConstruction=True)
-            .line(self.bar_puller_length, 0)
+            .line(bar_puller_length, 0)
             .line(0, -self.tool_height)
-            .line(-self.bar_puller_length, 0)
+            .line(-bar_puller_length, 0)
             .close()
             .extrude(self.tool_height)
             # Prism connecting shank to claw
             .faces(">Y")
             .workplane()
             .lineTo(-puller_min, 0, forConstruction=True)
-            .line(-self.bar_puller_length, 0)
+            .line(-bar_puller_length, 0)
             .line(0, -self.tool_height)
-            .line(self.bar_puller_length, 0)
+            .line(bar_puller_length, 0)
             .close()
-            .workplane(offset=self.bar_puller_centerline_dist - self.tippe_radius)
+            .workplane(offset=bar_puller_centerline_dist - self.tippe_radius)
             .lineTo(
                 -puller_min,
-                self.tippe_radius + self.bar_puller_claw_margin,
+                self.tippe_radius + bar_puller_claw_margin,
                 forConstruction=True,
             )
-            .line(-self.bar_puller_length / 2, 0)
-            .line(0, -self.tippe_radius * 2 - self.bar_puller_claw_margin * 2)
-            .line(self.bar_puller_length / 2, 0)
+            .line(-bar_puller_length / 2, 0)
+            .line(0, -self.tippe_radius * 2 - bar_puller_claw_margin * 2)
+            .line(bar_puller_length / 2, 0)
             .close()
             .loft()
             # Claw exterior
@@ -177,22 +179,22 @@ class tippe_top_jigs:
             .workplane()
             .lineTo(
                 -puller_min,
-                self.tippe_radius + self.bar_puller_claw_margin,
+                self.tippe_radius + bar_puller_claw_margin,
                 forConstruction=True,
             )
-            .line(-self.bar_puller_length / 2, 0)
-            .line(0, -self.tippe_radius * 2 - self.bar_puller_claw_margin * 2)
-            .line(self.bar_puller_length / 2, 0)
+            .line(-bar_puller_length / 2, 0)
+            .line(0, -self.tippe_radius * 2 - bar_puller_claw_margin * 2)
+            .line(bar_puller_length / 2, 0)
             .close()
-            .workplane(offset=self.tippe_radius + self.bar_puller_claw_margin)
+            .workplane(offset=self.tippe_radius + bar_puller_claw_margin)
             .lineTo(
                 -puller_min,
-                self.tippe_radius + self.bar_puller_claw_margin,
+                self.tippe_radius + bar_puller_claw_margin,
                 forConstruction=True,
             )
-            .line(-self.bar_puller_claw, 0)
-            .line(0, -self.tippe_radius * 2 - self.bar_puller_claw_margin * 2)
-            .line(self.bar_puller_claw, 0)
+            .line(-bar_puller_claw, 0)
+            .line(0, -self.tippe_radius * 2 - bar_puller_claw_margin * 2)
+            .line(bar_puller_claw, 0)
             .close()
             .loft()
         )
