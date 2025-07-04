@@ -45,27 +45,53 @@ def inch_to_mm(length_inch: float):
     return length_inch * 25.4
 
 
-def tippe_revolve():
-    """
-    Visualizing the entire cross section of a Tippe Top body as it would sit
-    on a CNC collet cut from bar stock.
-    """
-    return (
-        cq.Workplane("ZX")
-        .radiusArc(endPoint=(1 / 2, -0.5), radius=0.5)
-        .radiusArc(endPoint=(0.7071 / 2, -0.85355), radius=0.5)
-        .lineTo(1.0 / 2, -1.0)
-        .lineTo(0.8 / 2, -1.1)
-        .lineTo(1.0 / 2, -1.2)
-        .lineTo(1.0 / 2, -1.5)
-        .radiusArc(endPoint=(0, -1.0), radius=-0.5)
-        .lineTo(0, -0.95355)
-        .lineTo(0.25, -0.95355)
-        .lineTo(0.25, -0.85355)
-        .lineTo(0, -0.85355)
-        .close()
-        .revolve(angleDegrees=360, axisStart=(0, 0, 0), axisEnd=(0, 1, 0))
-    )
+class tippe_top_jigs:
+    def __init__(
+        self,
+        tippe_radius=inch_to_mm(0.5),
+    ):
+        self.tippe_radius = tippe_radius
+        self.quarter_sphere_groove_radius = (
+            math.sin(math.radians(45)) * self.tippe_radius
+        )
+        self.tippe_body_top = -self.tippe_radius - self.quarter_sphere_groove_radius
+        self.part_off_tool_end = self.tippe_body_top - inch_to_mm(0.1)
+        pass
+
+    def tippe_body_round_exterior_lathe(self):
+        """
+        Visualizing the entire cross section of a Tippe Top body as it would sit
+        on a CNC collet cut from bar stock.
+        """
+        return (
+            cq.Workplane("ZX")
+            .radiusArc(
+                endPoint=(self.tippe_radius, -self.tippe_radius),
+                radius=self.tippe_radius,
+            )
+            .radiusArc(
+                endPoint=(
+                    self.quarter_sphere_groove_radius,
+                    -self.tippe_radius - self.quarter_sphere_groove_radius,
+                ),
+                radius=self.tippe_radius,
+            )
+            .lineTo(self.tippe_radius, -self.tippe_radius * 2)
+            .line(-inch_to_mm(0.1), -inch_to_mm(0.1))
+            .line(inch_to_mm(0.1), -inch_to_mm(0.1))
+            .lineTo(self.tippe_radius, -self.tippe_radius * 3)
+            .radiusArc(endPoint=(0, -self.tippe_radius * 2), radius=-self.tippe_radius)
+            .lineTo(0, self.part_off_tool_end)
+            .lineTo(inch_to_mm(0.325), self.part_off_tool_end)
+            .lineTo(inch_to_mm(0.325), self.tippe_body_top)
+            .lineTo(0, self.tippe_body_top)
+            .close()
+            .revolve(angleDegrees=360, axisStart=(0, 0, 0), axisEnd=(0, 1, 0))
+        )
 
 
-show_object(tippe_revolve(), options={"color": "green", "alpha": 0.5})
+ttj = tippe_top_jigs()
+
+show_object(
+    ttj.tippe_body_round_exterior_lathe(), options={"color": "green", "alpha": 0.5}
+)
