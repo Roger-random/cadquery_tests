@@ -201,6 +201,241 @@ class tippe_top_jigs:
 
         return (body - subtract).edges("|X").fillet(1.5)
 
+    def catcher(
+        self,
+        catch_width=inch_to_mm(0.5),
+        mouth_gap_radius=inch_to_mm(0.2),
+        body_extra_radius=inch_to_mm(0.15),
+        body_length=inch_to_mm(1.5),
+        funnel_drop=inch_to_mm(0.2),
+        wall_thickness=1.6,
+        tiny_extra=1,
+        shank_width=inch_to_mm(2.5),
+    ):
+        mouth_interior_radius = self.tippe_radius + mouth_gap_radius
+        body_interior_radius = mouth_interior_radius + body_extra_radius
+
+        mouth_exterior_radius = mouth_interior_radius + wall_thickness
+        body_exterior_radius = body_interior_radius + wall_thickness
+
+        mild_drop = funnel_drop * 0.35
+
+        catcher_interior_subtract = (
+            cq.Workplane("YZ")
+            # Mouth opening to workpiece
+            .transformed(
+                offset=(
+                    0,
+                    0,
+                    -self.tippe_radius - mouth_gap_radius - tiny_extra,
+                )
+            )
+            .lineTo(0, mouth_interior_radius - tiny_extra, forConstruction=True)
+            .radiusArc(
+                endPoint=(0, -mouth_interior_radius + tiny_extra),
+                radius=mouth_interior_radius - tiny_extra,
+            )
+            .line(-catch_width, 0)
+            .radiusArc(
+                endPoint=(-catch_width, mouth_interior_radius - tiny_extra),
+                radius=mouth_interior_radius - tiny_extra,
+            )
+            .close()
+            .workplane(offset=body_extra_radius + tiny_extra)
+            .lineTo(0, body_interior_radius, forConstruction=True)
+            .radiusArc(endPoint=(0, -body_interior_radius), radius=body_interior_radius)
+            .line(-catch_width, 0)
+            .radiusArc(
+                endPoint=(-catch_width, body_interior_radius),
+                radius=body_interior_radius,
+            )
+            .close()
+            .loft()
+            # Mild drop
+            .faces(">X")
+            .workplane()
+            .lineTo(0, body_interior_radius, forConstruction=True)
+            .radiusArc(endPoint=(0, -body_interior_radius), radius=body_interior_radius)
+            .line(-catch_width, 0)
+            .radiusArc(
+                endPoint=(-catch_width, body_interior_radius),
+                radius=body_interior_radius,
+            )
+            .close()
+            .workplane(offset=self.tippe_radius)
+            .lineTo(0, body_interior_radius - mild_drop, forConstruction=True)
+            .radiusArc(
+                endPoint=(0, -body_interior_radius - mild_drop),
+                radius=body_interior_radius,
+            )
+            .line(-catch_width, 0)
+            .radiusArc(
+                endPoint=(-catch_width, body_interior_radius - mild_drop),
+                radius=body_interior_radius,
+            )
+            .close()
+            .loft()
+            # Funnel down
+            .faces(">X")
+            .workplane()
+            .lineTo(0, body_interior_radius - mild_drop, forConstruction=True)
+            .radiusArc(
+                endPoint=(0, -body_interior_radius - mild_drop),
+                radius=body_interior_radius,
+            )
+            .line(-catch_width, 0)
+            .radiusArc(
+                endPoint=(-catch_width, body_interior_radius - mild_drop),
+                radius=body_interior_radius,
+            )
+            .close()
+            .workplane(offset=body_length - self.tippe_radius)
+            .lineTo(
+                body_extra_radius,
+                -body_interior_radius - funnel_drop + self.tippe_radius * 2,
+                forConstruction=True,
+            )
+            .radiusArc(
+                endPoint=(
+                    body_extra_radius,
+                    -body_interior_radius - funnel_drop,
+                ),
+                radius=self.tippe_radius,
+            )
+            .line(-0.1, 0)
+            .radiusArc(
+                endPoint=(
+                    body_extra_radius - 0.1,
+                    -body_interior_radius - funnel_drop + self.tippe_radius * 2,
+                ),
+                radius=self.tippe_radius,
+            )
+            .close()
+            .loft()
+            # Remaining extension
+            .faces(">X")
+            .workplane()
+            .transformed(
+                offset=(
+                    body_extra_radius - 0.1,
+                    -body_interior_radius - funnel_drop + self.tippe_radius,
+                )
+            )
+            .circle(radius=self.tippe_radius)
+            .workplane(offset=self.tippe_radius * 2)
+            .transformed(offset=(0, -inch_to_mm(0.1)))
+            .circle(radius=self.tippe_radius)
+            .loft()
+        )
+
+        hack_drop_factor = 1.5
+
+        catcher_exterior = (
+            cq.Workplane("YZ")
+            # Mouth opening to workpiece
+            .transformed(
+                offset=(
+                    0,
+                    0,
+                    -self.tippe_radius - mouth_gap_radius,
+                )
+            )
+            .lineTo(0, mouth_exterior_radius, forConstruction=True)
+            .radiusArc(
+                endPoint=(0, -mouth_exterior_radius),
+                radius=mouth_exterior_radius,
+            )
+            .line(-catch_width, 0)
+            .radiusArc(
+                endPoint=(-catch_width, mouth_exterior_radius),
+                radius=mouth_exterior_radius,
+            )
+            .close()
+            .workplane(offset=body_extra_radius)
+            .lineTo(0, body_exterior_radius, forConstruction=True)
+            .radiusArc(endPoint=(0, -body_exterior_radius), radius=body_exterior_radius)
+            .line(-catch_width, 0)
+            .radiusArc(
+                endPoint=(-catch_width, body_exterior_radius),
+                radius=body_exterior_radius,
+            )
+            .close()
+            .loft()
+            # Main body
+            .faces(">X")
+            .workplane()
+            .lineTo(0, body_exterior_radius, forConstruction=True)
+            .radiusArc(
+                endPoint=(0, -body_exterior_radius),
+                radius=body_exterior_radius,
+            )
+            .line(-catch_width, 0)
+            .radiusArc(
+                endPoint=(-catch_width, body_exterior_radius),
+                radius=body_exterior_radius,
+            )
+            .close()
+            .workplane(offset=body_length + self.tippe_radius * 2 + wall_thickness)
+            .lineTo(
+                0,
+                body_exterior_radius - funnel_drop * hack_drop_factor,
+                forConstruction=True,
+            )
+            .radiusArc(
+                endPoint=(0, -body_exterior_radius - funnel_drop * hack_drop_factor),
+                radius=body_exterior_radius,
+            )
+            .line(-catch_width, 0)
+            .radiusArc(
+                endPoint=(
+                    -catch_width,
+                    body_exterior_radius - funnel_drop * hack_drop_factor,
+                ),
+                radius=body_exterior_radius,
+            )
+            .close()
+            .loft()
+            # Shank
+            .faces(">X")
+            .workplane()
+            .line(-shank_width, 0)
+            .line(0, -self.tool_height)
+            .line(shank_width, 0)
+            .close()
+            .extrude(-inch_to_mm(2.5))
+        )
+
+        part_off_subtract = (
+            cq.Workplane("YZ")
+            .transformed(offset=(inch_to_mm(0.1), inch_to_mm(0.1), inch_to_mm(0.1)))
+            .rect(-shank_width * 2, -shank_width * 2, centered=False)
+            .extrude(-shank_width)
+        )
+
+        retrieval_subtract = (
+            cq.Workplane("XZ")
+            .transformed(offset=(0, 0, 50))
+            .lineTo(
+                body_length + self.tippe_radius + tiny_extra,
+                -body_exterior_radius
+                - funnel_drop * hack_drop_factor
+                + self.tippe_radius,
+                forConstruction=True,
+            )
+            .line(-55, 41)
+            .line(60, 0)
+            .line(0, -40)
+            .close()
+            .extrude(-100)
+        )
+
+        return (
+            catcher_exterior
+            - part_off_subtract
+            - retrieval_subtract
+            - catcher_interior_subtract
+        )
+
 
 ttj = tippe_top_jigs()
 
@@ -208,4 +443,5 @@ show_object(
     ttj.tippe_body_round_exterior_lathe(), options={"color": "green", "alpha": 0.5}
 )
 
-show_object(ttj.bar_puller(), options={"color": "blue", "alpha": 0.5})
+# show_object(ttj.bar_puller(), options={"color": "blue", "alpha": 0.5})
+show_object(ttj.catcher(), options={"color": "red", "alpha": 0.5})
