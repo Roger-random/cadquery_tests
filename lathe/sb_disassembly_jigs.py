@@ -77,7 +77,68 @@ class sb_disassembly_jigs:
         )
         return gear_surround + pin_clear
 
+    def worm_gear_pin_guide(self):
+        """
+        The apron worm gear is held by a collar, which is kept from rotating
+        by a pin. The pin was supposed to "just tap out" and it did not. Now I
+        will apply more force with a C-clamp.
+
+        Worm gear collar exterior will have a smaller pin collar: inner hole
+        to clear the pin with outer structure to support load between C-clamp
+        and worm gear collar. Made of metal, turned on a lathe.
+
+        Worm gear collar interior will have a push pin less than the worm gear
+        collar pin of 0.125" diameter. This push pin transferring C-clamp force
+        will also need to be metal for strength and turned on a lathe.
+
+        Locating that inner push pin is this 3D-printed guide, which sits in
+        the keyway to locate along one axis and flush against the collar end
+        to locate along other axis.
+        """
+
+        # Measured dimensions, in decimal inches
+        pin_diameter = 0.125
+        pin_edge_to_collar_edge = 0.1375
+        keyway_width = 0.192
+        keyway_depth = 0.065
+        center_hole_diameter = 0.756
+
+        # Half of 3D printer nozzle diameter, for clearance
+        clearance = 0.02
+
+        length_half = inch_to_mm(pin_edge_to_collar_edge + pin_diameter / 2)
+
+        keyway = (
+            cq.Workplane("YZ")
+            .rect(
+                xLen=inch_to_mm(keyway_width) - clearance,
+                yLen=inch_to_mm(keyway_depth * 2),
+            )
+            .extrude(length_half, both=True)
+        )
+
+        lead_screw_hole = (
+            cq.Workplane("YZ")
+            .transformed(offset=(0, -inch_to_mm(center_hole_diameter / 2)))
+            .circle(radius=(inch_to_mm(center_hole_diameter / 2)) - clearance)
+            .extrude(length_half, both=True)
+        )
+
+        guide_intersect = (
+            cq.Workplane("XY")
+            .transformed(offset=(0, 0, -inch_to_mm(keyway_depth * 2)))
+            .rect(xLen=length_half * 2, yLen=length_half * 2)
+            .circle(radius=(inch_to_mm(pin_diameter) / 2) - clearance)
+            .extrude(inch_to_mm(keyway_depth) * 3)
+        )
+
+        guide = (
+            (keyway + lead_screw_hole).intersect(guide_intersect).edges("|Z").fillet(1)
+        )
+
+        return guide
+
 
 jigs = sb_disassembly_jigs()
 
-show_object(jigs.traverse_gear_support(), options={"color": "green", "alpha": 0.5})
+show_object(jigs.worm_gear_pin_guide(), options={"color": "green", "alpha": 0.5})
