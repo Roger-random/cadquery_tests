@@ -98,13 +98,13 @@ class sb_disassembly_jigs:
 
         # Measured dimensions, in decimal inches
         pin_diameter = 0.125
-        pin_edge_to_collar_edge = 0.1375
+        pin_edge_to_collar_edge = 0.115
         keyway_width = 0.192
         keyway_depth = 0.065
         center_hole_diameter = 0.756
 
-        # Half of 3D printer nozzle diameter, for clearance
-        clearance = 0.02
+        # Half of 3D printer nozzle diameter, in mm, for clearance
+        clearance = 0.2
 
         length_half = inch_to_mm(pin_edge_to_collar_edge + pin_diameter / 2)
 
@@ -128,7 +128,7 @@ class sb_disassembly_jigs:
             cq.Workplane("XY")
             .transformed(offset=(0, 0, -inch_to_mm(keyway_depth * 2)))
             .rect(xLen=length_half * 2, yLen=length_half * 2)
-            .circle(radius=(inch_to_mm(pin_diameter) / 2) - clearance)
+            .circle(radius=(inch_to_mm(pin_diameter) / 2) + clearance)
             .extrude(inch_to_mm(keyway_depth) * 3)
         )
 
