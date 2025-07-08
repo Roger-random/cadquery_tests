@@ -138,7 +138,52 @@ class sb_disassembly_jigs:
 
         return guide
 
+    def worm_gear_hex_wrench_insert(self):
+        """
+        Apron worm gear is held in place by a collar that, once fastened, is
+        kept from loosening with pin that worm_gear_pin_guide helps remove.
+        Once pin is removed, the collar was supposed to turn, but it's hard
+        to get a grip on the worm gear.
+
+        This 3D-printed insert sits inside the worm gear. Its outer profile
+        matches the leadscrew with key, and the inner profile is intended for
+        a hex wrench. This allows us to turn the worm gear with a hex wrench
+        to remove its collar.
+        """
+        # Half of 3D printer nozzle diameter, in mm, for clearance
+        clearance = 0.2
+
+        # Dimensions related to worm gear
+        worm_gear_center_diameter = inch_to_mm(0.756)
+        key_width = inch_to_mm(0.192)
+        key_height = inch_to_mm(0.065)
+        hex_wrench_hole_size = inch_to_mm(3 / 8) + clearance
+        body_radius = (worm_gear_center_diameter - clearance) / 2
+
+        # Desired size
+        length = inch_to_mm(1 / 4)
+
+        body = cq.Workplane("XY").circle(radius=body_radius).extrude(length, both=True)
+        key = (
+            cq.Workplane("XY")
+            .transformed(offset=(body_radius, 0, 0))
+            .rect(xLen=key_height - clearance, yLen=key_width - clearance)
+            .extrude(length, both=True)
+        )
+
+        wrench = (
+            cq.Workplane("XY")
+            .polygon(nSides=6, diameter=hex_wrench_hole_size, circumscribed=True)
+            .extrude(length, both=True)
+        )
+
+        insert = body + key - wrench
+
+        return insert
+
 
 jigs = sb_disassembly_jigs()
 
-show_object(jigs.worm_gear_pin_guide(), options={"color": "green", "alpha": 0.5})
+show_object(
+    jigs.worm_gear_hex_wrench_insert(), options={"color": "green", "alpha": 0.5}
+)
