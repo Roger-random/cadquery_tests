@@ -77,6 +77,30 @@ class sb_disassembly_jigs:
         )
         return gear_surround + pin_clear
 
+    def reversing_gear_support(self):
+        """
+        Ring to support a reversing gear while I tap out its center pin,
+        which should exit out the center hole.
+        """
+        # Measured dimensions of reversing gear and its pin
+        gear_pitch_circle_diameter = inch_to_mm(1.578)
+        pin_outer_diameter = inch_to_mm(0.752)
+        height = inch_to_mm(0.9325)
+
+        # Half of 3D printer nozzle diameter, in mm, for clearance
+        clearance = 0.4
+
+        # Calculated dimensions
+        support_radius_outer = (gear_pitch_circle_diameter - clearance) / 2
+        support_radius_inner = (pin_outer_diameter + clearance) / 2
+
+        return (
+            cq.Workplane("XY")
+            .circle(radius=support_radius_outer)
+            .circle(support_radius_inner)
+            .extrude(height)
+        )
+
     def worm_gear_pin_guide(self):
         """
         The apron worm gear is held by a collar, which is kept from rotating
@@ -184,6 +208,4 @@ class sb_disassembly_jigs:
 
 jigs = sb_disassembly_jigs()
 
-show_object(
-    jigs.worm_gear_hex_wrench_insert(), options={"color": "green", "alpha": 0.5}
-)
+show_object(jigs.reversing_gear_support(), options={"color": "green", "alpha": 0.5})
