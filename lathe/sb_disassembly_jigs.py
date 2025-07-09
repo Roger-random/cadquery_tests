@@ -180,7 +180,7 @@ class sb_disassembly_jigs:
         # Dimensions related to worm gear
         worm_gear_center_diameter = inch_to_mm(0.756)
         key_width = inch_to_mm(0.192)
-        key_height = inch_to_mm(0.065)
+        key_height = inch_to_mm(0.085)
         hex_wrench_hole_size = inch_to_mm(3 / 8) + clearance
         body_radius = (worm_gear_center_diameter - clearance) / 2
 
@@ -191,7 +191,7 @@ class sb_disassembly_jigs:
         key = (
             cq.Workplane("XY")
             .transformed(offset=(body_radius, 0, 0))
-            .rect(xLen=key_height - clearance, yLen=key_width - clearance)
+            .rect(xLen=key_height * 2 - clearance, yLen=key_width - clearance)
             .extrude(length, both=True)
         )
 
@@ -208,4 +208,6 @@ class sb_disassembly_jigs:
 
 jigs = sb_disassembly_jigs()
 
-show_object(jigs.reversing_gear_support(), options={"color": "green", "alpha": 0.5})
+show_object(
+    jigs.worm_gear_hex_wrench_insert(), options={"color": "green", "alpha": 0.5}
+)
