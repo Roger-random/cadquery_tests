@@ -162,7 +162,10 @@ class sb_disassembly_jigs:
 
         return guide
 
-    def worm_gear_hex_wrench_insert(self):
+    def worm_gear_hex_wrench_insert(
+        self,
+        length=inch_to_mm(1 / 4),
+    ):
         """
         Apron worm gear is held in place by a collar that, once fastened, is
         kept from loosening with pin that worm_gear_pin_guide helps remove.
@@ -184,9 +187,6 @@ class sb_disassembly_jigs:
         hex_wrench_hole_size = inch_to_mm(3 / 8) + clearance
         body_radius = (worm_gear_center_diameter - clearance) / 2
 
-        # Desired size
-        length = inch_to_mm(1 / 4)
-
         body = cq.Workplane("XY").circle(radius=body_radius).extrude(length, both=True)
         key = (
             cq.Workplane("XY")
@@ -205,9 +205,43 @@ class sb_disassembly_jigs:
 
         return insert
 
+    def worm_gear_cleanup_arbor(self):
+        """
+        Worm gear hex wrench insert helped remove the collar, and now I have
+        a worm gear to clean. Laziness dictates that I enlist machinery help,
+        so this arbor is intended to help hold the worm gear and rotate it
+        so I can clean its circumference. Has a small T shape on one end to
+        help rubber band hold the hex wrench in place.
+        """
+        center = self.worm_gear_hex_wrench_insert(length=inch_to_mm(2))
+
+        hook_radius_outer = inch_to_mm(1)
+        hook_radius_inner = inch_to_mm(0.2)
+        hook_length = inch_to_mm(0.25)
+        hook_width = inch_to_mm(0.25)
+        hook_lip = inch_to_mm(0.25)
+
+        hook = (
+            cq.Workplane("XZ")
+            .transformed(offset=(0, -inch_to_mm(2), 0))
+            .lineTo(hook_radius_inner, 0, forConstruction=True)
+            .lineTo(hook_radius_outer, 0)
+            .line(0, hook_length + hook_lip)
+            .line(-hook_lip, 0)
+            .line(0, -hook_lip)
+            .lineTo(hook_radius_inner, hook_length)
+            .close()
+            .extrude(hook_width, both=True)
+            .faces(">X")
+            .edges("|Z")
+            .fillet(2)
+        )
+
+        arbor = center + hook + hook.mirror("YZ")
+
+        return arbor
+
 
 jigs = sb_disassembly_jigs()
 
-show_object(
-    jigs.worm_gear_hex_wrench_insert(), options={"color": "green", "alpha": 0.5}
-)
+show_object(jigs.worm_gear_cleanup_arbor(), options={"color": "green", "alpha": 0.5})
