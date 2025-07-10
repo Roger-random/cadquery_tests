@@ -79,7 +79,9 @@ class tippe_top_jigs:
         groove_end = (
             -self.tippe_radius - self.quarter_sphere_groove_radius - self.grip_groove
         )
-        remainder = self.tippe_radius * 2 + groove_end
+        groove_end_next_inch = math.floor(groove_end / 2.54)
+        groove_end_next = inch_to_mm(groove_end_next_inch / 10)
+
         return (
             cq.Workplane("ZX")
             .radiusArc(
@@ -91,7 +93,7 @@ class tippe_top_jigs:
             )
             .lineTo(self.quarter_sphere_groove_radius, groove_end)
             .lineTo(self.tippe_radius, groove_end)
-            .line(0, -remainder)
+            .lineTo(self.tippe_radius, groove_end_next)
             .line(-self.grip_groove, 0)
             .line(0, -self.grip_groove)
             .line(self.grip_groove, 0)
