@@ -101,6 +101,34 @@ class sb_disassembly_jigs:
             .extrude(height)
         )
 
+    def cross_feed_drive_pin_support(self):
+        """
+        Tube to support the apron casting as I tap out the cross-feed drive
+        gear axle pin. Tube width is smaller to clear drive select gear for
+        the topmost 1/2" but then widens for more strength for its 2.3" length
+        """
+        cone = (
+            cq.Workplane("XY")
+            .circle(radius=inch_to_mm(1.25))
+            .workplane(offset=inch_to_mm(2.3 - 0.5))
+            .circle(radius=inch_to_mm(0.5))
+            .loft()
+            .faces(">Z")
+            .workplane()
+            .circle(radius=inch_to_mm(0.5))
+            .extrude(inch_to_mm(0.5))
+        )
+
+        pin_clear = (
+            cq.Workplane("XY")
+            .circle(radius=inch_to_mm(0.65) / 2)
+            .extrude(inch_to_mm(2.3))
+        )
+
+        support = cone - pin_clear
+
+        return support
+
     def worm_gear_pin_guide(self):
         """
         The apron worm gear is held by a collar, which is kept from rotating
@@ -244,4 +272,6 @@ class sb_disassembly_jigs:
 
 jigs = sb_disassembly_jigs()
 
-show_object(jigs.worm_gear_cleanup_arbor(), options={"color": "green", "alpha": 0.5})
+show_object(
+    jigs.cross_feed_drive_pin_support(), options={"color": "green", "alpha": 0.5}
+)
