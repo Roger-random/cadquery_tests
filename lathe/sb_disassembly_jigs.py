@@ -129,6 +129,33 @@ class sb_disassembly_jigs:
 
         return support
 
+    def compound_collet_support(self):
+        """
+        After the compound collet was removed, the handcrank stayed attached
+        via a stubborn retaining nut. This shape supports the hand crank
+        collar so the retaining nut can be loosened with an impact driver
+        """
+        base = (
+            cq.Workplane("XY").rect(xLen=60, yLen=40).extrude(50).edges("|Z").fillet(5)
+        )
+        channel = (
+            cq.Workplane("XY")
+            .transformed(offset=(0, 0, 35))
+            .rect(xLen=60, yLen=16)
+            .extrude(20)
+        )
+        thread_clear = cq.Workplane("XY").circle(radius=15 / 2).extrude(50)
+        dial_clear = (
+            cq.Workplane("XY")
+            .transformed(offset=(0, 0, 20))
+            .circle(radius=27 / 2)
+            .extrude(30)
+        )
+
+        support = base - channel - thread_clear - dial_clear
+
+        return support
+
     def worm_gear_pin_guide(self):
         """
         The apron worm gear is held by a collar, which is kept from rotating
@@ -272,6 +299,4 @@ class sb_disassembly_jigs:
 
 jigs = sb_disassembly_jigs()
 
-show_object(
-    jigs.cross_feed_drive_pin_support(), options={"color": "green", "alpha": 0.5}
-)
+show_object(jigs.compound_collet_support(), options={"color": "green", "alpha": 0.5})
