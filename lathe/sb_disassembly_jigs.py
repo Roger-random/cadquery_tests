@@ -296,6 +296,56 @@ class sb_disassembly_jigs:
 
         return arbor
 
+    def lead_screw_wrench(self):
+        """
+        The worm gear hex wrench insert lets me pretend to be the lead screw
+        turning the worm gear. This is the inverse: a 3D printed part that
+        lets me pretend to be the worm gear applying torque against the lead
+        screw.
+        """
+
+        # Half of 3D printer nozzle diameter, in mm, for clearance
+        clearance = 0.2
+
+        # Dimensions related to worm gear
+        worm_gear_center_diameter = inch_to_mm(0.756)
+        key_width = inch_to_mm(0.192)
+        key_height = inch_to_mm(0.085)
+        body_radius = (worm_gear_center_diameter / 2) + clearance
+        thickness_half = inch_to_mm(1 / 4)
+        handle_length = inch_to_mm(4)
+        wrench_radius = inch_to_mm(0.75)
+
+        hole = (
+            cq.Workplane("XY")
+            .circle(radius=body_radius)
+            .extrude(thickness_half, both=True)
+        )
+        key = (
+            cq.Workplane("XY")
+            .transformed(offset=(body_radius, 0, 0))
+            .rect(xLen=key_height * 2 - clearance, yLen=key_width - clearance)
+            .extrude(thickness_half, both=True)
+        )
+
+        body_end = (
+            cq.Workplane("XY")
+            .circle(radius=wrench_radius)
+            .extrude(thickness_half, both=True)
+        )
+        body_center = cq.Workplane("XY").box(
+            length=handle_length,
+            width=wrench_radius * 2,
+            height=thickness_half * 2,
+            centered=(False, True, True),
+        )
+
+        body = body_end + body_center + body_end.translate((handle_length, 0, 0))
+
+        wrench = body - hole + key
+
+        return wrench
+
     def thin_crescent_wrench(self):
         """
         Quick change gearbox holds the leadscrew in place with two hex nuts
@@ -348,4 +398,4 @@ class sb_disassembly_jigs:
 
 jigs = sb_disassembly_jigs()
 
-show_object(jigs.thin_crescent_wrench(), options={"color": "green", "alpha": 0.5})
+show_object(jigs.lead_screw_wrench(), options={"color": "green", "alpha": 0.5})
