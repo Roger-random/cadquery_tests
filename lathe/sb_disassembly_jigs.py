@@ -296,7 +296,56 @@ class sb_disassembly_jigs:
 
         return arbor
 
+    def thin_crescent_wrench(self):
+        """
+        Quick change gearbox holds the leadscrew in place with two hex nuts
+        jammed together. They are 7/8" nuts thinner than my 7/8" wrench so
+        I couldn't grip the inner one. Let's see if a 3D printed thin wrench
+        is strong enough for the job. If not, I'll have to go out and buy
+        a cheap 7/8" wrench and grind it down.
+        """
+        clearance = 0.2
+        thickness = inch_to_mm(1 / 4) - clearance
+        fastener = inch_to_mm(7 / 8) - clearance
+        length = inch_to_mm(5)
+        width = fastener + inch_to_mm(2 / 3)
+
+        end = (
+            cq.Workplane("XY")
+            .circle(radius=width / 2)
+            .extrude(thickness / 2, both=True)
+        )
+        handle = (
+            cq.Workplane("XY")
+            .box(length=length, width=width, height=thickness)
+            .translate((-length / 2, 0, 0))
+        )
+
+        nut = (
+            cq.Workplane("XY")
+            .polygon(nSides=6, diameter=fastener, circumscribed=True)
+            .extrude(thickness / 2, both=True)
+            .rotate((0, 0, 0), (0, 0, 1), 360 / 12)
+        )
+
+        entry_x = width * math.sin(math.radians(30))
+        entry_y = width * math.cos(math.radians(30))
+        entry = (
+            cq.Workplane("XY")
+            .lineTo(entry_x, entry_y)
+            .lineTo(entry_x * 2, 0)
+            .lineTo(entry_x, -entry_y)
+            .close()
+            .extrude(thickness / 2, both=True)
+        )
+
+        body = end + handle + end.translate((-length, 0, 0)) - nut - entry
+
+        wrench = body
+
+        return wrench
+
 
 jigs = sb_disassembly_jigs()
 
-show_object(jigs.compound_collet_support(), options={"color": "green", "alpha": 0.5})
+show_object(jigs.thin_crescent_wrench(), options={"color": "green", "alpha": 0.5})
