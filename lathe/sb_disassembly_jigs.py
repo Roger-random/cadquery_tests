@@ -60,6 +60,8 @@ class sb_disassembly_jigs:
         pin. A cylindrical volume of 1.2" diameter to surround the gear and
         keep this support in the correct place, and a cylindrival volume of
         0.65" diameter to allow the pin to exit.
+
+        Result: Succes!
         """
         outer_radius = inch_to_mm(1.4) / 2
         gear_surround = (
@@ -106,6 +108,8 @@ class sb_disassembly_jigs:
         Tube to support the apron casting as I tap out the cross-feed drive
         gear axle pin. Tube width is smaller to clear drive select gear for
         the topmost 1/2" but then widens for more strength for its 2.3" length
+
+        Result: Success!
         """
         cone = (
             cq.Workplane("XY")
@@ -134,6 +138,8 @@ class sb_disassembly_jigs:
         After the compound collet was removed, the handcrank stayed attached
         via a stubborn retaining nut. This shape supports the hand crank
         collar so the retaining nut can be loosened with an impact driver
+
+        Result: Success!
         """
         base = (
             cq.Workplane("XY").rect(xLen=60, yLen=40).extrude(50).edges("|Z").fillet(5)
@@ -173,6 +179,8 @@ class sb_disassembly_jigs:
         Locating that inner push pin is this 3D-printed guide, which sits in
         the keyway to locate along one axis and flush against the collar end
         to locate along other axis.
+
+        Results: Success!
         """
 
         # Measured dimensions, in decimal inches
@@ -231,6 +239,8 @@ class sb_disassembly_jigs:
         matches the leadscrew with key, and the inner profile is intended for
         a hex wrench. This allows us to turn the worm gear with a hex wrench
         to remove its collar.
+
+        Results: Success!
         """
         # Half of 3D printer nozzle diameter, in mm, for clearance
         clearance = 0.2
@@ -267,6 +277,9 @@ class sb_disassembly_jigs:
         so this arbor is intended to help hold the worm gear and rotate it
         so I can clean its circumference. Has a small T shape on one end to
         help rubber band hold the hex wrench in place.
+
+        Results: The rubber band idea did not work, I snapped off the T end
+        and continued working with the remainder of the arbor.
         """
         center = self.worm_gear_hex_wrench_insert(length=inch_to_mm(2))
 
@@ -302,6 +315,9 @@ class sb_disassembly_jigs:
         turning the worm gear. This is the inverse: a 3D printed part that
         lets me pretend to be the worm gear applying torque against the lead
         screw.
+
+        Results: This did not work. Torque involved quickly sheared off the
+        pretend key.
         """
 
         # Half of 3D printer nozzle diameter, in mm, for clearance
@@ -353,12 +369,15 @@ class sb_disassembly_jigs:
         I couldn't grip the inner one. Let's see if a 3D printed thin wrench
         is strong enough for the job. If not, I'll have to go out and buy
         a cheap 7/8" wrench and grind it down.
+
+        Results: This did not work, but I was able to remove the nuts one
+        at a time: outer nut first, then inner nut, with my too-wide wrench.
         """
         clearance = 0.2
         thickness = inch_to_mm(1 / 4) - clearance
         fastener = inch_to_mm(7 / 8) - clearance
-        length = inch_to_mm(5)
-        width = fastener + inch_to_mm(2 / 3)
+        length = inch_to_mm(3)
+        width = fastener + inch_to_mm(3 / 4)
 
         end = (
             cq.Workplane("XY")
@@ -391,11 +410,11 @@ class sb_disassembly_jigs:
 
         body = end + handle + end.translate((-length, 0, 0)) - nut - entry
 
-        wrench = body
+        wrench = body.edges("|Z").fillet(2)
 
         return wrench
 
 
 jigs = sb_disassembly_jigs()
 
-show_object(jigs.lead_screw_wrench(), options={"color": "green", "alpha": 0.5})
+show_object(jigs.thin_crescent_wrench(), options={"color": "green", "alpha": 0.5})
