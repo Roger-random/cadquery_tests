@@ -414,7 +414,44 @@ class sb_disassembly_jigs:
 
         return wrench
 
+    def lead_screw_feet(self):
+        """
+        The main acme thread lead screw is an important part of the lathe's
+        precision capabilities. Once removed, we have to make sure it doesn't
+        roll off the workbench because such a fall could be fatally damaging.
+        These small shapes support the lead screw.
+
+        Printing and installing one should be enough to keep the lead screw
+        from rolling. Printing more than one will help distribute its own
+        weight across its length. Which may be important if the screw will be
+        left sitting for decades sagging under its own weight. (When installed
+        in a lathe, there are three points of support: gearbox, end, and apron)
+        """
+        clearance = 0.2
+        hole_radius = inch_to_mm(0.756) / 2 + clearance
+        centerline_height = inch_to_mm(1.15) / 2 + clearance
+        length_half = inch_to_mm(0.5)
+
+        feet_half = (
+            cq.Workplane("XY")
+            .line(0, centerline_height)
+            .line(-centerline_height * 2, 0)
+            .radiusArc((0, -centerline_height), radius=-centerline_height * 2)
+            .close()
+            .extrude(length_half, both=True)
+        )
+
+        feet = (feet_half + feet_half.mirror("YZ")).edges("|Z").fillet(5)
+
+        hole = (
+            cq.Workplane("XY")
+            .circle(radius=hole_radius)
+            .extrude(length_half, both=True)
+        )
+
+        return feet - hole
+
 
 jigs = sb_disassembly_jigs()
 
-show_object(jigs.thin_crescent_wrench(), options={"color": "green", "alpha": 0.5})
+show_object(jigs.lead_screw_feet(), options={"color": "green", "alpha": 0.5})
