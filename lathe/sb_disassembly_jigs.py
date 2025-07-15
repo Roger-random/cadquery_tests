@@ -451,7 +451,78 @@ class sb_disassembly_jigs:
 
         return feet - hole
 
+    def lead_screw_sleeve(self):
+        """
+        Sleeve to grip non-threaded head section of the acme lead screw in a
+        3-jaw chuck, with plastic spreading the load to avoid marring surface.
+        """
+        clearance = 0.2
+        hole_radius = inch_to_mm(0.756) / 2 + clearance
+        sleeve_radius = inch_to_mm(1.15) / 2 + clearance
+        length = inch_to_mm(1.5)
+
+        return (
+            cq.Workplane("XY")
+            .circle(radius=sleeve_radius)
+            .circle(radius=hole_radius)
+            .extrude(length)
+        )
+
+    def tool_post_rest(self):
+        """
+        Acme thread lead screw is too long to fit between chuck and tail stock
+        of a Logan 955. A steady rest or a follow rest might help, but neither
+        is available, so here's an oddball: the tool post rest.
+        """
+        hole_radius = inch_to_mm(0.75) / 2
+        tool_centerline_height = inch_to_mm(3 / 8)
+        tool_post_capacity = inch_to_mm(0.6)
+        ring_radius_inner = inch_to_mm(0.75)
+        ring_radius_outer = inch_to_mm(1)
+        ring_thickness_half = inch_to_mm(0.5)
+        finger_ball_radius = inch_to_mm(0.75)
+
+        finger_ball = (
+            cq.Workplane("XY")
+            .transformed(offset=(0, finger_ball_radius + hole_radius, 0))
+            .sphere(radius=finger_ball_radius)
+        )
+
+        ring_outer = (
+            cq.Workplane("XY")
+            .circle(radius=ring_radius_outer)
+            .extrude(ring_thickness_half, both=True)
+        )
+
+        tool_shank = (
+            cq.Workplane("XY")
+            .box(
+                length=ring_radius_outer + tool_post_capacity,
+                width=tool_post_capacity,
+                height=ring_thickness_half * 2,
+                centered=(False, False, True),
+            )
+            .translate((0, -tool_centerline_height, 0))
+        )
+
+        outer_volume = (ring_outer + tool_shank).edges("|Z").fillet(2.5)
+
+        finger = finger_ball.intersect(ring_outer)
+
+        ring_inner = (
+            cq.Workplane("XY")
+            .circle(radius=ring_radius_inner)
+            .extrude(ring_thickness_half, both=True)
+        )
+        return (
+            outer_volume
+            - ring_inner
+            + finger
+            + finger.rotate((0, 0, 0), (0, 0, 1), 120)
+            + finger.rotate((0, 0, 0), (0, 0, 1), 240)
+        )
+
 
 jigs = sb_disassembly_jigs()
 
-show_object(jigs.lead_screw_feet(), options={"color": "green", "alpha": 0.5})
+show_object(jigs.tool_post_rest(), options={"color": "green", "alpha": 0.5})
