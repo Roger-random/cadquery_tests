@@ -51,7 +51,11 @@ def inch_to_mm(length_inch: float):
     return length_inch * 25.4
 
 
-class collet_5c_tray:
+class storage_grid_trays:
+    """
+    Various trays using the storage grid system
+    """
+
     def __init__(
         self,
         cell_size=15,
@@ -59,7 +63,7 @@ class collet_5c_tray:
     ):
         self.cell_size = cell_size
 
-        # Measured from a collet and not specification dimensions
+        # Measured from a 5C collet and not specification dimensions
         self.stem_diameter = inch_to_mm(1.25)
         self.stem_length = inch_to_mm(2.7)
 
@@ -79,7 +83,7 @@ class collet_5c_tray:
             x=cell_size, y=cell_size, z=self.height, dovetail_gap=dovetail_gap
         )
 
-    def single_collet(self):
+    def single_5c(self):
         center = self.cell_size * self.cell_count / 2
         exterior = self.generator.basic_tray(
             self.cell_count, self.cell_count, wall_thickness=0
@@ -94,7 +98,7 @@ class collet_5c_tray:
 
         return exterior - cavity
 
-    def nine_collets(self):
+    def nine_5c(self):
         packed_cell_count = math.ceil(self.stem_diameter * 3.6 / self.cell_size)
 
         log(
@@ -128,7 +132,10 @@ class collet_5c_tray:
 
         return exterior
 
+    def pin_punch_set(self):
+        pass
 
-c5c = collet_5c_tray()
 
-show_object(c5c.nine_collets(), options={"color": "green", "alpha": 0.5})
+trays = storage_grid_trays()
+
+show_object(trays.nine_5c(), options={"color": "green", "alpha": 0.5})
