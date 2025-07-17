@@ -58,11 +58,12 @@ class tippe_top_jigs:
         self.tippe_body_top = -self.tippe_radius - self.quarter_sphere_groove_radius
 
         # Representing part off tool in visualization
-        self.part_off_tool_end = self.tippe_body_top - inch_to_mm(0.1)
+        self.part_off_tool_width = inch_to_mm(0.123)
+        self.part_off_tool_end = self.tippe_body_top - self.part_off_tool_width
         self.partoff_placeholder_radius = inch_to_mm(0.325)
 
         # Groove for bar puller to grip
-        self.grip_groove = inch_to_mm(0.1)
+        self.grip_groove = self.part_off_tool_width
 
         # Lathe tool post is designed for cutters of this shank size
         self.tool_height = inch_to_mm(0.75)
@@ -79,8 +80,7 @@ class tippe_top_jigs:
         groove_end = (
             -self.tippe_radius - self.quarter_sphere_groove_radius - self.grip_groove
         )
-        groove_end_next_inch = math.floor(groove_end / 2.54)
-        groove_end_next = inch_to_mm(groove_end_next_inch / 10)
+        groove_end_next = inch_to_mm(-1.05)
 
         return (
             cq.Workplane("ZX")
