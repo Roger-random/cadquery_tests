@@ -117,8 +117,13 @@ class tippe_top_jigs:
         thickness=2.4,
         collet_radius=inch_to_mm(0.5),
         center_radius=inch_to_mm(0.375),
+        inner_fillet=inch_to_mm(0.1),
         depth=inch_to_mm(1),
         width=inch_to_mm(0.625),
+        holding_ring_depth=inch_to_mm(0.2),
+        holding_ring_thickness=1.6,
+        holding_ring_chamfer=0.5,
+        clearance=0.2,
     ):
         """
         A ball is awkward to hold in a standard 5C collet. There are blanks
@@ -126,6 +131,10 @@ class tippe_top_jigs:
         but before we commit to cutting one up we can prototype with a 3D-
         printed collet that sits in a standard 5C collet.
         """
+        clearance_radius = collet_radius - clearance
+        holding_ring_start = (
+            depth - inner_fillet - holding_ring_depth - holding_ring_chamfer * 2
+        )
         revolve = (
             cq.Workplane("ZX")
             .radiusArc(
@@ -141,10 +150,15 @@ class tippe_top_jigs:
                 radius=-self.tippe_radius,
             )
             .lineTo(self.tippe_radius + thickness, -thickness)
-            .radiusArc(endPoint=(collet_radius, 0), radius=-thickness)
-            .lineTo(collet_radius, depth - collet_radius * 0.25)
+            .radiusArc(endPoint=(clearance_radius, 0), radius=-thickness)
+            .lineTo(clearance_radius, holding_ring_start)
+            .line(-holding_ring_chamfer, holding_ring_chamfer)
+            .line(holding_ring_chamfer - holding_ring_thickness, 0)
+            .line(0, holding_ring_depth)
+            .line(holding_ring_thickness - holding_ring_chamfer, 0)
+            .lineTo(clearance_radius, depth - inner_fillet)
             .radiusArc(
-                endPoint=(collet_radius * 0.75, depth), radius=-collet_radius / 4
+                endPoint=(clearance_radius - inner_fillet, depth), radius=-inner_fillet
             )
             .lineTo(0, depth)
             .close()
@@ -156,16 +170,13 @@ class tippe_top_jigs:
         )
 
         center = (
-            cq.Workplane("YZ").circle(radius=center_radius).extrude(depth - thickness)
+            cq.Workplane("YZ")
+            .circle(radius=center_radius)
+            .extrude(holding_ring_start)
+            .faces(">X")
+            .fillet(thickness)
         ) + (
             cq.Workplane("YZ").circle(radius=center_radius).extrude(-self.tippe_radius)
-        )
-
-        fastener = (
-            cq.Workplane("YZ")
-            .transformed(offset=(-center_radius / 2, 0))
-            .circle(radius=3.2 / 2)
-            .extrude(depth + 1)
         )
 
         radians120 = math.radians(120)
@@ -182,25 +193,26 @@ class tippe_top_jigs:
         )
         intersect = intersect_half + intersect_half.mirror("XY")
 
-        leaf = (revolve - center - fastener).intersect(intersect)
+        leaf = (revolve - center).intersect(intersect)
 
-        disc = (
-            (
-                cq.Workplane("YZ")
-                .transformed(offset=(0, 0, depth - thickness))
-                .circle(radius=center_radius - 0.2)
-                .extrude(-thickness)
-            )
-            - fastener
-            - fastener.rotate(
-                axisStartPoint=(0, 0, 0), axisEndPoint=(1, 0, 0), angleDegrees=120
-            )
-            - fastener.rotate(
-                axisStartPoint=(0, 0, 0), axisEndPoint=(1, 0, 0), angleDegrees=240
+        ring = (
+            cq.Workplane("YZ")
+            .transformed(offset=(0, 0, holding_ring_start + holding_ring_chamfer))
+            .circle(radius=clearance_radius)
+            .circle(radius=clearance_radius - holding_ring_thickness)
+            .extrude(holding_ring_depth)
+            .faces(">X")
+            .chamfer(holding_ring_chamfer)
+        ) - (
+            cq.Workplane("XY").box(
+                length=depth,
+                width=depth,
+                height=clearance,
+                centered=(False, False, True),
             )
         )
 
-        return (leaf, disc)
+        return (leaf, ring)
 
 
 ttj = tippe_top_jigs()
@@ -211,4 +223,10 @@ show_object(
 
 (leaf, disc) = ttj.collet_collet()
 show_object(leaf, options={"color": "red", "alpha": 0.5})
+show_object(
+    leaf.rotate((0, 0, 0), (1, 0, 0), 120), options={"color": "red", "alpha": 0.5}
+)
+show_object(
+    leaf.rotate((0, 0, 0), (1, 0, 0), -120), options={"color": "red", "alpha": 0.5}
+)
 show_object(disc, options={"color": "pink", "alpha": 0.5})
