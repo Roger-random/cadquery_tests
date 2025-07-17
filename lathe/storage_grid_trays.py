@@ -133,9 +133,103 @@ class storage_grid_trays:
         return exterior
 
     def pin_punch_set(self):
-        pass
+        """
+        Tray for Harbor Freight 93424 32959 56348
+        Pittsburgh 8-piece pin punch set
+        """
+        exterior = self.generator.basic_tray(4, 2, wall_thickness=0)
+        step_offset = 14
+        center_offset = 6
+
+        exterior = exterior - (
+            cq.Workplane("XY")
+            .transformed(offset=(center_offset, center_offset, self.bottom_padding))
+            .circle(radius=8 / 2)
+            .extrude(self.height)
+        )
+        exterior = exterior - (
+            cq.Workplane("XY")
+            .transformed(
+                offset=(center_offset + step_offset, center_offset, self.bottom_padding)
+            )
+            .circle(radius=8 / 2)
+            .extrude(self.height)
+        )
+        exterior = exterior - (
+            cq.Workplane("XY")
+            .transformed(
+                offset=(
+                    center_offset + step_offset * 2,
+                    center_offset,
+                    self.bottom_padding,
+                )
+            )
+            .circle(radius=9 / 2)
+            .extrude(self.height)
+        )
+        exterior = exterior - (
+            cq.Workplane("XY")
+            .transformed(
+                offset=(
+                    center_offset + step_offset * 3,
+                    center_offset,
+                    self.bottom_padding,
+                )
+            )
+            .circle(radius=9 / 2)
+            .extrude(self.height)
+        )
+        exterior = exterior - (
+            cq.Workplane("XY")
+            .transformed(
+                offset=(
+                    center_offset,
+                    center_offset + step_offset,
+                    self.bottom_padding,
+                )
+            )
+            .circle(radius=9 / 2)
+            .extrude(self.height)
+        )
+        exterior = exterior - (
+            cq.Workplane("XY")
+            .transformed(
+                offset=(
+                    center_offset + step_offset,
+                    center_offset + step_offset,
+                    self.bottom_padding,
+                )
+            )
+            .circle(radius=9 / 2)
+            .extrude(self.height)
+        )
+        exterior = exterior - (
+            cq.Workplane("XY")
+            .transformed(
+                offset=(
+                    center_offset + step_offset * 2,
+                    center_offset + step_offset,
+                    self.bottom_padding,
+                )
+            )
+            .circle(radius=11 / 2)
+            .extrude(self.height)
+        )
+        exterior = exterior - (
+            cq.Workplane("XY")
+            .transformed(
+                offset=(
+                    center_offset + step_offset * 3,
+                    center_offset + step_offset,
+                    self.bottom_padding,
+                )
+            )
+            .circle(radius=13 / 2)
+            .extrude(self.height)
+        )
+        return exterior
 
 
 trays = storage_grid_trays()
 
-show_object(trays.nine_5c(), options={"color": "green", "alpha": 0.5})
+show_object(trays.pin_punch_set(), options={"color": "green", "alpha": 0.5})
