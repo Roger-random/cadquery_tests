@@ -114,15 +114,15 @@ class tippe_top_jigs:
 
     def collet_collet(
         self,
-        thickness=2.4,
+        thickness=inch_to_mm(0.2),
         collet_radius=inch_to_mm(0.5),
         center_radius=inch_to_mm(0.375),
         inner_fillet=inch_to_mm(0.1),
         depth=inch_to_mm(1),
         width=inch_to_mm(0.625),
         holding_ring_depth=inch_to_mm(0.2),
-        holding_ring_thickness=1.6,
-        holding_ring_chamfer=0.5,
+        holding_ring_thickness=3,
+        holding_ring_chamfer=1,
         clearance=0.2,
     ):
         """
@@ -172,7 +172,7 @@ class tippe_top_jigs:
         center = (
             cq.Workplane("YZ")
             .circle(radius=center_radius)
-            .extrude(holding_ring_start)
+            .extrude(holding_ring_start - holding_ring_depth)
             .faces(">X")
             .fillet(thickness)
         ) + (
@@ -185,7 +185,8 @@ class tippe_top_jigs:
         intersect_outer_y = -self.tippe_radius - thickness - 1
         intersect_half = (
             cq.Workplane("YZ")
-            .lineTo(width * cos120 / 2, width * sin120 / 2)
+            .lineTo(-clearance, 0, forConstruction=True)
+            .lineTo(width * cos120 / 2 - clearance, width * sin120 / 2)
             .lineTo(intersect_outer_y, width * sin120 / 2)
             .lineTo(intersect_outer_y, 0)
             .close()
