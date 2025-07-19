@@ -522,7 +522,52 @@ class sb_disassembly_jigs:
             + finger.rotate((0, 0, 0), (0, 0, 1), 240)
         )
 
+    def cylindrical_pin_sleeve(
+        self, pin_diameter, sleeve_thickness, sleeve_length, slot_width=0.2
+    ):
+        """
+        Plastic sleeve around cylindrical pins so they can be held in a chuck
+        for cleanup without marring the precision surface. A slot is cut in
+        the side for easy installation and removal, but this simplistic
+        geometry means concentricity is not preserved. If concentricity is
+        important when this sleeve is used, a 4-jaw chuck (and work to center)
+        would be required.
+        """
+        return (
+            cq.Workplane("XY")
+            .circle(radius=(pin_diameter / 2) + sleeve_thickness)
+            .circle(radius=(pin_diameter / 2))
+            .extrude(sleeve_length)
+        ) - (
+            cq.Workplane("XY").box(
+                length=slot_width,
+                width=pin_diameter,
+                height=sleeve_length,
+                centered=(True, False, False),
+            )
+        )
+
+    def traverse_gear_axle_sleeve(self):
+        """
+        Sleeve around apron traverse gear axle pin for cleanup
+        """
+        return self.cylindrical_pin_sleeve(
+            pin_diameter=inch_to_mm(0.625),
+            sleeve_thickness=inch_to_mm(0.15),
+            sleeve_length=inch_to_mm(1),
+        )
+
+    def half_nut_axle_sleeve(self):
+        """
+        Sleeve around apron threading half nut axle pin for cleanup
+        """
+        return self.cylindrical_pin_sleeve(
+            pin_diameter=inch_to_mm(0.495),
+            sleeve_thickness=inch_to_mm(0.15),
+            sleeve_length=inch_to_mm(0.5),
+        )
+
 
 jigs = sb_disassembly_jigs()
 
-show_object(jigs.tool_post_rest(), options={"color": "green", "alpha": 0.5})
+show_object(jigs.half_nut_axle_sleeve(), options={"color": "green", "alpha": 0.5})
