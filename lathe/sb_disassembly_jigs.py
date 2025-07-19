@@ -567,7 +567,56 @@ class sb_disassembly_jigs:
             sleeve_length=inch_to_mm(0.5),
         )
 
+    def arbor_press_support(
+        self,
+        top_external_diameter,
+        top_recession_diameter,
+        top_recession_depth,
+        base_diameter,
+        height,
+    ):
+        """
+        3D-printed object to support a structure as a pin is pushed in on my
+        arbor press. Top has a specified recession to accommodate any portion
+        expected to protrude, and the bottom is a wider base for stability.
+        """
+        return (
+            cq.Workplane("XY")
+            .circle(radius=top_external_diameter / 2)
+            .workplane(offset=-height)
+            .circle(radius=base_diameter / 2)
+            .loft()
+        ) - (
+            cq.Workplane("XY")
+            .circle(radius=top_recession_diameter / 2)
+            .extrude(-top_recession_depth)
+        )
+
+    def traverse_gear_axle_support(self):
+        """
+        Support the face of the apron as traverse gear axle is pressed in.
+        """
+        return self.arbor_press_support(
+            top_external_diameter=inch_to_mm(1.0),
+            top_recession_diameter=inch_to_mm(0.67),
+            top_recession_depth=inch_to_mm(0.15),
+            base_diameter=inch_to_mm(1.5),
+            height=inch_to_mm(0.725),
+        )
+
+    def half_nut_axle_support(self):
+        """
+        Support the face of the apron as a half nut axle pin is pressed in.
+        """
+        return self.arbor_press_support(
+            top_external_diameter=inch_to_mm(0.67),
+            top_recession_diameter=inch_to_mm(0.32),
+            top_recession_depth=inch_to_mm(0.25),
+            base_diameter=inch_to_mm(1.0),
+            height=inch_to_mm(0.325),
+        )
+
 
 jigs = sb_disassembly_jigs()
 
-show_object(jigs.half_nut_axle_sleeve(), options={"color": "green", "alpha": 0.5})
+show_object(jigs.half_nut_axle_support(), options={"color": "green", "alpha": 0.5})
