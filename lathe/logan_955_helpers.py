@@ -111,7 +111,28 @@ class logan_955_helpers:
 
         return washer - slot
 
+    def oil_tray(self):
+        """
+        Small tray to hold a collection of 5 small oil bottles. (From Ilion)
+        """
+        base_volume = cq.Workplane("XY").box(
+            length=inch_to_mm(6.75),
+            width=inch_to_mm(2.4),
+            height=inch_to_mm(2 + (3 / 8)),
+        )
+
+        tray = (
+            base_volume.edges("|Z")
+            .fillet(inch_to_mm(0.25))
+            .faces("<Z")
+            .chamfer(inch_to_mm(0.1))
+            .faces("+Z")
+            .shell(1.6)
+        )
+
+        return tray
+
 
 helpers = logan_955_helpers()
 
-show_object(helpers.cross_feed_shim(), options={"color": "green", "alpha": 0.5})
+show_object(helpers.oil_tray(), options={"color": "green", "alpha": 0.5})
