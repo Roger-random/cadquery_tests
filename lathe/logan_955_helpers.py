@@ -55,6 +55,48 @@ class logan_955_helpers:
     def __init__(self):
         pass
 
+    def apron_lock_handle(self, square_side=(3 / 8) * 25.4 + 0.2, handle_length=50):
+        """
+        Handle for a square nut, intended for Z-axis apron axis lock
+        """
+        handle_width = square_side * 2.25
+        handle_height = square_side
+        handle_end = (
+            cq.Workplane("XY")
+            .circle(handle_width / 2)
+            .extrude(handle_height / 2, both=True)
+        )
+
+        handle_bar = (
+            cq.Workplane("XZ").rect(handle_width, handle_height).extrude(-handle_length)
+        )
+
+        nut_subtract = (
+            cq.Workplane("XY")
+            .rect(square_side, square_side)
+            .extrude(handle_height, both=True)
+        )
+
+        label = (
+            cq.Workplane("XY")
+            .transformed(rotate=cq.Vector(0, 0, 90))
+            .transformed(
+                offset=cq.Vector(
+                    handle_length / 2 + square_side * 0.75, 0, handle_height / 2 + 0.1
+                )
+            )
+            .text("Z LOCK", 13, -0.6, kind="bold")
+        )
+
+        handle = (
+            handle_end
+            + handle_bar
+            + handle_end.translate((0, handle_length, 0))
+            - nut_subtract
+        ).faces(">Z or <Z").chamfer(0.6) - label
+
+        return handle
+
     def cross_feed_shim(self):
         """
         3D-print a shim to take up some Logan cross-feed backlash. Due to
