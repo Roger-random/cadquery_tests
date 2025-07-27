@@ -48,7 +48,7 @@ def inch_to_mm(length_inch: float):
 class sb_disassembly_jigs:
     """
     A collection of simple shapes used to help disassemble a lathe for
-    rebuild: a South Bend Model A Catalog No. 955Y from 1942
+    renovation: a South Bend Model A Catalog No. 955Y from 1942
     """
 
     def __init__(self):
@@ -616,7 +616,31 @@ class sb_disassembly_jigs:
             height=inch_to_mm(0.325),
         )
 
+    def gear_box_input_shaft_support(self):
+        """
+        Support the gear box casing as the input (screw gear) shaft is tapped
+        free from its collar. (After the taper pin holding them together has
+        been removed.)
+        """
+        block_radius = 0.2 + inch_to_mm(2.0) / 2
+        outer_radius = block_radius + 0.8
+        return (
+            cq.Workplane("XY")
+            .circle(radius=outer_radius)
+            .circle(radius=block_radius)
+            .extrude(inch_to_mm(0.25))
+        ) + (
+            cq.Workplane("XY")
+            .circle(radius=outer_radius)
+            .circle(radius=1 + inch_to_mm(0.750) / 2)
+            .extrude(
+                -inch_to_mm(1.375 + 0.3125 + 0.25)
+            )  # Length of shaft protrusion + width of collar + extra space
+        )
+
 
 jigs = sb_disassembly_jigs()
 
-show_object(jigs.half_nut_axle_support(), options={"color": "green", "alpha": 0.5})
+show_object(
+    jigs.gear_box_input_shaft_support(), options={"color": "green", "alpha": 0.5}
+)
