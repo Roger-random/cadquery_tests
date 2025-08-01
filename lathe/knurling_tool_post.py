@@ -58,16 +58,16 @@ class knurling_tool_post:
         stock_diameter=inch_to_mm(4),
         width_saddle=inch_to_mm(3.5),
         height_saddle_to_tool=inch_to_mm(2),
-        height_tool=inch_to_mm(1.5),
-        width_tool=inch_to_mm(0.7),
-        tool_setback=inch_to_mm(1),
-        tool_setback_height=inch_to_mm(2),
+        height_tool=inch_to_mm(1.25),
+        width_tool=inch_to_mm(0.5),
+        tool_setback=inch_to_mm(0.5),
+        tool_setback_height=inch_to_mm(1.75),
         fastener_diameter=inch_to_mm(0.25),
-        cone_diameter_top=inch_to_mm(1),
-        cone_diameter_bottom=inch_to_mm(1.368),
-        cone_bottom_lip=inch_to_mm(0.07),
-        cone_top_gap=inch_to_mm(0.07),
-        cone_height=inch_to_mm(0.337),
+        cone_diameter_top=inch_to_mm(1.5),
+        cone_diameter_bottom=inch_to_mm(2),
+        cone_bottom_lip=inch_to_mm(0.05),
+        cone_top_gap=inch_to_mm(0.05),
+        cone_height=inch_to_mm(0.25),
     ):
         self.stock_diameter = stock_diameter
         self.width_saddle = width_saddle
@@ -87,8 +87,8 @@ class knurling_tool_post:
             self.height_saddle_to_tool + height_tool + inch_to_mm(0.5)
         )
 
-    def post(self):
-        cone = (
+    def cone(self):
+        return (
             cq.Workplane("XY")
             .circle(radius=self.cone_diameter_top / 2)
             .extrude(-self.cone_top_gap)
@@ -104,6 +104,7 @@ class knurling_tool_post:
             .extrude(self.cone_bottom_lip)
         )
 
+    def post(self):
         base = (
             cq.Workplane("XY")
             .circle(radius=self.stock_diameter / 2)
@@ -179,7 +180,7 @@ class knurling_tool_post:
         )
 
         post = (
-            cone
+            self.cone()
             + base.intersect(saddle_volume)
             - setback_volume
             - tool_install_volume
@@ -191,7 +192,15 @@ class knurling_tool_post:
 
         return post
 
+    def cone_dimension_test(self):
+        lip = (
+            cq.Workplane("XY")
+            .circle(radius=self.cone_diameter_bottom / 2)
+            .extrude(self.cone_height)
+        )
+        return (lip + self.cone()).rotate((0, 0, 0), (1, 0, 0), 180)
+
 
 ktp = knurling_tool_post()
 
-show_object(ktp.post(), options={"color": "gray", "alpha": 0.5})
+show_object(ktp.cone_dimension_test(), options={"color": "gray", "alpha": 0.5})
