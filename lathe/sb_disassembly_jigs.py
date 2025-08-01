@@ -623,7 +623,7 @@ class sb_disassembly_jigs:
         been removed.)
         """
         block_radius = 0.2 + inch_to_mm(2.0) / 2
-        outer_radius = block_radius + 0.8
+        outer_radius = block_radius + 2.4
         return (
             cq.Workplane("XY")
             .circle(radius=outer_radius)
@@ -634,8 +634,8 @@ class sb_disassembly_jigs:
             .circle(radius=outer_radius)
             .circle(radius=1 + inch_to_mm(0.750) / 2)
             .extrude(
-                -inch_to_mm(1.375 + 0.3125 + 0.25)
-            )  # Length of shaft protrusion + width of collar + extra space
+                -inch_to_mm(1.375 + 0.3125 + 2.5)
+            )  # Length of shaft protrusion + width of collar + additional space
         )
 
 
