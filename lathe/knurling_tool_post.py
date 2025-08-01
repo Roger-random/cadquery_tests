@@ -63,7 +63,7 @@ class knurling_tool_post:
         tool_setback=inch_to_mm(1),
         tool_setback_height=inch_to_mm(2),
         fastener_diameter=inch_to_mm(0.25),
-        cone_diameter_top=inch_to_mm(1),
+        cone_diameter_top=inch_to_mm(0.9875),
         cone_diameter_bottom=inch_to_mm(1.368),
         cone_bottom_lip=inch_to_mm(0.07),
         cone_top_gap=inch_to_mm(0.07),
