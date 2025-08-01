@@ -191,7 +191,14 @@ class logan_955_helpers:
 
         if jaws == 3:
             jaw_mill = jaw_mill + jaw_mill.mirror("XZ")
-            jaw_mill = jaw_mill.translate((0, 0, 0))
+            jaw_mill = jaw_mill.translate(
+                (
+                    jaw_slot_cut_depth
+                    - (bar_stock_radius - depth_to_leave * math.tan(math.radians(30))),
+                    0,
+                    0,
+                )
+            )
             for angle in range(0, 360, 120):
                 bar_stock = bar_stock - jaw_mill.rotate((0, 0, 0), (0, 0, 1), angle)
         elif jaws == 4:
@@ -206,5 +213,5 @@ class logan_955_helpers:
 helpers = logan_955_helpers()
 
 show_object(
-    helpers.chuck_removal_tool(jaws=4), options={"color": "green", "alpha": 0.5}
+    helpers.chuck_removal_tool(jaws=3), options={"color": "green", "alpha": 0.5}
 )
