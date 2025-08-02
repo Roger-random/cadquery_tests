@@ -215,19 +215,33 @@ class tippe_top_jigs:
 
         return (leaf, ring)
 
+    def collet_cap(self):
+        """
+        A piece of 3D-printed plastic that helps place a turned tippe top body
+        into a 1" 5C collet
+        """
+        subtract = (
+            cq.Workplane("YZ")
+            .transformed(offset=(0, 0, self.tippe_body_top))
+            .circle(radius=12.5)
+            .extrude(-self.tippe_body_top)
+        )
+
+        plate_radius = self.tippe_radius + 5
+        plate_hole_radius = 2
+        plate_well_depth = inch_to_mm(0.2)
+        plate_thickness = 2.4
+        plate = (
+            cq.Workplane("YZ")
+            .transformed(offset=(0, 0, self.tippe_body_top + plate_well_depth))
+            .circle(radius=plate_radius)
+            .circle(radius=plate_hole_radius)
+            .extrude(-plate_well_depth - plate_thickness)
+        )
+
+        return plate - subtract
+
 
 ttj = tippe_top_jigs()
 
-show_object(
-    ttj.tippe_body_round_exterior_lathe(), options={"color": "green", "alpha": 0.5}
-)
-
-(leaf, disc) = ttj.collet_collet()
-show_object(leaf, options={"color": "red", "alpha": 0.5})
-show_object(
-    leaf.rotate((0, 0, 0), (1, 0, 0), 120), options={"color": "red", "alpha": 0.5}
-)
-show_object(
-    leaf.rotate((0, 0, 0), (1, 0, 0), -120), options={"color": "red", "alpha": 0.5}
-)
-show_object(disc, options={"color": "pink", "alpha": 0.5})
+show_object(ttj.collet_cap(), options={"color": "green", "alpha": 0.5})
