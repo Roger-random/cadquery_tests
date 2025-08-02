@@ -173,6 +173,17 @@ class endmill_storage_grid:
             lengths=(97, 92, 99),
         )
 
+    def three_8c_collets(self):
+        local_generator = dovetailstoragegrid.DovetailStorageGrid(x=15, y=15, z=75)
+        volume = local_generator.basic_tray(3, 7, wall_thickness=0)
+        cylinder = cq.Workplane("XY").circle(radius=13).extrude(75)
+        return (
+            volume
+            - cylinder.translate((45 / 2, 35 / 2))
+            - cylinder.translate((45 / 2, 35 * 2.5))
+            - cylinder.translate((45 / 2, 35 * 1.5))
+        )
+
 
 esg = endmill_storage_grid()
-show_object(esg.long_endmills())
+show_object(esg.three_8c_collets())
