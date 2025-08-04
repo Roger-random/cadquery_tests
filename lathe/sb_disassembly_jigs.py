@@ -638,9 +638,20 @@ class sb_disassembly_jigs:
             )  # Length of shaft protrusion + width of collar + additional space
         )
 
+    def gear_box_input_shaft_sleeve(self):
+        """
+        When the gear box input (screw gear) shaft was removed, it was found
+        to be damaged. This sleeve will support a repair attempt.
+        """
+        return self.cylindrical_pin_sleeve(
+            pin_diameter=inch_to_mm(0.750),
+            sleeve_thickness=1.6,
+            sleeve_length=inch_to_mm(1.5),
+        )
+
 
 jigs = sb_disassembly_jigs()
 
 show_object(
-    jigs.gear_box_input_shaft_support(), options={"color": "green", "alpha": 0.5}
+    jigs.gear_box_input_shaft_sleeve(), options={"color": "green", "alpha": 0.5}
 )
