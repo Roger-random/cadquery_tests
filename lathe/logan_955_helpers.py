@@ -132,7 +132,7 @@ class logan_955_helpers:
 
         return tray
 
-    def chuck_removal_tool(self, jaws=3):
+    def chuck_removal_tool(self, jaws, jaw_slot_cut_depth):
         """
         Visualize the volume for a tool that helps removing a chuck. It is
         gripped by chuck jaws and presents a 7/8" hex for a wrench. 3D printed
@@ -152,7 +152,7 @@ class logan_955_helpers:
         )
 
         hex_size = inch_to_mm(7 / 8)
-        hex_length = inch_to_mm(0.75)
+        hex_length = inch_to_mm(0.6)
         endmill_diameter = inch_to_mm(0.75)
         endmill_removal_height = inch_to_mm(3)
         endmill_removal_length = inch_to_mm(4)
@@ -179,7 +179,6 @@ class logan_955_helpers:
 
         # Cut jaw slots
         jaw_length = inch_to_mm(1.5)
-        jaw_slot_cut_depth = inch_to_mm(0.3)
         depth_to_leave = bar_stock_radius - jaw_slot_cut_depth
         jaw_mill = endmill_removal.rotate((0, 0, 0), (1, 0, 0), 90).translate(
             (
@@ -213,5 +212,6 @@ class logan_955_helpers:
 helpers = logan_955_helpers()
 
 show_object(
-    helpers.chuck_removal_tool(jaws=3), options={"color": "green", "alpha": 0.5}
+    helpers.chuck_removal_tool(jaws=4, jaw_slot_cut_depth=inch_to_mm(0.25)),
+    options={"color": "green", "alpha": 0.5},
 )
