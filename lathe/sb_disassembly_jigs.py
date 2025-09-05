@@ -649,9 +649,91 @@ class sb_disassembly_jigs:
             sleeve_length=inch_to_mm(1.5),
         )
 
+    def saddle_rear_gib_dimension_test(self):
+        """
+        Saddle rear gib is missing and I can either buy or make a replacement.
+        This 3D-printed shape tests to see if I understand it enough to make
+        my own.
+        """
+        hole_radius = inch_to_mm(0.3320 / 2)
+        hole_distance_between = inch_to_mm(8.2)
+        hole_distance_to_end = inch_to_mm(0.6)
+        hole_distance_near_edge = inch_to_mm(0.5)
+        hole_distance_far_edge = inch_to_mm(1.0)
+        gib_thickness = inch_to_mm(0.5)
+        gib_corner_fillet = inch_to_mm(0.25)
+        channel_cut_inner = inch_to_mm(0.01)
+        channel_cut_center = inch_to_mm(0.1)
+        channel_cut_outer = inch_to_mm(0.02)
+        cut_width_inner = inch_to_mm(0.4)
+        cut_width_outer = inch_to_mm(0.2)
+
+        gib_half_length = hole_distance_to_end + hole_distance_between / 2
+
+        gib_half = (
+            cq.Workplane("XY")
+            .line(hole_distance_near_edge, 0)
+            .line(0, gib_half_length)
+            .line(-hole_distance_near_edge - hole_distance_far_edge, 0)
+            .line(0, -gib_half_length)
+            .close()
+            .extrude(-gib_thickness)
+            .edges("|Z and >Y")
+            .fillet(gib_corner_fillet)
+        )
+
+        cut_inner = (
+            cq.Workplane("XY")
+            .line(-hole_distance_far_edge, 0)
+            .line(0, gib_half_length)
+            .line(cut_width_inner, 0)
+            .line(0, -gib_half_length)
+            .close()
+            .extrude(-channel_cut_inner)
+        )
+
+        cut_center = (
+            cq.Workplane("XY")
+            .line(cut_width_inner - hole_distance_far_edge, 0)
+            .line(0, gib_half_length)
+            .line(
+                hole_distance_far_edge
+                - cut_width_inner
+                + hole_distance_near_edge
+                - cut_width_outer,
+                0,
+            )
+            .line(0, -gib_half_length)
+            .close()
+            .extrude(-channel_cut_center)
+        )
+
+        cut_outer = (
+            cq.Workplane("XY")
+            .line(hole_distance_near_edge, 0)
+            .line(0, gib_half_length)
+            .line(-cut_width_outer, 0)
+            .line(0, -gib_half_length)
+            .close()
+            .extrude(-channel_cut_outer)
+        )
+
+        hole = (
+            cq.Workplane("XY")
+            .transformed(offset=(0, hole_distance_between / 2))
+            .circle(radius=hole_radius)
+            .extrude(-gib_thickness)
+        )
+
+        half = gib_half - hole - cut_inner - cut_center - cut_outer
+
+        gib = half + half.mirror("XZ")
+
+        return gib.faces("<Z").chamfer(1)
+
 
 jigs = sb_disassembly_jigs()
 
 show_object(
-    jigs.gear_box_input_shaft_sleeve(), options={"color": "green", "alpha": 0.5}
+    jigs.saddle_rear_gib_dimension_test(), options={"color": "green", "alpha": 0.5}
 )
