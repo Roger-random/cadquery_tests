@@ -167,7 +167,25 @@ class multi_tool_block:
                 .circle(radius=value.diameter / 2)
                 .extrude(-value.length)
             )
-            block_raw = block_raw - tool_volume
+
+            set_screw = (
+                cq.Workplane("XY")
+                .transformed(
+                    offset=(
+                        tool_start - (index * self.tool_spacing),
+                        -max_tool_distance
+                        - value.offset
+                        + value.length
+                        - value.setscrew_position,
+                        0,
+                    )
+                )
+                .circle(radius=self.setscrew_diameter / 2)
+                .extrude(self.tool_height, both=True)
+            )
+
+            block_raw = block_raw - tool_volume - set_screw
+
             if self.tool_placeholder:
                 self.tool_placeholder += tool_volume
             else:
@@ -180,14 +198,16 @@ mtb = multi_tool_block()
 
 tool_list = list()
 
+common_offset = inch_to_mm(0.5)
+
 # Center drill
 tool_list.append(
     tool_dimension(
         diameter=inch_to_mm(3 / 8),
         length=inch_to_mm(2),
         exposed_length=inch_to_mm(1),
-        setscrew_position=inch_to_mm(0.5),
-        offset=inch_to_mm(0.1),
+        setscrew_position=inch_to_mm(0.75),
+        offset=inch_to_mm(0.1) + common_offset,
     )
 )
 
@@ -198,7 +218,7 @@ tool_list.append(
         length=inch_to_mm(4),
         exposed_length=inch_to_mm(2),
         setscrew_position=inch_to_mm(0.5),
-        offset=inch_to_mm(0.75),
+        offset=inch_to_mm(0.75) + common_offset,
     )
 )
 
@@ -209,7 +229,7 @@ tool_list.append(
         length=inch_to_mm(6),
         exposed_length=inch_to_mm(2),
         setscrew_position=inch_to_mm(0.5),
-        offset=inch_to_mm(0.5),
+        offset=inch_to_mm(0.5) + common_offset,
     )
 )
 
@@ -220,7 +240,7 @@ tool_list.append(
         length=inch_to_mm(5),
         exposed_length=inch_to_mm(4),
         setscrew_position=inch_to_mm(0.5),
-        offset=inch_to_mm(0.5),
+        offset=inch_to_mm(0.5) + common_offset,
     )
 )
 
