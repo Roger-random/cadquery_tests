@@ -56,7 +56,6 @@ class tool_dimension:
 
     diameter: float
     length: float
-    exposed_length: float
     setscrew_position: float
     offset: float
 
@@ -133,20 +132,31 @@ class multi_tool_block:
         block_width = self.tool_spacing * len(tools)
         shank = self.shank(length=block_width)
 
-        # Longest combination of tool length and negative offset dictates depth
-        # of the block.
+        # Establish the "offset=0" location based on length of all tools and
+        # their offsets, and also look for the tool with the setscrew closest
+        # to this point.
         max_tool_distance = 0
+        setscrew_closest_to_edge = inch_to_mm(6)
         for tool in tools:
             tool_space_requirement = tool.length - tool.offset
             if tool_space_requirement > max_tool_distance:
                 max_tool_distance = tool_space_requirement
 
+            setscrew_from_tip = tool_space_requirement - tool.setscrew_position
+            if setscrew_from_tip < setscrew_closest_to_edge:
+                setscrew_closest_to_edge = setscrew_from_tip
+
+        # Additional metal will add rigidity but no less than this.
+        min_block_size = (
+            max_tool_distance - setscrew_closest_to_edge + self.setscrew_diameter * 1.5
+        )
+
         block_raw = (
             cq.Workplane("YZ")
             .line(0, -self.tool_height)
-            .line(-max_tool_distance, 0)
+            .line(-min_block_size, 0)
             .line(0, self.tool_height * 2)
-            .line(max_tool_distance, 0)
+            .line(min_block_size, 0)
             .close()
             .extrude(block_width / 2, both=True)
         )
@@ -198,16 +208,13 @@ mtb = multi_tool_block()
 
 tool_list = list()
 
-common_offset = inch_to_mm(0.5)
-
-# Center drill
+# Spotting drill
 tool_list.append(
     tool_dimension(
-        diameter=inch_to_mm(3 / 8),
-        length=inch_to_mm(2),
-        exposed_length=inch_to_mm(1),
-        setscrew_position=inch_to_mm(0.75),
-        offset=inch_to_mm(0.1) + common_offset,
+        diameter=inch_to_mm(0.125),
+        length=inch_to_mm(1.95),
+        setscrew_position=inch_to_mm(0.375),
+        offset=inch_to_mm(0.1),
     )
 )
 
@@ -216,9 +223,8 @@ tool_list.append(
     tool_dimension(
         diameter=inch_to_mm(0.25),
         length=inch_to_mm(4),
-        exposed_length=inch_to_mm(2),
         setscrew_position=inch_to_mm(0.5),
-        offset=inch_to_mm(0.75) + common_offset,
+        offset=inch_to_mm(0.75),
     )
 )
 
@@ -227,26 +233,27 @@ tool_list.append(
     tool_dimension(
         diameter=inch_to_mm(0.5),
         length=inch_to_mm(6),
-        exposed_length=inch_to_mm(2),
         setscrew_position=inch_to_mm(0.5),
-        offset=inch_to_mm(0.5) + common_offset,
+        offset=inch_to_mm(0.5),
     )
 )
 
-# Boring bar with 3/8" shank
+# Boring bar with 10mm shank
 tool_list.append(
     tool_dimension(
-        diameter=inch_to_mm(3 / 8),
-        length=inch_to_mm(5),
-        exposed_length=inch_to_mm(4),
+        diameter=10,
+        length=inch_to_mm(4 + (7 / 8)),
         setscrew_position=inch_to_mm(0.5),
-        offset=inch_to_mm(0.5) + common_offset,
+        offset=inch_to_mm(0.5),
     )
 )
 
+# Add a fillet not intended to be machined, merely to reduce stress on 3D
+# printer bed adhesion
+block = mtb.block(tool_list).edges("|Y").fillet(5)
 
 show_object(
-    mtb.block(tool_list),
+    block,
     options={"color": "green", "alpha": 0.5},
 )
 
