@@ -54,8 +54,9 @@ class tool_dimension:
     positioning for purposes of calculating a multi tool block.
     """
 
-    diameter: float
-    length: float
+    tool_diameter: float
+    tool_length: float
+    exposed_length: float
     setscrew_position: float
     relative_offset: float
 
@@ -86,6 +87,7 @@ class multi_tool_block:
     def __init__(
         self,
         tool_height: float = inch_to_mm(0.75),
+        tool_spacing: float = inch_to_mm(1.5),
         shank_height: float = inch_to_mm(0.85),
         shank_depth: float = inch_to_mm(0.65),
         setscrew_diameter: float = inch_to_mm(5 / 16),
@@ -108,9 +110,11 @@ class multi_tool_block:
         against inner wall of the tool slot.
         """
         self.tool_height = tool_height
+        self.tool_spacing = tool_spacing
         self.shank_height = shank_height
         self.shank_depth = shank_depth
         self.setscrew_diameter = setscrew_diameter
+        self.tool_placeholders: List[cq.Workplane] = list()
 
     def shank(self, length: float):
         return (
@@ -126,8 +130,55 @@ class multi_tool_block:
     def block(self, tools: List[tool_dimension]):
         if len(tools) < 1:
             raise ValueError("Must have at least one tool")
-        block_width = self.tool_height * 2 * len(tools)
-        return self.shank(length=block_width)
+        block_width = self.tool_spacing * len(tools)
+        shank = self.shank(length=block_width)
+
+        block_inner_offset = 0
+        block_outer_offset = 0
+        for tool in tools:
+            block_end = tool.tool_length + tool.relative_offset - tool.exposed_length
+
+            if block_end > block_outer_offset:
+                block_outer_offset = block_end
+
+            if tool.relative_offset < block_inner_offset:
+                block_inner_offset = tool.relative_offset
+
+        block_depth = block_outer_offset - block_inner_offset
+
+        block_raw = (
+            cq.Workplane("YZ")
+            .line(0, -self.tool_height)
+            .line(-block_depth, 0)
+            .line(0, self.tool_height * 2)
+            .line(block_depth, 0)
+            .close()
+            .extrude(block_width / 2, both=True)
+        )
+
+        self.tool_placeholder = None
+
+        tool_start = (block_width / 2) - (self.tool_spacing / 2)
+        for index, value in enumerate(tools):
+            tool_volume = (
+                cq.Workplane("XZ")
+                .transformed(
+                    offset=(
+                        tool_start - (index * self.tool_spacing),
+                        0,
+                        value.relative_offset - block_inner_offset,
+                    )
+                )
+                .circle(radius=value.tool_diameter / 2)
+                .extrude(value.tool_length)
+            )
+            block_raw = block_raw - tool_volume
+            if self.tool_placeholder:
+                self.tool_placeholder += tool_volume
+            else:
+                self.tool_placeholder = tool_volume
+
+        return shank + block_raw
 
 
 mtb = multi_tool_block()
@@ -135,16 +186,36 @@ mtb = multi_tool_block()
 tool_list = list()
 
 rod = tool_dimension(
-    diameter=inch_to_mm(0.196),
-    length=67,
+    tool_diameter=inch_to_mm(0.196),
+    tool_length=67,
+    exposed_length=inch_to_mm(1),
+    setscrew_position=inch_to_mm(0.25),
+    relative_offset=10,
+)
+
+rod2 = tool_dimension(
+    tool_diameter=inch_to_mm(0.196),
+    tool_length=67,
+    exposed_length=inch_to_mm(1),
     setscrew_position=inch_to_mm(0.25),
     relative_offset=0,
 )
 
+rod3 = tool_dimension(
+    tool_diameter=inch_to_mm(0.196),
+    tool_length=67,
+    exposed_length=inch_to_mm(1),
+    setscrew_position=inch_to_mm(0.25),
+    relative_offset=-10,
+)
+
 tool_list.append(rod)
-tool_list.append(rod)
+tool_list.append(rod2)
+tool_list.append(rod3)
 
 show_object(
     mtb.block(tool_list),
     options={"color": "green", "alpha": 0.5},
 )
+
+show_object(mtb.tool_placeholder)
