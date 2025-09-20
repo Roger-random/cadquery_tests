@@ -90,6 +90,7 @@ class multi_tool_block:
         shank_height: float = inch_to_mm(0.85),
         shank_depth: float = inch_to_mm(0.65),
         setscrew_diameter: float = inch_to_mm(5 / 16),
+        print_margin: float = 0.1,
     ):
         """
         Creates a block generator configured for dimensions of a particular
@@ -113,7 +114,7 @@ class multi_tool_block:
         self.shank_height = shank_height
         self.shank_depth = shank_depth
         self.setscrew_diameter = setscrew_diameter
-        self.tool_placeholders: List[cq.Workplane] = list()
+        self.print_margin = print_margin
 
     def shank(self, length: float):
         return (
@@ -174,7 +175,7 @@ class multi_tool_block:
                         max_tool_distance + value.offset,
                     )
                 )
-                .circle(radius=value.diameter / 2)
+                .circle(radius=self.print_margin + value.diameter / 2)
                 .extrude(-value.length)
             )
 
