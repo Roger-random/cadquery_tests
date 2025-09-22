@@ -51,15 +51,21 @@ class driving_game_stand_accessories:
         self.print_margin = 0.1
 
     def shifter(self):
-        mounting_holes_space = inch_to_mm(1.9)
-        thickness = 1.2
-        base_width = 100 + 2 * thickness
-        base_depth = 100 + thickness
-        base_height = mounting_holes_space + self.beam_side
-
         rotation_degrees = 35
         rotation_back_radians = math.radians(rotation_degrees)
         rotation_front_radians = math.radians(40 - rotation_degrees)
+
+        mounting_holes_space = inch_to_mm(1.9)
+        thickness = 0.8
+        base_width = 145 + 2 * thickness
+        base_depth = 90 + thickness + self.beam_side
+        base_height = mounting_holes_space + self.beam_side * (
+            1 + math.sin(rotation_front_radians)
+        )
+
+        fastener_radius = 3 + self.print_margin
+        shifter_fastener_width = inch_to_mm(3.5)
+        shifter_fastener_depth = 35
 
         wall = (
             cq.Workplane("XY")
@@ -128,33 +134,72 @@ class driving_game_stand_accessories:
                 thickness * math.cos(rotation_back_radians),
             )
             .lineTo(base_depth / 2 - self.beam_side - thickness, base_height)
-            .lineTo(base_depth / 2 - self.beam_side - thickness, base_height * 2)
+            .lineTo(
+                base_depth / 2,
+                base_height
+                - (self.beam_side + thickness) * math.sin(rotation_back_radians),
+            )
+            .lineTo(base_depth / 2, base_height * 2)
             .lineTo(-base_depth, base_height * 2)
             .lineTo(-base_depth, base_height)
             .close()
             .extrude(base_width)
         )
 
-        fastener_hole = (
+        beam_fastener_hole = (
             cq.Workplane("YZ")
             .transformed(
                 offset=(base_depth / 2 - self.beam_side / 2, self.beam_side / 2, 0)
             )
-            .circle(radius=3 + self.print_margin)
+            .circle(radius=fastener_radius)
             .extrude(base_width, both=True)
         )
 
-        fastener_holes = fastener_hole + fastener_hole.translate(
+        beam_fastener_holes = beam_fastener_hole + beam_fastener_hole.translate(
             (0, 0, mounting_holes_space)
+        )
+
+        shifter_location_z = outer_floor_length * math.sin(rotation_back_radians)
+        shifter_fastener_hole = (
+            cq.Workplane("XY")
+            .transformed(
+                offset=(
+                    shifter_fastener_width / 2,
+                    -base_depth / 2 + shifter_fastener_depth,
+                    shifter_location_z,
+                )
+            )
+            .circle(radius=fastener_radius)
+            .extrude(self.beam_side, both=True)
+        ).rotate(
+            (0, -base_depth / 2, shifter_location_z),
+            (1, -base_depth / 2, shifter_location_z),
+            -rotation_degrees,
+        )
+
+        nut_subtract = (
+            cq.Workplane("YZ")
+            .transformed(
+                offset=(
+                    base_depth / 2 - self.beam_side / 2,
+                    self.beam_side / 2,
+                    base_width / 2 - self.beam_side - thickness * 2,
+                )
+            )
+            .polygon(6, diameter=10, circumscribed=True)
+            .extrude(-10)
         )
 
         return (
             wall
             + inner_floor
             + outer_floor
-            - fastener_holes
+            - beam_fastener_holes
             - floor_subtract
             - wall_subtract
+            - shifter_fastener_hole
+            - nut_subtract
+            - nut_subtract.translate((0, 0, mounting_holes_space))
         )
 
 
