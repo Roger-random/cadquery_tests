@@ -50,92 +50,106 @@ class driving_game_stand_accessories:
         self.beam_side = inch_to_mm(1.0)
         self.print_margin = 0.1
 
-    def beam_transform(self, beam, width, thickness):
-        beam_rotate = 10
-        return (
-            beam.translate((0, 0, thickness))
-            .rotate(
-                (0, self.beam_side + thickness * 2, thickness),
-                (1, self.beam_side + thickness * 2, thickness),
-                beam_rotate,
-            )
-            .translate(
-                (
-                    width / 2 - self.beam_side / 2 - thickness,
-                    0,
-                    0,
-                )
-            )
-        )
-
     def shifter(self):
         mounting_holes_space = inch_to_mm(1.9)
-        thickness = 4
-        base_width = 60
-        base_depth = 80
+        thickness = 1.2
+        base_width = 100
+        base_depth = 100
+        base_height = mounting_holes_space + self.beam_side
 
-        beam_bracket_outer = cq.Workplane("XY").box(
-            self.beam_side + thickness * 2,
-            self.beam_side + thickness * 2,
-            mounting_holes_space + self.beam_side,
-            centered=(True, True, False),
+        rotation_degrees = 30
+        rotation_radians = math.radians(rotation_degrees)
+        rotation_45_radians = math.radians(45 - rotation_degrees)
+
+        wall = (
+            cq.Workplane("XY")
+            .line(0, base_depth / 2 - thickness, forConstruction=True)
+            .line(0, thickness)
+            .line(base_width / 2 - thickness - self.beam_side - self.print_margin, 0)
+            .line(0, -self.beam_side - self.print_margin)
+            .line(self.beam_side + self.print_margin * 2, 0)
+            .line(0, self.beam_side + self.print_margin)
+            .line(thickness - self.print_margin, 0)
+            .line(0, -base_depth)
+            .line(-thickness, 0)
+            .line(0, base_depth - self.beam_side - thickness)
+            .line(-self.beam_side - thickness, 0)
+            .line(0, self.beam_side)
+            .close()
+            .extrude(base_height)
         )
 
-        beam_channel = self.beam_transform(
-            (
-                cq.Workplane("XY")
-                .box(
-                    self.beam_side + self.print_margin,
-                    self.beam_side + self.print_margin + thickness,
-                    mounting_holes_space * 6,
-                    centered=(True, True, True),
-                )
-                .translate((0, thickness, 0))
-            ),
-            base_width,
-            thickness,
+        inner_floor = (
+            cq.Workplane("YZ")
+            .line(base_depth / 2 - self.beam_side, 0, forConstruction=True)
+            .line(0, thickness)
+            .line(self.beam_side, self.beam_side * math.sin(rotation_45_radians))
+            .line(0, -thickness)
+            .close()
+            .extrude(base_width / 2 - thickness * 2 - self.beam_side)
+        )
+
+        outer_floor_length = base_depth - self.beam_side
+        outer_floor = (
+            cq.Workplane("YZ")
+            .line(base_depth / 2 - self.beam_side, 0, forConstruction=True)
+            .line(0, thickness)
+            .line(-outer_floor_length, outer_floor_length * math.sin(rotation_radians))
+            .line(0, -thickness)
+            .close()
+            .extrude(base_width / 2 - thickness)
+        )
+
+        floor_subtract = (
+            cq.Workplane("YZ")
+            .line(base_depth / 2 - self.beam_side, 0, forConstruction=True)
+            .line(-outer_floor_length, outer_floor_length * math.sin(rotation_radians))
+            .lineTo(-base_depth / 2, -base_depth)
+            .line(base_depth, 0)
+            .lineTo(base_depth / 2, self.beam_side * math.sin(rotation_45_radians))
+            .close()
+            .extrude(base_width / 2)
+        )
+        wall_subtract = (
+            cq.Workplane("YZ")
+            .lineTo(
+                -base_depth / 2,
+                outer_floor_length * math.sin(rotation_radians),
+                forConstruction=True,
+            )
+            .line(
+                thickness * math.sin(rotation_radians),
+                thickness * math.cos(rotation_radians),
+            )
+            .lineTo(base_depth / 2 - self.beam_side - thickness, base_height)
+            .lineTo(base_depth / 2 - self.beam_side - thickness, base_height * 2)
+            .lineTo(-base_depth, base_height * 2)
+            .lineTo(-base_depth, base_height)
+            .close()
+            .extrude(base_width)
         )
 
         fastener_hole = (
             cq.Workplane("YZ")
-            .transformed(offset=(0, self.beam_side / 2, 0))
-            .circle(radius=3 + self.print_margin)
-            .extrude(self.beam_side, both=True)
-        )
-
-        beam_bracket = self.beam_transform(
-            (
-                beam_bracket_outer
-                - fastener_hole
-                - fastener_hole.translate((0, 0, mounting_holes_space))
-            ),
-            base_width,
-            thickness,
-        )
-
-        shifter_base = cq.Workplane("XY").box(
-            base_width, base_depth, thickness, centered=(True, True, False)
-        )
-
-        bracket_trim = (
-            cq.Workplane("XY")
-            .box(
-                base_width + self.print_margin,
-                base_depth + self.print_margin,
-                self.beam_side,
+            .transformed(
+                offset=(base_depth / 2 - self.beam_side / 2, self.beam_side / 2, 0)
             )
-            .translate((0, 0, -self.beam_side / 2))
+            .circle(radius=3.5 + self.print_margin)
+            .extrude(base_width, both=True)
         )
 
-        bracket_edge_y = base_depth / 2 - self.beam_side / 2 - thickness
-        shifter_mount = (
-            shifter_base
-            + beam_bracket.translate((0, bracket_edge_y, 0))
-            - beam_channel.translate((0, bracket_edge_y, 0))
-            - bracket_trim
+        fastener_holes = fastener_hole + fastener_hole.translate(
+            (0, 0, mounting_holes_space)
         )
 
-        return shifter_mount
+        return (
+            wall
+            + inner_floor
+            + outer_floor
+            - fastener_holes
+            - floor_subtract
+            - wall_subtract
+        )
 
 
 dgsa = driving_game_stand_accessories()
