@@ -65,9 +65,11 @@ class driving_game_stand_accessories:
             + self.beam_side * (1 + math.sin(rotation_front_radians))
         )
 
-        fastener_radius = 3 + self.print_margin
-        shifter_fastener_width = inch_to_mm(3.5)
+        shifter_fastener_radius = 3.5 + self.print_margin
+        shifter_fastener_width = inch_to_mm(3.2)
         shifter_fastener_depth = 35
+
+        beam_fastener_radius = inch_to_mm(1 / 8) + self.print_margin
 
         wall = (
             cq.Workplane("XY")
@@ -153,7 +155,7 @@ class driving_game_stand_accessories:
             .transformed(
                 offset=(base_depth / 2 - self.beam_side / 2, self.beam_side / 2, 0)
             )
-            .circle(radius=fastener_radius)
+            .circle(radius=beam_fastener_radius)
             .extrude(base_width, both=True)
         )
 
@@ -171,26 +173,12 @@ class driving_game_stand_accessories:
                     shifter_location_z,
                 )
             )
-            .circle(radius=fastener_radius)
+            .circle(radius=shifter_fastener_radius)
             .extrude(self.beam_side, both=True)
         ).rotate(
             (0, -base_depth / 2, shifter_location_z),
             (1, -base_depth / 2, shifter_location_z),
             -rotation_degrees,
-        )
-
-        nut_subtract = (
-            cq.Workplane("YZ")
-            .transformed(
-                rotate=(0, 0, 30),
-                offset=(
-                    base_depth / 2 - self.beam_side / 2,
-                    self.beam_side / 2,
-                    base_width / 2 - self.beam_side - thickness * 2,
-                ),
-            )
-            .polygon(6, diameter=10, circumscribed=True)
-            .extrude(-10)
         )
 
         shifter_half = (
@@ -202,8 +190,6 @@ class driving_game_stand_accessories:
                 - floor_subtract
                 - wall_subtract
                 - shifter_fastener_hole
-                - nut_subtract
-                - nut_subtract.translate((0, 0, mounting_holes_space))
             )
             .edges(
                 sel.NearestToPointSelector(
