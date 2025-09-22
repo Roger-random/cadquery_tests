@@ -53,13 +53,13 @@ class driving_game_stand_accessories:
     def shifter(self):
         mounting_holes_space = inch_to_mm(1.9)
         thickness = 1.2
-        base_width = 100
-        base_depth = 100
+        base_width = 100 + 2 * thickness
+        base_depth = 100 + thickness
         base_height = mounting_holes_space + self.beam_side
 
-        rotation_degrees = 30
-        rotation_radians = math.radians(rotation_degrees)
-        rotation_45_radians = math.radians(45 - rotation_degrees)
+        rotation_degrees = 35
+        rotation_back_radians = math.radians(rotation_degrees)
+        rotation_front_radians = math.radians(40 - rotation_degrees)
 
         wall = (
             cq.Workplane("XY")
@@ -83,7 +83,7 @@ class driving_game_stand_accessories:
             cq.Workplane("YZ")
             .line(base_depth / 2 - self.beam_side, 0, forConstruction=True)
             .line(0, thickness)
-            .line(self.beam_side, self.beam_side * math.sin(rotation_45_radians))
+            .line(self.beam_side, self.beam_side * math.sin(rotation_front_radians))
             .line(0, -thickness)
             .close()
             .extrude(base_width / 2 - thickness * 2 - self.beam_side)
@@ -94,7 +94,10 @@ class driving_game_stand_accessories:
             cq.Workplane("YZ")
             .line(base_depth / 2 - self.beam_side, 0, forConstruction=True)
             .line(0, thickness)
-            .line(-outer_floor_length, outer_floor_length * math.sin(rotation_radians))
+            .line(
+                -outer_floor_length,
+                outer_floor_length * math.sin(rotation_back_radians),
+            )
             .line(0, -thickness)
             .close()
             .extrude(base_width / 2 - thickness)
@@ -103,10 +106,13 @@ class driving_game_stand_accessories:
         floor_subtract = (
             cq.Workplane("YZ")
             .line(base_depth / 2 - self.beam_side, 0, forConstruction=True)
-            .line(-outer_floor_length, outer_floor_length * math.sin(rotation_radians))
+            .line(
+                -outer_floor_length,
+                outer_floor_length * math.sin(rotation_back_radians),
+            )
             .lineTo(-base_depth / 2, -base_depth)
             .line(base_depth, 0)
-            .lineTo(base_depth / 2, self.beam_side * math.sin(rotation_45_radians))
+            .lineTo(base_depth / 2, self.beam_side * math.sin(rotation_front_radians))
             .close()
             .extrude(base_width / 2)
         )
@@ -114,12 +120,12 @@ class driving_game_stand_accessories:
             cq.Workplane("YZ")
             .lineTo(
                 -base_depth / 2,
-                outer_floor_length * math.sin(rotation_radians),
+                outer_floor_length * math.sin(rotation_back_radians),
                 forConstruction=True,
             )
             .line(
-                thickness * math.sin(rotation_radians),
-                thickness * math.cos(rotation_radians),
+                thickness * math.sin(rotation_back_radians),
+                thickness * math.cos(rotation_back_radians),
             )
             .lineTo(base_depth / 2 - self.beam_side - thickness, base_height)
             .lineTo(base_depth / 2 - self.beam_side - thickness, base_height * 2)
@@ -134,7 +140,7 @@ class driving_game_stand_accessories:
             .transformed(
                 offset=(base_depth / 2 - self.beam_side / 2, self.beam_side / 2, 0)
             )
-            .circle(radius=3.5 + self.print_margin)
+            .circle(radius=3 + self.print_margin)
             .extrude(base_width, both=True)
         )
 
