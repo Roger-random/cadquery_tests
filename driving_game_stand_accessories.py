@@ -219,6 +219,16 @@ class driving_game_stand_accessories:
             .edges(
                 sel.NearestToPointSelector(
                     (
+                        base_width / 2 - thickness,
+                        base_depth / 2 - thickness - self.beam_side,
+                        base_height * 0.6,
+                    )
+                )
+            )
+            .fillet(thickness / 2)
+            .edges(
+                sel.NearestToPointSelector(
+                    (
                         base_width / 2,
                         -base_depth / 2,
                         thickness + self.beam_side * math.sin(rotation_front_radians),
@@ -230,7 +240,7 @@ class driving_game_stand_accessories:
 
         shifter = shifter_half + shifter_half.mirror("YZ")
 
-        return shifter.faces("<Y").chamfer(1)
+        return shifter.faces("<Y or >Y").chamfer(1)
 
 
 dgsa = driving_game_stand_accessories()
