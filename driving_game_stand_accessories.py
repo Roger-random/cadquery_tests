@@ -56,11 +56,13 @@ class driving_game_stand_accessories:
         rotation_front_radians = math.radians(40 - rotation_degrees)
 
         mounting_holes_space = inch_to_mm(1.9)
-        thickness = 0.8
-        base_width = 145 + 2 * thickness
+        thickness = 10
+        base_width = 150 + 4 * thickness
         base_depth = 90 + thickness + self.beam_side
-        base_height = mounting_holes_space + self.beam_side * (
-            1 + math.sin(rotation_front_radians)
+        base_height = (
+            mounting_holes_space
+            + thickness
+            + self.beam_side * (1 + math.sin(rotation_front_radians))
         )
 
         fastener_radius = 3 + self.print_margin
@@ -180,27 +182,55 @@ class driving_game_stand_accessories:
         nut_subtract = (
             cq.Workplane("YZ")
             .transformed(
+                rotate=(0, 0, 30),
                 offset=(
                     base_depth / 2 - self.beam_side / 2,
                     self.beam_side / 2,
                     base_width / 2 - self.beam_side - thickness * 2,
-                )
+                ),
             )
             .polygon(6, diameter=10, circumscribed=True)
             .extrude(-10)
         )
 
-        return (
-            wall
-            + inner_floor
-            + outer_floor
-            - beam_fastener_holes
-            - floor_subtract
-            - wall_subtract
-            - shifter_fastener_hole
-            - nut_subtract
-            - nut_subtract.translate((0, 0, mounting_holes_space))
+        shifter_half = (
+            (
+                wall
+                + inner_floor
+                + outer_floor
+                - beam_fastener_holes
+                - floor_subtract
+                - wall_subtract
+                - shifter_fastener_hole
+                - nut_subtract
+                - nut_subtract.translate((0, 0, mounting_holes_space))
+            )
+            .edges(
+                sel.NearestToPointSelector(
+                    (
+                        base_width / 2 - thickness,
+                        -base_depth / 3
+                        + thickness * 2 * math.cos(rotation_back_radians),
+                        outer_floor_length * math.sin(rotation_back_radians),
+                    )
+                )
+            )
+            .fillet(thickness)
+            .edges(
+                sel.NearestToPointSelector(
+                    (
+                        base_width / 2,
+                        -base_depth / 2,
+                        thickness + self.beam_side * math.sin(rotation_front_radians),
+                    )
+                )
+            )
+            .fillet(thickness)
         )
+
+        shifter = shifter_half + shifter_half.mirror("YZ")
+
+        return shifter.faces("<Y").chamfer(1)
 
 
 dgsa = driving_game_stand_accessories()
