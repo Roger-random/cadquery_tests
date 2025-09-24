@@ -221,14 +221,14 @@ class logan_955_helpers:
         fan_flare_diameter = 137
         fan_fastener_spacing = 105
         fan_fastener_shaft_diameter = 3 + print_margin * 2
-        fan_fastener_shaft_length = 12
+        fan_fastener_shaft_length = 10
         fan_fastener_nut_diameter = 5.5 + print_margin * 2
         fan_tab_thickness = 4
         fan_fastener_nut_thickness = 4
 
         mount_thickness = fan_fastener_shaft_length - fan_tab_thickness
         mount_fastener_margin = 7.5
-        mount_fastener_shaft_diameter = fan_fastener_shaft_diameter
+        mount_fastener_shaft_diameter = fan_fastener_shaft_diameter + 1
 
         frame_interior = cq.Workplane("XY").box(
             fan_inside_size, fan_inside_size, mount_thickness
