@@ -208,10 +208,90 @@ class logan_955_helpers:
 
         return bar_stock
 
+    def cooling_fan_mount(self):
+        """
+        The Logan 955 motor has a built-in fan that pulls in air from the back
+        and sends it out the front, but it's sitting inside an enclosure so
+        that fan is merely recirculating ever warmer air. Take advantage of a
+        hole recently cut in the back to install a pair of cooling fans.
+        """
+        print_margin = 0.1
+        fan_chassis_size = 120
+        fan_inside_size = 115
+        fan_flare_diameter = 137
+        fan_fastener_spacing = 105
+        fan_fastener_shaft_diameter = 3 + print_margin * 2
+        fan_fastener_shaft_length = 12
+        fan_fastener_nut_diameter = 5.5 + print_margin * 2
+        fan_tab_thickness = 4
+        fan_fastener_nut_thickness = 4
+
+        mount_thickness = fan_fastener_shaft_length - fan_tab_thickness
+        mount_fastener_margin = 7.5
+        mount_fastener_shaft_diameter = fan_fastener_shaft_diameter
+
+        frame_interior = cq.Workplane("XY").box(
+            fan_inside_size, fan_inside_size, mount_thickness
+        )
+        mounting_ears = frame_interior - (
+            cq.Workplane("XY")
+            .circle(radius=fan_flare_diameter / 2)
+            .extrude(mount_thickness, both=True)
+        )
+
+        fan_fastener_holes_subtract = (
+            cq.Workplane("XY")
+            .rect(fan_fastener_spacing, fan_fastener_spacing)
+            .vertices()
+            .cylinder(radius=fan_fastener_shaft_diameter / 2, height=mount_thickness)
+        )
+
+        fan_fastener_subtract = (
+            cq.Workplane("XY")
+            .transformed(offset=(0, 0, mount_thickness / 2))
+            .rect(fan_fastener_spacing, fan_fastener_spacing, forConstruction=True)
+            .vertices()
+            .polygon(6, diameter=fan_fastener_nut_diameter, circumscribed=True)
+            .extrude(-fan_fastener_nut_thickness)
+        )
+
+        frame_exterior = (
+            cq.Workplane("XY")
+            .transformed(offset=(mount_fastener_margin, 0, 0))
+            .box(
+                fan_chassis_size + mount_fastener_margin * 2,
+                fan_chassis_size + mount_fastener_margin * 4,
+                mount_thickness,
+            )
+            .edges("|Z")
+            .fillet(mount_fastener_margin)
+            - frame_interior
+        )
+
+        frame_fastener_subtract = (
+            cq.Workplane("XY")
+            .transformed(offset=(mount_fastener_margin, 0, 0))
+            .rect(
+                fan_chassis_size,
+                fan_chassis_size + mount_fastener_margin * 2,
+                forConstruction=True,
+            )
+            .vertices()
+            .cylinder(radius=mount_fastener_shaft_diameter / 2, height=mount_thickness)
+        )
+
+        return (
+            frame_exterior
+            + mounting_ears
+            - frame_fastener_subtract
+            - fan_fastener_holes_subtract
+            - fan_fastener_subtract
+        )
+
 
 helpers = logan_955_helpers()
 
 show_object(
-    helpers.chuck_removal_tool(jaws=4, jaw_slot_cut_depth=inch_to_mm(0.25)),
+    helpers.cooling_fan_mount(),
     options={"color": "green", "alpha": 0.5},
 )
