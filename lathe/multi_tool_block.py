@@ -287,7 +287,7 @@ tool_list.append(
     tool_dimension(
         diameter=inch_to_mm(0.25),
         length=inch_to_mm(4),
-        setscrew_position=inch_to_mm(0.5),
+        setscrew_position=inch_to_mm(0.75),
         offset=inch_to_mm(0.75),
     )
 )
