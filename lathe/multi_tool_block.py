@@ -209,12 +209,12 @@ mtb = multi_tool_block()
 
 tool_list = list()
 
-# Spotting drill
+# #5 center drill
 tool_list.append(
     tool_dimension(
-        diameter=inch_to_mm(0.125),
-        length=inch_to_mm(1.95),
-        setscrew_position=inch_to_mm(0.375),
+        diameter=inch_to_mm(7 / 16),
+        length=inch_to_mm(2 + 3 / 4),
+        setscrew_position=inch_to_mm(1 + 3 / 8),
         offset=inch_to_mm(0.1),
     )
 )
@@ -234,7 +234,7 @@ tool_list.append(
     tool_dimension(
         diameter=inch_to_mm(0.5),
         length=inch_to_mm(6),
-        setscrew_position=inch_to_mm(0.5),
+        setscrew_position=inch_to_mm(1.5),
         offset=inch_to_mm(0.5),
     )
 )
