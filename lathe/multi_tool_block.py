@@ -89,7 +89,9 @@ class multi_tool_block:
         tool_spacing: float = inch_to_mm(1.5),
         shank_height: float = inch_to_mm(0.85),
         shank_depth: float = inch_to_mm(0.65),
-        setscrew_diameter: float = inch_to_mm(5 / 16),
+        setscrew_diameter: float = inch_to_mm(
+            0.257
+        ),  # 0.257" = size F drill for 5/16" threads
         print_margin: float = 0.1,
     ):
         """
@@ -131,7 +133,6 @@ class multi_tool_block:
         if len(tools) < 1:
             raise ValueError("Must have at least one tool")
         block_width = self.tool_spacing * len(tools)
-        shank = self.shank(length=block_width)
 
         # Establish the "offset=0" location based on length of all tools and
         # their offsets, and also look for the tool with the setscrew closest
@@ -166,6 +167,7 @@ class multi_tool_block:
 
         tool_start = (block_width / 2) - (self.tool_spacing / 2)
         for index, value in enumerate(tools):
+            volume_r = self.print_margin + value.diameter / 2
             tool_volume = (
                 cq.Workplane("XZ")
                 .transformed(
@@ -173,9 +175,14 @@ class multi_tool_block:
                         tool_start - (index * self.tool_spacing),
                         0,
                         max_tool_distance + value.offset,
-                    )
+                    ),
+                    rotate=(0, 0, 45),
                 )
-                .circle(radius=self.print_margin + value.diameter / 2)
+                .line(volume_r, 0, forConstruction=True)
+                .line(0, volume_r)
+                .line(-volume_r, 0)
+                .tangentArcPoint((volume_r, 0), relative=False)
+                .close()
                 .extrude(-value.length)
             )
 
@@ -202,7 +209,63 @@ class multi_tool_block:
             else:
                 self.tool_placeholder = tool_volume
 
-        return shank + block_raw
+        block = block_raw
+
+        # End of proper parametric logic and start of hard-coded experiment
+        # section. Hope to turn into proper parametric logic after I figure
+        # out how this is even going to work.
+        drill025 = tools[1]
+        drill025_end = max_tool_distance + drill025.offset - drill025.length
+        ledge_perimeter_outer_x = self.tool_spacing / 4
+        ledge_perimeter_outer = (
+            cq.Workplane("XY")
+            .transformed(offset=(0, 0, self.shank_height - self.tool_height))
+            .line(-ledge_perimeter_outer_x, 0)
+            .line(0, -drill025_end)
+            .line(block_width, 0)
+            .line(0, drill025_end)
+            .close()
+            .extrude(self.tool_height * 2)
+        )
+        ledge_perimeter_inner = (
+            cq.Workplane("XY")
+            .line(-ledge_perimeter_outer_x + self.shank_depth, 0, forConstruction=True)
+            .line(0, -drill025_end + self.shank_depth)
+            .line(block_width, 0)
+            .line(0, drill025_end - self.shank_depth)
+            .close()
+            .extrude(self.tool_height, both=True)
+        )
+        boring_bar = tools[3]
+        boring_bar_lip_alloance_y = (
+            max_tool_distance + boring_bar.offset - boring_bar.length + 65
+        )
+        boring_bar_lip_allowancce = (
+            cq.Workplane("XY")
+            .line(self.tool_spacing, -boring_bar_lip_alloance_y, forConstruction=True)
+            .line(-block_width, 0)
+            .line(0, -max_tool_distance)
+            .line(block_width, 0)
+            .close()
+            .extrude(self.tool_height, both=True)
+        )
+
+        block = (
+            (block - boring_bar_lip_allowancce).edges("|Z").fillet(5)
+            - ledge_perimeter_inner
+            - ledge_perimeter_outer
+        )
+
+        block = (
+            block.faces(">X")
+            .edges("|Z and >Y")
+            .fillet(5)
+            .faces(">Y")
+            .edges("|Z and >X")
+            .fillet(5)
+        )
+
+        return block
 
 
 mtb = multi_tool_block()
@@ -239,19 +302,17 @@ tool_list.append(
     )
 )
 
-# Boring bar with 10mm shank
+# Boring bar with 3/8" shank
 tool_list.append(
     tool_dimension(
-        diameter=10,
+        diameter=inch_to_mm(3 / 8),
         length=inch_to_mm(4 + (7 / 8)),
         setscrew_position=inch_to_mm(0.5),
         offset=inch_to_mm(0.5),
     )
 )
 
-# Add a fillet not intended to be machined, merely to reduce stress on 3D
-# printer bed adhesion
-block = mtb.block(tool_list).edges("|Y").fillet(5)
+block = mtb.block(tool_list)
 
 show_object(
     block,
