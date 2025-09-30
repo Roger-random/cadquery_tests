@@ -49,6 +49,7 @@ class driving_game_stand_accessories:
     def __init__(self):
         self.beam_side = inch_to_mm(1.0)
         self.print_margin = 0.1
+        self.shifter_fastener_width = inch_to_mm(3.2)
 
     def shifter(self):
         rotation_degrees = 35
@@ -66,7 +67,6 @@ class driving_game_stand_accessories:
         )
 
         shifter_fastener_radius = 3.5 + self.print_margin
-        shifter_fastener_width = inch_to_mm(3.2)
         shifter_fastener_depth = 35
 
         beam_fastener_radius = inch_to_mm(1 / 8) + self.print_margin
@@ -168,7 +168,7 @@ class driving_game_stand_accessories:
             cq.Workplane("XY")
             .transformed(
                 offset=(
-                    shifter_fastener_width / 2,
+                    self.shifter_fastener_width / 2,
                     -base_depth / 2 + shifter_fastener_depth,
                     shifter_location_z,
                 )
@@ -228,7 +228,39 @@ class driving_game_stand_accessories:
 
         return shifter.faces("<Y or >Y").chamfer(1)
 
+    def shifter_spacer(self):
+        """
+        The shifter came with a trio of clamps for table surface, but they
+        only clamp down to about 20mm. If the shifter stand is too thin,
+        the existing clamps can't reach far enough to help. Instead of
+        wasting material printing a bigger thicker shifter stand, print a
+        spacer to fill the gap. Not strictly necessary as shifter is held
+        pretty securely by two M6 screws, but the clamps are there so might
+        as well put them to work.
+        """
+        spacer_slot_width = 15
+        spacer_width = 20
+        spacer_thickness = 10
+
+        return (
+            cq.Workplane("XY")
+            .rect(
+                self.shifter_fastener_width + spacer_slot_width + spacer_width * 2,
+                spacer_slot_width + spacer_width * 2,
+            )
+            .rect(self.shifter_fastener_width + spacer_slot_width, spacer_width)
+            .extrude(spacer_thickness)
+            .edges("|Z")
+            .fillet(spacer_slot_width / 2)
+            .faces(">Z or <Z")
+            .chamfer(2)
+        )
+
+        pass
+
 
 dgsa = driving_game_stand_accessories()
 
 show_object(dgsa.shifter(), options={"color": "green", "alpha": 0.5})
+
+show_object(dgsa.shifter_spacer())
