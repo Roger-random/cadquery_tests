@@ -58,10 +58,14 @@ class sb_treadmill_motor:
     """
 
     def __init__(self):
+        self.bracket_wall_thickness = 10
+
         # 3D printed mockups need a bit of margin to fit
         self.print_margin = 0.2
 
-        self.bracket_wall_thickness = 10
+        # 3D printed counterbore holes facing print bed will be bridged for
+        # printing to avoid supports, need to be drilled out before use.
+        self.counterbore_bridge_thickness = 0.25
 
         # Bolt pattern via left-right and front-back spacing
         self.bolt_spacing_lr = inch_to_mm(5)
@@ -80,6 +84,8 @@ class sb_treadmill_motor:
         # Back: plasatic bell housing where all the wires come in
         self.motor_diameter = 85
         self.motor_length = 140
+        self.motor_endbell_diameter = 100
+        self.motor_endbell_length = 100
 
         # Motor body has two mounting threads used as attachment points in
         # treadmill. Seems to be a confusing mix of metric (spacing as measured
@@ -120,7 +126,9 @@ class sb_treadmill_motor:
                 forConstruction=True,
             )
             .vertices()
-            .circle(radius=self.bolt_hole_diameter / 2)
+            # FDM printers have a hard time printing horizontal cylindrical
+            # walls so switch to a polygon
+            .polygon(6, diameter=self.bolt_hole_diameter, circumscribed=True)
             .extrude(self.bolt_hole_placeholder_length)
         )
         head = (
@@ -132,7 +140,8 @@ class sb_treadmill_motor:
                 forConstruction=True,
             )
             .vertices()
-            .circle(radius=self.bolt_washer_diameter / 2)
+            # Again technically a cylinder but make polygon for easier printing.
+            .polygon(6, diameter=self.bolt_washer_diameter, circumscribed=True)
             .extrude(self.bolt_hole_placeholder_length)
         )
 
@@ -150,6 +159,10 @@ class sb_treadmill_motor:
             )
             .circle(radius=self.motor_diameter / 2)
             .extrude(-self.motor_length)
+            .faces(">Y")
+            .workplane()
+            .circle(radius=self.motor_endbell_diameter / 2)
+            .extrude(self.motor_endbell_length)
         )
 
         mount_point = (
@@ -186,9 +199,9 @@ class sb_treadmill_motor:
                 )
             )
             .circle(radius=self.cross_rod_hole_diameter / 2)
-            .extrude(self.cross_rod_head_length)
+            .extrude(self.cross_rod_head_length - self.counterbore_bridge_thickness)
             .faces(">Z")
-            .workplane()
+            .workplane(offset=self.counterbore_bridge_thickness)
             .circle(radius=self.cross_rod_head_diaameter / 2)
             .extrude(self.cross_rod_head_length)
         )
@@ -233,15 +246,16 @@ class sb_treadmill_motor:
                 )
             )
             .circle(radius=self.motor_fastener_hole_diameter / 2)
-            .extrude(self.motor_fastener_wall_thickness)
+            .extrude(self.bracket_wall_thickness - self.counterbore_bridge_thickness)
             .faces(">Z")
-            .workplane()
+            .workplane(offset=self.counterbore_bridge_thickness)
             .circle(radius=self.motor_fastener_head_diameter / 2)
             .extrude(bracket_top)
         )
 
         bracket_rectangular = (
-            bracket_block
+            bracket_block.edges("|Z").fillet(self.bracket_wall_thickness)
+            - self.motor_placeholder()
             - motor_fastener.translate((0, self.motor_mount_1, 0))
             - motor_fastener.translate((0, self.motor_mount_2, 0))
             - self.cross_rod_placeholder()
