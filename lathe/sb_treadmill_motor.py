@@ -58,13 +58,17 @@ class sb_treadmill_motor:
     """
 
     def __init__(self):
-        # Bolt pattern via left-right and front-baack spacing
+        # 3D printed mockups need a bit of margin to fit
+        self.print_margin = 0.2
+
+        # Bolt pattern via left-right and front-back spacing
         self.bolt_spacing_lr = inch_to_mm(5)
         self.bolt_spacing_fb = inch_to_mm(5 + 7 / 8)
 
         # Size Q drilled hole (0.332" diameter) for 5/16" thread free fit
         # Source: https://www.littlemachineshop.com/Reference/tapdrill.php
         self.bolt_hole_diameter = inch_to_mm(0.332) + self.print_margin
+        self.bolt_hole_placeholder_length = 50
 
         # Washer for motor mounting bolt
         self.bolt_washer_diameter = inch_to_mm(0.75) + self.print_margin
@@ -88,6 +92,58 @@ class sb_treadmill_motor:
         # To align with existing pulley, the front of motor body should
         # be about this far away from the left most set of bolts
         self.motor_position = inch_to_mm(3)
+        self.motor_height_offset = -inch_to_mm(0.150)
 
-        # 3D printed mockups need a bit of margin to fit
-        self.print_margin = 0.2
+    def bolt_placeholders(self):
+        return (
+            cq.Workplane("YZ")
+            .rect(
+                xLen=self.bolt_spacing_fb,
+                yLen=self.bolt_spacing_lr,
+                forConstruction=True,
+            )
+            .vertices()
+            .circle(radius=self.bolt_hole_diameter / 2)
+            .extrude(self.bolt_hole_placeholder_length, both=True)
+        )
+
+    def motor_placeholder(self):
+        body = (
+            cq.Workplane("XZ")
+            .transformed(
+                offset=(
+                    (self.motor_diameter / 2) + self.motor_height_offset,
+                    0,
+                    self.bolt_spacing_lr / 2 + self.motor_position,
+                )
+            )
+            .circle(radius=self.motor_diameter / 2)
+            .extrude(-self.motor_length)
+        )
+
+        mount_point = (
+            cq.Workplane("YZ")
+            .transformed(
+                offset=(
+                    -self.bolt_spacing_lr / 2 - self.motor_position,
+                    0,
+                    (self.motor_diameter / 2) + self.motor_height_offset,
+                )
+            )
+            .transformed(rotate=(90, 0, 0))
+            .circle(radius=self.motor_fastener_hole_diameter / 2)
+            .extrude(-self.motor_diameter)
+        )
+
+        return (
+            body
+            - mount_point.translate((0, self.motor_mount_1, 0))
+            - mount_point.translate((0, self.motor_mount_2, 0))
+        )
+
+
+stm = sb_treadmill_motor()
+
+show_object(stm.bolt_placeholders(), options={"color": "gray", "alpha": 0.25})
+
+show_object(stm.motor_placeholder(), options={"color": "gray", "alpha": 0.25})
