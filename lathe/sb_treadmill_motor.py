@@ -61,6 +61,8 @@ class sb_treadmill_motor:
         # 3D printed mockups need a bit of margin to fit
         self.print_margin = 0.2
 
+        self.bracket_wall_thickness = 10
+
         # Bolt pattern via left-right and front-back spacing
         self.bolt_spacing_lr = inch_to_mm(5)
         self.bolt_spacing_fb = inch_to_mm(5 + 7 / 8)
@@ -68,10 +70,10 @@ class sb_treadmill_motor:
         # Size Q drilled hole (0.332" diameter) for 5/16" thread free fit
         # Source: https://www.littlemachineshop.com/Reference/tapdrill.php
         self.bolt_hole_diameter = inch_to_mm(0.332) + self.print_margin
-        self.bolt_hole_placeholder_length = 50
-
-        # Washer for motor mounting bolt
-        self.bolt_washer_diameter = inch_to_mm(0.75) + self.print_margin
+        self.bolt_hole_thickness = 10
+        self.bolt_hole_surround_size = 20
+        self.bolt_washer_diameter = inch_to_mm(1) + self.print_margin
+        self.bolt_hole_placeholder_length = 150
 
         # Dimensions of the motor metal body. Actual length is longer due to:
         # Front: flange and combination flywheel+fan+output pulley on shaft
@@ -88,6 +90,21 @@ class sb_treadmill_motor:
         # Size H drilled hole (0.266" diameter) for 1/4" thread free fit
         # Source: https://www.littlemachineshop.com/Reference/tapdrill.php
         self.motor_fastener_hole_diameter = inch_to_mm(0.266) + self.print_margin
+        self.motor_fastener_wall_thickness = 3
+        self.motor_fastener_head_diameter = inch_to_mm(0.75) + self.print_margin
+
+        # I have 1/4"-20 threaded rod to hold the two halves together, recycle
+        # values for 1/4"-2o from motor fastener
+        self.cross_rod_hole_diameter = self.motor_fastener_hole_diameter
+        self.cross_rod_wall_thickness = self.bracket_wall_thickness
+        self.cross_rod_head_length = (
+            self.motor_diameter / 2
+            + self.motor_fastener_wall_thickness
+            - self.bracket_wall_thickness
+            + self.cross_rod_wall_thickness
+        )
+        self.cross_rod_head_diaameter = self.motor_fastener_head_diameter
+        self.cross_rod_brace_height = 25
 
         # To align with existing pulley, the front of motor body should
         # be about this far away from the left most set of bolts
@@ -95,17 +112,31 @@ class sb_treadmill_motor:
         self.motor_height_offset = -inch_to_mm(0.150)
 
     def bolt_placeholders(self):
-        return (
+        stem = (
             cq.Workplane("YZ")
             .rect(
-                xLen=self.bolt_spacing_fb,
-                yLen=self.bolt_spacing_lr,
+                xLen=self.bolt_spacing_lr,
+                yLen=self.bolt_spacing_fb,
                 forConstruction=True,
             )
             .vertices()
             .circle(radius=self.bolt_hole_diameter / 2)
-            .extrude(self.bolt_hole_placeholder_length, both=True)
+            .extrude(self.bolt_hole_placeholder_length)
         )
+        head = (
+            cq.Workplane("YZ")
+            .transformed(offset=(0, 0, self.bolt_hole_thickness))
+            .rect(
+                xLen=self.bolt_spacing_lr,
+                yLen=self.bolt_spacing_fb,
+                forConstruction=True,
+            )
+            .vertices()
+            .circle(radius=self.bolt_washer_diameter / 2)
+            .extrude(self.bolt_hole_placeholder_length)
+        )
+
+        return stem + head
 
     def motor_placeholder(self):
         body = (
@@ -141,9 +172,100 @@ class sb_treadmill_motor:
             - mount_point.translate((0, self.motor_mount_2, 0))
         )
 
+    def cross_rod_placeholder(self):
+        motor_front = -self.bolt_spacing_lr / 2 - self.motor_position
+        rod = (
+            cq.Workplane("XY")
+            .transformed(
+                offset=(
+                    self.motor_diameter
+                    + self.motor_height_offset
+                    + self.cross_rod_brace_height / 2,
+                    motor_front + self.cross_rod_brace_height / 2,
+                    0,
+                )
+            )
+            .circle(radius=self.cross_rod_hole_diameter / 2)
+            .extrude(self.cross_rod_head_length)
+            .faces(">Z")
+            .workplane()
+            .circle(radius=self.cross_rod_head_diaameter / 2)
+            .extrude(self.cross_rod_head_length)
+        )
+        return rod + rod.translate(
+            (0, self.motor_length - self.cross_rod_brace_height, 0)
+        )
+
+    def bracket(self):
+        motor_front = -self.bolt_spacing_lr / 2 - self.motor_position
+        motor_rear = motor_front + self.motor_length
+        bracket_top = self.bolt_spacing_fb / 2 + self.bolt_hole_surround_size
+        bracket_top_left = -self.bolt_spacing_lr / 2 - self.bolt_hole_surround_size
+        bracket_top_right = -bracket_top_left
+        bracket_bottom = (
+            self.motor_diameter / 2
+            + self.motor_fastener_wall_thickness
+            - self.bracket_wall_thickness
+        )
+        block_height = (
+            self.motor_diameter + self.motor_height_offset + self.cross_rod_brace_height
+        )
+
+        bracket_block = (
+            cq.Workplane("YZ")
+            .lineTo(motor_front, bracket_bottom, forConstruction=True)
+            .line(0, self.bracket_wall_thickness)
+            .lineTo(bracket_top_left, bracket_top)
+            .lineTo(bracket_top_right, bracket_top)
+            .line(0, -self.bolt_hole_surround_size * 2)
+            .lineTo(motor_rear, bracket_bottom)
+            .close()
+            .extrude(block_height)
+        )
+
+        motor_fastener = (
+            cq.Workplane("XY")
+            .transformed(
+                offset=(
+                    self.motor_diameter / 2 + self.motor_height_offset,
+                    motor_front,
+                    bracket_bottom,
+                )
+            )
+            .circle(radius=self.motor_fastener_hole_diameter / 2)
+            .extrude(self.motor_fastener_wall_thickness)
+            .faces(">Z")
+            .workplane()
+            .circle(radius=self.motor_fastener_head_diameter / 2)
+            .extrude(bracket_top)
+        )
+
+        bracket_rectangular = (
+            bracket_block
+            - motor_fastener.translate((0, self.motor_mount_1, 0))
+            - motor_fastener.translate((0, self.motor_mount_2, 0))
+            - self.cross_rod_placeholder()
+            - self.bolt_placeholders()
+        )
+
+        bracket_wedge_intersect = (
+            cq.Workplane("XZ")
+            .lineTo(block_height, 0)
+            .lineTo(block_height, bracket_bottom + self.bracket_wall_thickness)
+            .lineTo(0, bracket_top)
+            .close()
+            .extrude(motor_front, both=True)
+        )
+
+        return bracket_rectangular.intersect(bracket_wedge_intersect)
+
 
 stm = sb_treadmill_motor()
 
 show_object(stm.bolt_placeholders(), options={"color": "gray", "alpha": 0.25})
 
 show_object(stm.motor_placeholder(), options={"color": "gray", "alpha": 0.25})
+
+show_object(stm.cross_rod_placeholder(), options={"color": "gray", "alpha": 0.25})
+
+show_object(stm.bracket(), options={"color": "green", "alpha": 0.5})
