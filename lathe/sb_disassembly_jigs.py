@@ -751,7 +751,10 @@ class sb_disassembly_jigs:
         # Minus 3/8" height of cutter...
         # Minus 3/8" height of rocker replacement tool
         # = 1/4" high ring.
-        ring_height = inch_to_mm(1 / 4)
+        # = 0.25" high
+        # + 0.05" gap that came from... I don't know.
+        # = 0.30" actual height?
+        ring_height = inch_to_mm(0.30)
 
         return (
             cq.Workplane("XY")
