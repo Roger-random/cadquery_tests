@@ -731,9 +731,36 @@ class sb_disassembly_jigs:
 
         return gib.faces("<Z").chamfer(1)
 
+    def lantern_tool_post_ring(self):
+        """
+        The lathe came with an incomplete lantern tool post. The ring around
+        the post and the rocker that fits within it are both missing. If I am
+        willing to give up the ability to adjust rake, I can hack up something
+        to support only flat horizontal cutting.
+        * Rocker replacement: a blank piece of 3/8" square HSS
+        * Ring replacement: a ring sitting below that rocker replacement.
+
+        This describes a 3D-printable placeholder to test dimension fit before
+        cutting metal to build it for real.
+        """
+        print_margin = 0.2
+        tool_post_diameter = inch_to_mm(7 / 8)
+        external_diameter = inch_to_mm(2.5)
+
+        # Height from top of compound to centerline is 1".
+        # Minus 3/8" height of cutter...
+        # Minus 3/8" height of rocker replacement tool
+        # = 1/4" high ring.
+        ring_height = inch_to_mm(1 / 4)
+
+        return (
+            cq.Workplane("XY")
+            .circle(radius=external_diameter / 2)
+            .circle(radius=tool_post_diameter / 2 + print_margin)
+            .extrude(ring_height)
+        )
+
 
 jigs = sb_disassembly_jigs()
 
-show_object(
-    jigs.saddle_rear_gib_dimension_test(), options={"color": "green", "alpha": 0.5}
-)
+show_object(jigs.lantern_tool_post_ring(), options={"color": "green", "alpha": 0.5})
