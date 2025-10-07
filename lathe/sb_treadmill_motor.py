@@ -84,7 +84,7 @@ class sb_treadmill_motor:
         # Front: flange and combination flywheel+fan+output pulley on shaft
         # Back: plasatic bell housing where all the wires come in
         self.motor_diameter = 85
-        self.motor_length = 140
+        self.motor_length = 135
         self.motor_endbell_diameter = 100
         self.motor_endbell_length = 100
 
@@ -119,7 +119,7 @@ class sb_treadmill_motor:
 
         # Machined motor mount surface is a little bit above casting center
         # surface. Take advantage of it by sinking motor into that gap.
-        self.motor_height_offset = -inch_to_mm(0.175)
+        self.motor_height_offset = -inch_to_mm(0.150)
 
         # Calculated values shared by multiple methods.
         self.motor_front = -self.bolt_spacing_lr / 2 - self.motor_position
