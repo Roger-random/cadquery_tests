@@ -65,7 +65,7 @@ class sb_treadmill_motor:
 
         # 3D printed counterbore holes facing print bed will be bridged for
         # printing to avoid supports, need to be drilled out before use.
-        self.counterbore_bridge_thickness = 0.25
+        self.counterbore_bridge_thickness = 0.5
 
         # Bolt pattern via left-right and front-back spacing
         self.bolt_spacing_lr = inch_to_mm(5)
@@ -73,7 +73,8 @@ class sb_treadmill_motor:
 
         # Size Q drilled hole (0.332" diameter) for 5/16" thread free fit
         # Source: https://www.littlemachineshop.com/Reference/tapdrill.php
-        self.bolt_hole_diameter = inch_to_mm(0.332) + self.print_margin
+        # Any additional room is extra allowance for fine position adjustment.
+        self.bolt_hole_diameter = inch_to_mm(0.4) + self.print_margin
         self.bolt_hole_thickness = 10
         self.bolt_hole_surround_size = 20
         self.bolt_washer_diameter = inch_to_mm(1) + self.print_margin
@@ -102,7 +103,7 @@ class sb_treadmill_motor:
         # I have 1/4"-20 threaded rod to hold the two halves together, recycle
         # values for 1/4"-2o from motor fastener
         self.cross_rod_hole_diameter = self.motor_fastener_hole_diameter
-        self.cross_rod_wall_thickness = self.bracket_wall_thickness
+        self.cross_rod_wall_thickness = 12
         self.cross_rod_head_length = (
             self.motor_diameter / 2
             + self.motor_fastener_wall_thickness
@@ -110,12 +111,18 @@ class sb_treadmill_motor:
             + self.cross_rod_wall_thickness
         )
         self.cross_rod_head_diaameter = self.motor_fastener_head_diameter
-        self.cross_rod_brace_height = 25
+        self.cross_rod_brace_height = 15
 
         # To align with existing pulley, the front of motor body should
         # be about this far away from the left most set of bolts
         self.motor_position = inch_to_mm(3)
-        self.motor_height_offset = -inch_to_mm(0.150)
+
+        # Machined motor mount surface is a little bit above casting center
+        # surface. Take advantage of it by sinking motor into that gap.
+        self.motor_height_offset = -inch_to_mm(0.175)
+
+        # Calculated values shared by multiple methods.
+        self.motor_front = -self.bolt_spacing_lr / 2 - self.motor_position
 
     def bolt_placeholders(self):
         stem = (
@@ -186,15 +193,14 @@ class sb_treadmill_motor:
         )
 
     def cross_rod_placeholder(self):
-        motor_front = -self.bolt_spacing_lr / 2 - self.motor_position
         rod = (
             cq.Workplane("XY")
             .transformed(
                 offset=(
                     self.motor_diameter
                     + self.motor_height_offset
-                    + self.cross_rod_brace_height / 2,
-                    motor_front + self.cross_rod_brace_height / 2,
+                    + self.cross_rod_hole_diameter / 2,
+                    self.motor_front + self.cross_rod_brace_height / 2,
                     0,
                 )
             )
@@ -210,8 +216,7 @@ class sb_treadmill_motor:
         )
 
     def bracket(self):
-        motor_front = -self.bolt_spacing_lr / 2 - self.motor_position
-        motor_rear = motor_front + self.motor_length
+        motor_rear = self.motor_front + self.motor_length
         bracket_top = self.bolt_spacing_fb / 2 + self.bolt_hole_surround_size
         bracket_top_left = -self.bolt_spacing_lr / 2 - self.bolt_hole_surround_size
         bracket_top_right = -bracket_top_left
@@ -226,7 +231,7 @@ class sb_treadmill_motor:
 
         bracket_block = (
             cq.Workplane("YZ")
-            .lineTo(motor_front, bracket_bottom, forConstruction=True)
+            .lineTo(self.motor_front, bracket_bottom, forConstruction=True)
             .line(0, self.bracket_wall_thickness)
             .lineTo(bracket_top_left, bracket_top)
             .lineTo(bracket_top_right, bracket_top)
@@ -241,7 +246,7 @@ class sb_treadmill_motor:
             .transformed(
                 offset=(
                     self.motor_diameter / 2 + self.motor_height_offset,
-                    motor_front,
+                    self.motor_front,
                     bracket_bottom,
                 )
             )
@@ -262,16 +267,31 @@ class sb_treadmill_motor:
             - self.bolt_placeholders()
         )
 
-        bracket_wedge_intersect = (
+        bracket_wedge_intersect_xz = (
             cq.Workplane("XZ")
             .lineTo(block_height, 0)
             .lineTo(block_height, bracket_bottom + self.bracket_wall_thickness)
             .lineTo(0, bracket_top)
             .close()
-            .extrude(motor_front, both=True)
+            .extrude(self.motor_front, both=True)
         )
 
-        return bracket_rectangular.intersect(bracket_wedge_intersect)
+        bracket_trapezoid_intersect_xy = (
+            cq.Workplane("XY")
+            .lineTo(0, self.motor_front)
+            .lineTo(block_height, self.motor_front)
+            .lineTo(block_height, motor_rear)
+            .lineTo(self.motor_diameter / 2, bracket_top_right)
+            .lineTo(0, bracket_top_right)
+            .close()
+            .extrude(self.motor_length, both=True)
+            .edges("|Z")
+            .fillet(self.bracket_wall_thickness)
+        )
+
+        return bracket_rectangular.intersect(bracket_wedge_intersect_xz).intersect(
+            bracket_trapezoid_intersect_xy
+        )
 
 
 stm = sb_treadmill_motor()
@@ -283,3 +303,4 @@ show_object(stm.motor_placeholder(), options={"color": "gray", "alpha": 0.25})
 show_object(stm.cross_rod_placeholder(), options={"color": "gray", "alpha": 0.25})
 
 show_object(stm.bracket(), options={"color": "green", "alpha": 0.5})
+show_object(stm.bracket().mirror("XY"), options={"color": "green", "alpha": 0.5})
