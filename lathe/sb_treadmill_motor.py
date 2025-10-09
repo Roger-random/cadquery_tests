@@ -74,10 +74,10 @@ class sb_treadmill_motor:
         # Size Q drilled hole (0.332" diameter) for 5/16" thread free fit
         # Source: https://www.littlemachineshop.com/Reference/tapdrill.php
         # Any additional room is extra allowance for fine position adjustment.
-        self.bolt_hole_diameter = inch_to_mm(0.4) + self.print_margin
+        self.bolt_hole_diameter = inch_to_mm(0.332) + self.print_margin
         self.bolt_hole_thickness = 10
         self.bolt_hole_surround_size = 20
-        self.bolt_washer_diameter = inch_to_mm(1) + self.print_margin
+        self.bolt_washer_diameter = inch_to_mm(0.75) + self.print_margin
         self.bolt_hole_placeholder_length = 150
 
         # Dimensions of the motor metal body. Actual length is longer due to:
@@ -123,6 +123,18 @@ class sb_treadmill_motor:
 
         # Calculated values shared by multiple methods.
         self.motor_front = -self.bolt_spacing_lr / 2 - self.motor_position
+        self.motor_rear = self.motor_front + self.motor_length
+        self.bracket_top = self.bolt_spacing_fb / 2 + self.bolt_hole_surround_size
+        self.bracket_top_left = -self.bolt_spacing_lr / 2 - self.bolt_hole_surround_size
+        self.bracket_top_right = -self.bracket_top_left
+        self.bracket_bottom = (
+            self.motor_diameter / 2
+            + self.motor_fastener_wall_thickness
+            - self.bracket_wall_thickness
+        )
+        self.block_height = (
+            self.motor_diameter + self.motor_height_offset + self.cross_rod_brace_height
+        )
 
     def bolt_placeholders(self):
         stem = (
@@ -133,9 +145,7 @@ class sb_treadmill_motor:
                 forConstruction=True,
             )
             .vertices()
-            # FDM printers have a hard time printing horizontal cylindrical
-            # walls so switch to a polygon
-            .polygon(6, diameter=self.bolt_hole_diameter, circumscribed=True)
+            .circle(radius=self.bolt_hole_diameter / 2)
             .extrude(self.bolt_hole_placeholder_length)
         )
         head = (
@@ -147,7 +157,7 @@ class sb_treadmill_motor:
                 forConstruction=True,
             )
             .vertices()
-            # Again technically a cylinder but make polygon for easier printing.
+            # Technically a cylinder but make polygon for easier printing.
             .polygon(6, diameter=self.bolt_washer_diameter, circumscribed=True)
             .extrude(self.bolt_hole_placeholder_length)
         )
@@ -216,38 +226,39 @@ class sb_treadmill_motor:
         )
 
     def bracket(self):
-        motor_rear = self.motor_front + self.motor_length
-        bracket_top = self.bolt_spacing_fb / 2 + self.bolt_hole_surround_size
-        bracket_top_left = -self.bolt_spacing_lr / 2 - self.bolt_hole_surround_size
-        bracket_top_right = -bracket_top_left
-        bracket_bottom = (
-            self.motor_diameter / 2
-            + self.motor_fastener_wall_thickness
-            - self.bracket_wall_thickness
-        )
-        block_height = (
-            self.motor_diameter + self.motor_height_offset + self.cross_rod_brace_height
-        )
-
         bracket_block = (
             cq.Workplane("YZ")
-            .lineTo(self.motor_front, bracket_bottom, forConstruction=True)
+            .lineTo(self.motor_front, self.bracket_bottom, forConstruction=True)
             .line(0, self.bracket_wall_thickness)
-            .lineTo(bracket_top_left, bracket_top)
-            .lineTo(bracket_top_right, bracket_top)
+            .lineTo(self.bracket_top_left, self.bracket_top)
+            .lineTo(self.bracket_top_right, self.bracket_top)
             .line(0, -self.bolt_hole_surround_size * 2)
-            .lineTo(motor_rear, bracket_bottom)
+            .lineTo(self.motor_rear, self.bracket_bottom)
             .close()
-            .extrude(block_height)
+            .extrude(self.block_height)
         )
 
-        motor_fastener = (
+        bracket_rectangular = (
+            bracket_block.edges("|Z").fillet(self.bracket_wall_thickness)
+            - self.motor_placeholder()
+            - self.motor_fastener().translate((0, self.motor_mount_1, 0))
+            - self.motor_fastener().translate((0, self.motor_mount_2, 0))
+            - self.cross_rod_placeholder()
+            - self.bolt_placeholders()
+        )
+
+        return bracket_rectangular.intersect(
+            self.bracket_wedge_intersect_xz()
+        ).intersect(self.bracket_trapezoid_intersect_xy())
+
+    def motor_fastener(self):
+        return (
             cq.Workplane("XY")
             .transformed(
                 offset=(
                     self.motor_diameter / 2 + self.motor_height_offset,
                     self.motor_front,
-                    bracket_bottom,
+                    self.bracket_bottom,
                 )
             )
             .circle(radius=self.motor_fastener_hole_diameter / 2)
@@ -255,42 +266,33 @@ class sb_treadmill_motor:
             .faces(">Z")
             .workplane(offset=self.counterbore_bridge_thickness)
             .circle(radius=self.motor_fastener_head_diameter / 2)
-            .extrude(bracket_top)
+            .extrude(self.bracket_top)
         )
 
-        bracket_rectangular = (
-            bracket_block.edges("|Z").fillet(self.bracket_wall_thickness)
-            - self.motor_placeholder()
-            - motor_fastener.translate((0, self.motor_mount_1, 0))
-            - motor_fastener.translate((0, self.motor_mount_2, 0))
-            - self.cross_rod_placeholder()
-            - self.bolt_placeholders()
-        )
-
-        bracket_wedge_intersect_xz = (
+    def bracket_wedge_intersect_xz(self):
+        return (
             cq.Workplane("XZ")
-            .lineTo(block_height, 0)
-            .lineTo(block_height, bracket_bottom + self.bracket_wall_thickness)
-            .lineTo(0, bracket_top)
+            .lineTo(self.block_height, 0)
+            .lineTo(
+                self.block_height, self.bracket_bottom + self.bracket_wall_thickness
+            )
+            .lineTo(0, self.bracket_top)
             .close()
             .extrude(self.motor_front, both=True)
         )
 
-        bracket_trapezoid_intersect_xy = (
+    def bracket_trapezoid_intersect_xy(self):
+        return (
             cq.Workplane("XY")
             .lineTo(0, self.motor_front)
-            .lineTo(block_height, self.motor_front)
-            .lineTo(block_height, motor_rear)
-            .lineTo(self.motor_diameter / 2, bracket_top_right)
-            .lineTo(0, bracket_top_right)
+            .lineTo(self.block_height, self.motor_front)
+            .lineTo(self.block_height, self.motor_rear)
+            .lineTo(self.motor_diameter / 2, self.bracket_top_right)
+            .lineTo(0, self.bracket_top_right)
             .close()
             .extrude(self.motor_length, both=True)
             .edges("|Z")
             .fillet(self.bracket_wall_thickness)
-        )
-
-        return bracket_rectangular.intersect(bracket_wedge_intersect_xz).intersect(
-            bracket_trapezoid_intersect_xy
         )
 
 
