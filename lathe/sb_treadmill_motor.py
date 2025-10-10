@@ -58,14 +58,14 @@ class sb_treadmill_motor:
     """
 
     def __init__(self):
-        self.bracket_wall_thickness = 10
+        self.bracket_wall_thickness = 5
 
         # 3D printed mockups need a bit of margin to fit
         self.print_margin = 0.2
 
         # 3D printed counterbore holes facing print bed will be bridged for
         # printing to avoid supports, need to be drilled out before use.
-        self.counterbore_bridge_thickness = 0.5
+        self.counterbore_bridge_thickness = 0
 
         # Bolt pattern via left-right and front-back spacing
         self.bolt_spacing_lr = inch_to_mm(5)
@@ -157,8 +157,7 @@ class sb_treadmill_motor:
                 forConstruction=True,
             )
             .vertices()
-            # Technically a cylinder but make polygon for easier printing.
-            .polygon(6, diameter=self.bolt_washer_diameter, circumscribed=True)
+            .circle(radius=self.bolt_washer_diameter / 2)
             .extrude(self.bolt_hole_placeholder_length)
         )
 
@@ -225,7 +224,7 @@ class sb_treadmill_motor:
             (0, self.motor_length - self.cross_rod_brace_height, 0)
         )
 
-    def bracket(self):
+    def bracket_v1(self):
         bracket_block = (
             cq.Workplane("YZ")
             .lineTo(self.motor_front, self.bracket_bottom, forConstruction=True)
@@ -295,6 +294,55 @@ class sb_treadmill_motor:
             .fillet(self.bracket_wall_thickness)
         )
 
+    def minimal_bracket(self):
+        """
+        Minimal L that's just big enough for bolts. Helps visualize what it
+        looks like when I rebuild with commodity metal L sections.
+        """
+        bolt_y = self.bolt_spacing_fb / 2
+        minimal_bottom = (
+            bolt_y - self.bolt_washer_diameter / 2 - self.bracket_wall_thickness
+        )
+        minimal_top = bolt_y + self.bolt_washer_diameter / 2
+        minimal_block = (
+            cq.Workplane("YZ")
+            .lineTo(self.motor_front, minimal_bottom, forConstruction=True)
+            .line(0, self.cross_rod_wall_thickness)
+            .lineTo(self.bracket_top_left, minimal_top)
+            .lineTo(self.bracket_top_right, minimal_top)
+            .lineTo(self.bracket_top_right, minimal_bottom)
+            .lineTo(self.motor_rear, minimal_bottom)
+            .close()
+            .extrude(self.block_height)
+        )
+
+        minimal_intersect_xz = (
+            cq.Workplane("XZ")
+            .lineTo(self.block_height, 0)
+            .line(0, minimal_bottom + self.bracket_wall_thickness)
+            .line(-self.block_height + self.bracket_wall_thickness, 0)
+            .line(0, self.bolt_washer_diameter)
+            .line(-self.bracket_wall_thickness, 0)
+            .close()
+            .extrude(self.motor_front, both=True)
+        )
+
+        return (
+            minimal_block.intersect(minimal_intersect_xz).intersect(
+                self.bracket_trapezoid_intersect_xy()
+            )
+            - self.motor_fastener().translate(
+                (0, self.motor_mount_1, minimal_bottom - self.motor_diameter / 2)
+            )
+            - self.motor_fastener().translate(
+                (0, self.motor_mount_2, minimal_bottom - self.motor_diameter / 2)
+            )
+            - self.cross_rod_placeholder().translate(
+                (0, 0, minimal_bottom - self.motor_diameter / 2)
+            )
+            - self.bolt_placeholders()
+        )
+
 
 stm = sb_treadmill_motor()
 
@@ -304,5 +352,7 @@ show_object(stm.motor_placeholder(), options={"color": "gray", "alpha": 0.25})
 
 show_object(stm.cross_rod_placeholder(), options={"color": "gray", "alpha": 0.25})
 
-show_object(stm.bracket(), options={"color": "green", "alpha": 0.5})
-show_object(stm.bracket().mirror("XY"), options={"color": "green", "alpha": 0.5})
+show_object(stm.bracket_v1(), options={"color": "green", "alpha": 0.5})
+show_object(stm.bracket_v1().mirror("XY"), options={"color": "green", "alpha": 0.5})
+
+show_object(stm.minimal_bracket(), options={"color": "yellow", "alpha": 0.5})
