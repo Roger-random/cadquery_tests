@@ -384,7 +384,7 @@ class sb_treadmill_motor:
             self.motor_front + self.motor_mount_2 + cross_rod_motor_mount_offset
         )
 
-        subtract_length = self.bolt_spacing_fb / 2 + self.bolt_washer_diameter
+        subtract_length = self.bolt_spacing_fb / 2 + self.bolt_washer_diameter / 2
 
         bracket_body_rear = cross_rod_rear + self.cross_rod_head_diameter / 2
         bracket_body = (
@@ -400,17 +400,77 @@ class sb_treadmill_motor:
             .fillet(self.cross_rod_head_diameter / 2)  # Help 3D print adhesion
         )
 
+        bracket_tang_tail = inch_to_mm(0.6) + self.bolt_hole_diameter / 2
+
+        bracket_tang_subtract = (
+            cq.Workplane("XY")
+            .transformed(
+                offset=(0, 0, self.bolt_spacing_fb / 2 - self.bolt_washer_diameter / 2)
+            )
+            .lineTo(
+                self.bracket_wall_thickness, bracket_body_rear, forConstruction=True
+            )
+            .line(bracket_height, 0)
+            .line(0, self.bolt_spacing_lr)
+            .line(-bracket_height, 0)
+            .close()
+            .extrude(self.bolt_washer_diameter)
+            .edges("|Z and <Y and <X")
+            .fillet(bracket_height / 2)
+            .faces(">Z")
+            .edges("not >X")
+            .fillet(self.cross_rod_head_diameter / 2)
+        )
+
+        bracket_wall = (
+            cq.Workplane("XY")
+            .transformed(
+                offset=(0, 0, self.bolt_spacing_fb / 2 - self.bolt_washer_diameter / 2)
+            )
+            .lineTo(0, self.motor_front)
+            .line(bracket_height, 0)
+            .lineTo(bracket_height, bracket_body_rear)
+            .lineTo(
+                self.bracket_wall_thickness,
+                self.bolt_spacing_lr / 2 + bracket_tang_tail,
+            )
+            .line(-self.bracket_wall_thickness, 0)
+            .close()
+            .extrude(self.bracket_wall_thickness + self.bolt_washer_diameter)
+            .edges("|Z and >Y")
+            .fillet(self.bracket_wall_thickness / 4)
+            .edges("|Z")
+            .fillet(self.cross_rod_head_diameter / 2)
+        )
+
+        bracket_tang_bolt_subtract = (
+            cq.Workplane("YZ")
+            .transformed(
+                offset=(
+                    self.bolt_spacing_lr / 2,
+                    self.bolt_spacing_fb / 2,
+                    self.bracket_wall_thickness,
+                )
+            )
+            .circle(radius=self.bolt_washer_diameter / 2)
+            .extrude(bracket_height)
+            .faces("<X")
+            .workplane()
+            .circle(radius=self.bolt_hole_diameter / 2)
+            .extrude(self.bracket_wall_thickness)
+        )
+
         cross_thread_holes = (
             cq.Workplane("XY")
             .lineTo(cross_rod_height, cross_rod_front, forConstruction=True)
             .lineTo(cross_rod_height, cross_rod_rear)
             .vertices()
             .circle(radius=self.cross_rod_hole_diameter / 2)
-            .extrude(subtract_length, both=True)
+            .extrude(subtract_length * 2, both=True)
         )
 
         bolt_y = -(self.bolt_spacing_lr / 2)
-        clearance_hole_width = self.bolt_washer_diameter + self.cross_rod_head_diameter
+        clearance_hole_width = self.bolt_washer_diameter
         clearance_hole_height = inch_to_mm(1.5) + self.print_margin
         bolt_clearance = (
             cq.Workplane("XY")
@@ -424,7 +484,7 @@ class sb_treadmill_motor:
             .line(0, clearance_hole_width)
             .close()
             .extrude(subtract_length)
-            .edges("|Z")
+            .edges("not <X")
             .fillet(self.cross_rod_head_diameter / 2)
         )
 
@@ -432,10 +492,17 @@ class sb_treadmill_motor:
             cq.Workplane("YZ")
             .transformed(offset=(bolt_y, self.bolt_spacing_fb / 2, 0))
             .circle(radius=self.bolt_hole_diameter / 2)
-            .extrude(subtract_length)
+            .extrude(subtract_length * 2)
         )
 
-        bracket = bracket_body - cross_thread_holes - bolt_clearance - bolt_hole
+        bracket = (
+            bracket_wall
+            - bracket_tang_subtract
+            - bracket_tang_bolt_subtract
+            - cross_thread_holes
+            - bolt_clearance
+            - bolt_hole
+        )
 
         motor_subtract = (
             cq.Workplane("XZ")
@@ -454,27 +521,15 @@ class sb_treadmill_motor:
         top_dimension_y = bracket_body_rear - self.motor_front
         top_thickness = self.cross_rod_head_diameter
 
-        top_1 = (
+        top_block = (
             cq.Workplane("YZ")
             .transformed(offset=(top_center_y, 0, bracket_height))
             .rect(top_dimension_y, self.motor_diameter - self.cross_rod_head_diameter)
             .extrude(-top_thickness)
         )
 
-        top_2 = (
-            cq.Workplane("YZ")
-            .transformed(offset=(top_center_y, 0, bracket_height))
-            .rect(
-                top_dimension_y - self.cross_rod_head_diameter * 2, self.motor_diameter
-            )
-            .extrude(-top_thickness)
-            .edges("|X")
-            .chamfer(self.cross_rod_head_diameter / 2)
-        )
-
         top = (
-            top_1
-            + top_2
+            top_block
             - stm.motor_fastener_yz().translate((0, stm.motor_mount_1, 0))
             - stm.motor_fastener_yz().translate((0, stm.motor_mount_2, 0))
             - cross_thread_holes
