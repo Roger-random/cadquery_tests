@@ -363,6 +363,37 @@ class sb_treadmill_motor:
             - self.bolt_placeholders()
         )
 
+    def bracket_v3_spacer(
+        self,
+        thickness,
+        top_lip_height,
+        top_lip_depth,
+        bracket_height,
+        top_dimension_y,
+        top_dimension_z,
+        top_center_y,
+        top_thickness,
+        motor_subtract,
+    ):
+        spacer = (
+            cq.Workplane("XZ")
+            .transformed(offset=((bracket_height, top_dimension_z / 2, -top_center_y)))
+            .line(top_lip_height / 2, -top_lip_depth)
+            .line(top_lip_height / 2, 0)
+            .line(0, top_lip_depth * 2 + thickness)
+            .line(-top_lip_height / 2, 0)
+            .line(-top_lip_height / 2, -top_lip_depth)
+            .line(-self.motor_diameter / 2 - top_thickness, 0)
+            .line(0, -thickness)
+            .close()
+            .extrude(
+                top_dimension_y / 2 - self.cross_rod_head_diameter * 1.5, both=True
+            )
+        )
+        spacer = (spacer - motor_subtract).faces("<X").chamfer(1)
+
+        return spacer
+
     def bracket_v3(self, spacer_thickness):
         """
         L shape geometry has been tricky to get right. Try to simplify with a
@@ -539,23 +570,33 @@ class sb_treadmill_motor:
 
         spacer_top_lip_depth = 5
         spacer_top_lip_height = 10
-        spacer = (
-            cq.Workplane("XZ")
-            .transformed(offset=((bracket_height, top_dimension_z / 2, -top_center_y)))
-            .line(spacer_top_lip_height / 2, -spacer_top_lip_depth)
-            .line(spacer_top_lip_height / 2, 0)
-            .line(0, spacer_top_lip_depth * 2 + spacer_thickness)
-            .line(-spacer_top_lip_height / 2, 0)
-            .line(-spacer_top_lip_height / 2, -spacer_top_lip_depth)
-            .line(-self.motor_diameter / 2 - top_thickness, 0)
-            .line(0, -spacer_thickness)
-            .close()
-            .extrude(
-                top_dimension_y / 2 - self.cross_rod_head_diameter * 1.5, both=True
-            )
+        spacer_sum = self.bolt_spacing_fb - self.bolt_washer_diameter - top_dimension_z
+
+        spacer_top = self.bracket_v3_spacer(
+            spacer_thickness,
+            spacer_top_lip_height,
+            spacer_top_lip_depth,
+            bracket_height,
+            top_dimension_y,
+            top_dimension_z,
+            top_center_y,
+            top_thickness,
+            motor_subtract,
         )
-        spacer = (spacer - motor_subtract).faces("<X").chamfer(1)
-        return (bracket, top, spacer)
+
+        spacer_bottom = self.bracket_v3_spacer(
+            spacer_sum - spacer_thickness,
+            spacer_top_lip_height,
+            spacer_top_lip_depth,
+            bracket_height,
+            top_dimension_y,
+            top_dimension_z,
+            top_center_y,
+            top_thickness,
+            motor_subtract,
+        )
+
+        return (bracket, top, spacer_top, spacer_bottom)
 
 
 stm = sb_treadmill_motor()
@@ -571,9 +612,10 @@ show_object(stm.cross_rod_placeholder(), options={"color": "gray", "alpha": 0.25
 
 # show_object(stm.bracket_v2(), options={"color": "yellow", "alpha": 0.5})
 
-(v3_side, v3_top, v3_spacer_top) = stm.bracket_v3(inch_to_mm(0.515))
+(v3_side, v3_top, v3_spacer_top, v3_spacer_bottom) = stm.bracket_v3(inch_to_mm(0.515))
 
 show_object(v3_side, options={"color": "blue", "alpha": 0.25})
 show_object(v3_side.mirror("XY"), options={"color": "blue", "alpha": 0.25})
 show_object(v3_top, options={"color": "blue", "alpha": 0.25})
 show_object(v3_spacer_top, options={"color": "blue", "alpha": 0.25})
+show_object(v3_spacer_bottom.mirror("XY"), options={"color": "blue", "alpha": 0.25})
