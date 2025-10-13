@@ -519,12 +519,13 @@ class sb_treadmill_motor:
 
         top_center_y = (bracket_body_rear + self.motor_front) / 2
         top_dimension_y = bracket_body_rear - self.motor_front
+        top_dimension_z = self.motor_diameter - self.cross_rod_head_diameter
         top_thickness = self.cross_rod_head_diameter
 
         top_block = (
             cq.Workplane("YZ")
             .transformed(offset=(top_center_y, 0, bracket_height))
-            .rect(top_dimension_y, self.motor_diameter - self.cross_rod_head_diameter)
+            .rect(top_dimension_y, top_dimension_z)
             .extrude(-top_thickness)
         )
 
@@ -536,22 +537,24 @@ class sb_treadmill_motor:
             - motor_subtract
         )
 
+        shim_top_lip_depth = 5
+        shim_top_lip_height = 10
         shim = (
-            cq.Workplane("YZ")
-            .transformed(
-                offset=(
-                    top_center_y,
-                    self.bolt_spacing_fb / 2
-                    - self.bolt_washer_diameter / 2
-                    - shim_thickness / 2,
-                    bracket_height,
-                )
+            cq.Workplane("XZ")
+            .transformed(offset=((bracket_height, top_dimension_z / 2, -top_center_y)))
+            .line(shim_top_lip_height / 2, -shim_top_lip_depth)
+            .line(shim_top_lip_height / 2, 0)
+            .line(0, shim_top_lip_depth * 2 + shim_thickness)
+            .line(-shim_top_lip_height / 2, 0)
+            .line(-shim_top_lip_height / 2, -shim_top_lip_depth)
+            .line(-self.motor_diameter / 2 - top_thickness, 0)
+            .line(0, -shim_thickness)
+            .close()
+            .extrude(
+                top_dimension_y / 2 - self.cross_rod_head_diameter * 1.5, both=True
             )
-            .rect(top_dimension_y - self.cross_rod_head_diameter * 3, shim_thickness)
-            .extrude(-top_thickness)
-            .edges()
-            .chamfer(1)
         )
+        shim = (shim - motor_subtract).faces("<X").chamfer(1)
         return (bracket, top, shim)
 
 
@@ -568,7 +571,7 @@ show_object(stm.cross_rod_placeholder(), options={"color": "gray", "alpha": 0.25
 
 # show_object(stm.bracket_v2(), options={"color": "yellow", "alpha": 0.5})
 
-(v3_side, v3_top, v3_shim) = stm.bracket_v3(5)
+(v3_side, v3_top, v3_shim) = stm.bracket_v3(13)
 
 show_object(v3_side, options={"color": "blue", "alpha": 0.25})
 show_object(v3_side.mirror("XY"), options={"color": "blue", "alpha": 0.25})
