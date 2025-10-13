@@ -363,7 +363,7 @@ class sb_treadmill_motor:
             - self.bolt_placeholders()
         )
 
-    def bracket_v3(self, shim_thickness):
+    def bracket_v3(self, spacer_thickness):
         """
         L shape geometry has been tricky to get right. Try to simplify with a
         blocky rectangular design that will be easier to print and build.
@@ -537,25 +537,25 @@ class sb_treadmill_motor:
             - motor_subtract
         )
 
-        shim_top_lip_depth = 5
-        shim_top_lip_height = 10
-        shim = (
+        spacer_top_lip_depth = 5
+        spacer_top_lip_height = 10
+        spacer = (
             cq.Workplane("XZ")
             .transformed(offset=((bracket_height, top_dimension_z / 2, -top_center_y)))
-            .line(shim_top_lip_height / 2, -shim_top_lip_depth)
-            .line(shim_top_lip_height / 2, 0)
-            .line(0, shim_top_lip_depth * 2 + shim_thickness)
-            .line(-shim_top_lip_height / 2, 0)
-            .line(-shim_top_lip_height / 2, -shim_top_lip_depth)
+            .line(spacer_top_lip_height / 2, -spacer_top_lip_depth)
+            .line(spacer_top_lip_height / 2, 0)
+            .line(0, spacer_top_lip_depth * 2 + spacer_thickness)
+            .line(-spacer_top_lip_height / 2, 0)
+            .line(-spacer_top_lip_height / 2, -spacer_top_lip_depth)
             .line(-self.motor_diameter / 2 - top_thickness, 0)
-            .line(0, -shim_thickness)
+            .line(0, -spacer_thickness)
             .close()
             .extrude(
                 top_dimension_y / 2 - self.cross_rod_head_diameter * 1.5, both=True
             )
         )
-        shim = (shim - motor_subtract).faces("<X").chamfer(1)
-        return (bracket, top, shim)
+        spacer = (spacer - motor_subtract).faces("<X").chamfer(1)
+        return (bracket, top, spacer)
 
 
 stm = sb_treadmill_motor()
@@ -571,9 +571,9 @@ show_object(stm.cross_rod_placeholder(), options={"color": "gray", "alpha": 0.25
 
 # show_object(stm.bracket_v2(), options={"color": "yellow", "alpha": 0.5})
 
-(v3_side, v3_top, v3_shim) = stm.bracket_v3(13)
+(v3_side, v3_top, v3_spacer_top) = stm.bracket_v3(inch_to_mm(0.515))
 
 show_object(v3_side, options={"color": "blue", "alpha": 0.25})
 show_object(v3_side.mirror("XY"), options={"color": "blue", "alpha": 0.25})
 show_object(v3_top, options={"color": "blue", "alpha": 0.25})
-show_object(v3_shim, options={"color": "blue", "alpha": 0.25})
+show_object(v3_spacer_top, options={"color": "blue", "alpha": 0.25})
