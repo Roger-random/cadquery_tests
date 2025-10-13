@@ -65,7 +65,7 @@ class sb_treadmill_motor:
 
         # 3D printed counterbore holes facing print bed will be bridged for
         # printing to avoid supports, need to be drilled out before use.
-        self.counterbore_bridge_thickness = 0
+        self.counterbore_bridge_thickness = 0.5
 
         # Bolt pattern via left-right and front-back spacing
         self.bolt_spacing_lr = inch_to_mm(5)
@@ -363,7 +363,7 @@ class sb_treadmill_motor:
             - self.bolt_placeholders()
         )
 
-    def bracket_v3_side(self):
+    def bracket_v3(self, shim_thickness):
         """
         L shape geometry has been tricky to get right. Try to simplify with a
         blocky rectangular design that will be easier to print and build.
@@ -385,12 +385,14 @@ class sb_treadmill_motor:
         )
 
         subtract_length = self.bolt_spacing_fb / 2 + self.bolt_washer_diameter
+
+        bracket_body_rear = cross_rod_rear + self.cross_rod_head_diameter / 2
         bracket_body = (
             cq.Workplane("XY")
             .transformed(offset=(0, 0, self.bolt_spacing_fb / 2))
             .line(0, self.motor_front, forConstruction=True)
             .line(bracket_height, 0)
-            .lineTo(bracket_height, cross_rod_rear + self.cross_rod_head_diameter / 2)
+            .lineTo(bracket_height, bracket_body_rear)
             .line(-bracket_height, 0)
             .close()
             .extrude(self.bolt_washer_diameter / 2, both=True)
@@ -404,7 +406,7 @@ class sb_treadmill_motor:
             .lineTo(cross_rod_height, cross_rod_rear)
             .vertices()
             .circle(radius=self.cross_rod_hole_diameter / 2)
-            .extrude(subtract_length)
+            .extrude(subtract_length, both=True)
         )
 
         bolt_y = -(self.bolt_spacing_lr / 2)
@@ -435,7 +437,67 @@ class sb_treadmill_motor:
 
         bracket = bracket_body - cross_thread_holes - bolt_clearance - bolt_hole
 
-        return bracket
+        motor_subtract = (
+            cq.Workplane("XZ")
+            .transformed(
+                offset=(
+                    self.motor_diameter / 2 + self.motor_height_offset,
+                    0,
+                    -self.motor_front,
+                )
+            )
+            .circle(radius=self.motor_diameter / 2)
+            .extrude(self.motor_front)
+        )
+
+        top_center_y = (bracket_body_rear + self.motor_front) / 2
+        top_dimension_y = bracket_body_rear - self.motor_front
+        top_thickness = self.cross_rod_head_diameter
+
+        top_1 = (
+            cq.Workplane("YZ")
+            .transformed(offset=(top_center_y, 0, bracket_height))
+            .rect(top_dimension_y, self.motor_diameter - self.cross_rod_head_diameter)
+            .extrude(-top_thickness)
+        )
+
+        top_2 = (
+            cq.Workplane("YZ")
+            .transformed(offset=(top_center_y, 0, bracket_height))
+            .rect(
+                top_dimension_y - self.cross_rod_head_diameter * 2, self.motor_diameter
+            )
+            .extrude(-top_thickness)
+            .edges("|X")
+            .chamfer(self.cross_rod_head_diameter / 2)
+        )
+
+        top = (
+            top_1
+            + top_2
+            - stm.motor_fastener_yz().translate((0, stm.motor_mount_1, 0))
+            - stm.motor_fastener_yz().translate((0, stm.motor_mount_2, 0))
+            - cross_thread_holes
+            - motor_subtract
+        )
+
+        shim = (
+            cq.Workplane("YZ")
+            .transformed(
+                offset=(
+                    top_center_y,
+                    self.bolt_spacing_fb / 2
+                    - self.bolt_washer_diameter / 2
+                    - shim_thickness / 2,
+                    bracket_height,
+                )
+            )
+            .rect(top_dimension_y - self.cross_rod_head_diameter * 3, shim_thickness)
+            .extrude(-top_thickness)
+            .edges()
+            .chamfer(1)
+        )
+        return (bracket, top, shim)
 
 
 stm = sb_treadmill_motor()
@@ -451,9 +513,9 @@ show_object(stm.cross_rod_placeholder(), options={"color": "gray", "alpha": 0.25
 
 # show_object(stm.bracket_v2(), options={"color": "yellow", "alpha": 0.5})
 
-# show_object(stm.motor_fastener_yz().translate((0, stm.motor_mount_1, 0)))
+(v3_side, v3_top, v3_shim) = stm.bracket_v3(5)
 
-show_object(stm.bracket_v3_side(), options={"color": "blue", "alpha": 0.25})
-show_object(
-    stm.bracket_v3_side().mirror("XY"), options={"color": "blue", "alpha": 0.25}
-)
+show_object(v3_side, options={"color": "blue", "alpha": 0.25})
+show_object(v3_side.mirror("XY"), options={"color": "blue", "alpha": 0.25})
+show_object(v3_top, options={"color": "blue", "alpha": 0.25})
+show_object(v3_shim, options={"color": "blue", "alpha": 0.25})
