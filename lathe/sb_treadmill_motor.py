@@ -431,7 +431,7 @@ class sb_treadmill_motor:
             .fillet(self.cross_rod_head_diameter / 2)  # Help 3D print adhesion
         )
 
-        bracket_tang_tail = inch_to_mm(0.6) + self.bolt_hole_diameter / 2
+        bracket_tang_tail = inch_to_mm(0.55) + self.bolt_hole_diameter / 2
 
         bracket_tang_subtract = (
             cq.Workplane("XY")
@@ -596,7 +596,87 @@ class sb_treadmill_motor:
             motor_subtract,
         )
 
-        return (bracket, top, spacer_top, spacer_bottom)
+        cover_thickness = 0.8
+        cover_tail_extra_gap = 1
+        cover_radius = bracket_height - self.bracket_wall_thickness
+        cover_flat_y = (
+            self.bolt_spacing_lr / 2
+            + bracket_tang_tail
+            - cover_radius
+            + cover_tail_extra_gap
+        )
+        cover_top = (
+            cq.Workplane("XY")
+            .transformed(
+                offset=(
+                    0,
+                    0,
+                    self.bolt_spacing_fb / 2
+                    + self.bolt_washer_diameter / 2
+                    + self.bracket_wall_thickness,
+                )
+            )
+            .lineTo(
+                bracket_height - self.cross_rod_head_diameter,
+                cross_rod_rear - self.cross_rod_head_diameter / 2,
+                forConstruction=True,
+            )
+            .line(self.cross_rod_head_diameter + cover_thickness, 0)
+            .lineTo(bracket_height + cover_thickness, cover_flat_y)
+            .tangentArcPoint(
+                (-cover_radius - cover_thickness, cover_radius + cover_thickness)
+            )
+            .line(-self.bracket_wall_thickness, 0)
+            .line(0, -cover_thickness)
+            .line(0, -self.bracket_wall_thickness)
+            .close()
+            .extrude(cover_thickness)
+        )
+        cover_hole = (
+            cq.Workplane("XY")
+            .transformed(
+                offset=(
+                    bracket_height - self.cross_rod_head_diameter / 2,
+                    cross_rod_rear,
+                )
+            )
+            .circle(radius=inch_to_mm(0.482 / 2))
+            .extrude(self.bolt_spacing_fb)
+        )
+        cover_wall = (
+            cq.Workplane("XY")
+            .transformed(
+                offset=(
+                    0,
+                    0,
+                    self.bolt_spacing_fb / 2
+                    + self.bolt_washer_diameter / 2
+                    + self.bracket_wall_thickness,
+                )
+            )
+            .lineTo(
+                bracket_height,
+                cross_rod_rear - self.cross_rod_head_diameter / 2,
+                forConstruction=True,
+            )
+            .line(cover_thickness, 0)
+            .lineTo(bracket_height + cover_thickness, cover_flat_y)
+            .tangentArcPoint(
+                (-cover_radius - cover_thickness, cover_radius + cover_thickness)
+            )
+            .line(-self.bracket_wall_thickness, 0)
+            .line(0, -cover_thickness)
+            .line(self.bracket_wall_thickness, 0)
+            .tangentArcPoint((cover_radius, -cover_radius))
+            .close()
+            .extrude(
+                -self.bolt_spacing_fb
+                - self.bolt_washer_diameter
+                - self.bracket_wall_thickness * 2
+            )
+        )
+        cover = cover_top - cover_hole + cover_wall
+        return (bracket, top, spacer_top, spacer_bottom, cover)
 
 
 stm = sb_treadmill_motor()
@@ -612,10 +692,13 @@ show_object(stm.cross_rod_placeholder(), options={"color": "gray", "alpha": 0.25
 
 # show_object(stm.bracket_v2(), options={"color": "yellow", "alpha": 0.5})
 
-(v3_side, v3_top, v3_spacer_top, v3_spacer_bottom) = stm.bracket_v3(inch_to_mm(0.515))
+(v3_side, v3_top, v3_spacer_top, v3_spacer_bottom, v3_cover) = stm.bracket_v3(
+    inch_to_mm(0.515)
+)
 
 show_object(v3_side, options={"color": "blue", "alpha": 0.25})
 show_object(v3_side.mirror("XY"), options={"color": "blue", "alpha": 0.25})
 show_object(v3_top, options={"color": "blue", "alpha": 0.25})
 show_object(v3_spacer_top, options={"color": "blue", "alpha": 0.25})
 show_object(v3_spacer_bottom.mirror("XY"), options={"color": "blue", "alpha": 0.25})
+show_object(v3_cover, options={"color": "blue", "alpha": 0.25})
