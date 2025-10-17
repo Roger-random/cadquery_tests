@@ -59,14 +59,76 @@ class sb_belt_tensioner:
 
     Hence this 3D printed project to figure out the dimensions I'd need for my
     setup. 3D printed plastic can be decently strong in compression so there's
-    a chance it'll work as-is without having to be redone in metal.
+    a chance it'll work as-is without having to be redone in metal. So geometry
+    will be optimized for 3D printing. If I have to redo this in metal I'll
+    revisit the design to make it easier to mill out on a Bridgeport.
+
+    Because the countershaft assembly can be freely installed in a range of
+    positions relative to the lathe headstock, many of the dimensions will only
+    work for specific setups. Further complicating dimensions, There isn't a
+    nice flat machined surface to serve as obvious datum point.
+
+    I'll start V1 by using the headstock 3/8" hole's right-side surface.
     """
 
     def __init__(self) -> None:
-        pass
+        # 3D Printer error margin
+        self.print_margin = 0.2
+
+        # Headstock
+        self.headstock_hole_diameter = inch_to_mm(3 / 8)
+        self.headstock_hole_length = inch_to_mm(0.77)  # 3/4" but oversized?
+
+        # Motor drive
+        self.drive_hole_diameter = inch_to_mm(3 / 8)
+        self.drive_hole_length = inch_to_mm(0.5)  # 1/2" but undersized?
+
+        # Relative positioning
+        self.distance_fb = inch_to_mm(8.5)
+        self.distance_lr = inch_to_mm(0)  # TBD
+
+        # Lever dimensions
+        self.lever_offset_lr = inch_to_mm(0.25)  # Clear back gear shaft
+        self.lever_width = inch_to_mm(1)
+        self.lever_thickness = inch_to_mm(0.25)
+        self.lever_length = inch_to_mm(4)
 
     def front_lever(self):
-        return cq.Workplane("XY").box(10, 10, 10)
+        offset_cylinder = (
+            cq.Workplane("YZ")
+            .transformed(offset=(0, 0, self.lever_offset_lr))
+            .circle(radius=self.lever_width / 2)
+            .circle(radius=(self.headstock_hole_diameter / 2) + self.print_margin)
+            .extrude(-self.lever_offset_lr)
+        )
+
+        lever_rod = (
+            cq.Workplane("YZ")
+            .transformed(offset=(0, 0, self.lever_offset_lr))
+            .line(0, self.lever_width / 2)
+            .line(self.lever_length, 0)
+            .tangentArcPoint((0, -self.lever_width))
+            .line(-self.lever_length, 0)
+            .tangentArcPoint((0, self.lever_width))
+            .close()
+            .extrude(self.lever_thickness)
+        )
+
+        lever_rod_hole_subtract = (
+            cq.Workplane("YZ")
+            .circle(radius=self.headstock_hole_diameter / 2 + self.print_margin)
+            .extrude(self.lever_length, both=True)
+        )
+
+        lever_rod = (
+            lever_rod
+            - lever_rod_hole_subtract
+            - lever_rod_hole_subtract.translate((0, self.lever_length, 0))
+        )
+
+        lever = offset_cylinder + lever_rod
+
+        return lever
 
 
 sbt = sb_belt_tensioner()
