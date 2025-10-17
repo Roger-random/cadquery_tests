@@ -76,30 +76,37 @@ class sb_belt_tensioner:
         self.print_margin = 0.2
 
         # Headstock
-        self.headstock_hole_diameter = inch_to_mm(3 / 8)
-        self.headstock_hole_length = inch_to_mm(0.77)  # 3/4" but oversized?
+        self.headstock_hole_diameter = inch_to_mm(0.388)
+        self.headstock_hole_length = inch_to_mm(0.82)
 
-        # Motor drive
-        self.drive_hole_diameter = inch_to_mm(3 / 8)
-        self.drive_hole_length = inch_to_mm(0.5)  # 1/2" but undersized?
+        # Motor stand
+        self.stand_hole_diameter = inch_to_mm(3 / 8)
+        self.stand_hole_length = inch_to_mm(0.5)  # 1/2" but undersized?
 
         # Relative positioning
         self.distance_fb = inch_to_mm(8.5)
         self.distance_lr = inch_to_mm(0)  # TBD
 
-        # Lever dimensions
+        # Lever
         self.lever_offset_lr = inch_to_mm(0.25)  # Clear back gear shaft
+        self.lever_offset_taper = inch_to_mm(0.05)  # Conform to casting surface
         self.lever_width = inch_to_mm(1)
         self.lever_thickness = inch_to_mm(0.25)
         self.lever_length = inch_to_mm(4)
+        self.lever_retention_clip = inch_to_mm(0.075)
 
     def front_lever(self):
         offset_cylinder = (
             cq.Workplane("YZ")
             .transformed(offset=(0, 0, self.lever_offset_lr))
             .circle(radius=self.lever_width / 2)
-            .circle(radius=(self.headstock_hole_diameter / 2) + self.print_margin)
-            .extrude(-self.lever_offset_lr)
+            .extrude(-self.lever_offset_lr - self.lever_offset_taper)
+            .faces("<X")
+            .workplane()
+            .circle(radius=self.lever_width / 2)
+            .workplane(offset=self.lever_offset_taper)
+            .circle(radius=(self.headstock_hole_diameter / 2) + self.print_margin * 2)
+            .loft()
         )
 
         lever_rod = (
@@ -120,17 +127,135 @@ class sb_belt_tensioner:
             .extrude(self.lever_length, both=True)
         )
 
-        lever_rod = (
-            lever_rod
+        lever = (
+            offset_cylinder
+            + lever_rod
             - lever_rod_hole_subtract
             - lever_rod_hole_subtract.translate((0, self.lever_length, 0))
         )
 
-        lever = offset_cylinder + lever_rod
-
         return lever
+
+    def front_lever_pin_placeholder(self):
+        """
+        3D-printed placeholder for metal pins
+        """
+        pin_body = (
+            cq.Workplane("YZ")
+            # Section inside lever
+            .circle(radius=(self.headstock_hole_diameter / 2) - self.print_margin)
+            .extrude(self.lever_offset_lr + self.lever_thickness + self.print_margin)
+            # Wider section to hold lever
+            .faces(">X")
+            .workplane()
+            .circle(radius=self.headstock_hole_diameter)
+            .extrude(self.headstock_hole_diameter / 4)
+            # Other side: section inside headstock
+            .faces("<X")
+            .workplane()
+            .circle(radius=(self.headstock_hole_diameter / 2) - self.print_margin)
+            .extrude(self.headstock_hole_length)
+            # Slot for retention clip
+            .faces("<X")
+            .workplane()
+            .circle(
+                radius=(self.headstock_hole_diameter / 2)
+                - self.lever_retention_clip
+                - self.print_margin
+            )
+            .extrude(self.lever_retention_clip)
+            # Hold retention clip
+            .faces("<X")
+            .workplane()
+            .circle(radius=(self.headstock_hole_diameter / 2) - self.print_margin)
+            .extrude(self.lever_retention_clip)
+        )
+
+        # Slice in half for printing
+        half_slice = (
+            cq.Workplane("XY")
+            .rect(self.lever_length, self.lever_length)
+            .extrude(self.lever_length)
+        )
+
+        placeholder = pin_body.intersect(half_slice)
+
+        return placeholder
+
+    def front_lever_pin_clip(self):
+        clip_transform = (0, 0, -self.headstock_hole_length - self.print_margin)
+        clip_thickness = self.lever_retention_clip - self.print_margin * 2
+        clip_exterior = (
+            cq.Workplane("YZ")
+            .transformed(offset=clip_transform)
+            .circle(
+                radius=(self.headstock_hole_diameter / 2)
+                + self.lever_retention_clip
+                + self.print_margin
+            )
+            .extrude(-clip_thickness)
+        )
+
+        clip_interior_circle = (
+            cq.Workplane("YZ")
+            .transformed(offset=clip_transform)
+            .circle(
+                radius=(self.headstock_hole_diameter / 2)
+                - self.lever_retention_clip
+                + self.print_margin
+            )
+            .extrude(-clip_thickness)
+        )
+
+        clip_interior_rect_half = (
+            cq.Workplane("YZ")
+            .transformed(offset=clip_transform)
+            .line(
+                (self.headstock_hole_diameter / 2)
+                - self.lever_retention_clip
+                - self.print_margin,
+                0,
+            )
+            .line(0, -self.lever_width)
+            .lineTo(0, -self.lever_width)
+            .close()
+            .extrude(-clip_thickness)
+        )
+
+        clip_interior_rect = clip_interior_rect_half + clip_interior_rect_half.mirror(
+            "XZ"
+        )
+
+        clip_loop_radius_outer = inch_to_mm(0.4)
+        clip_loop_radius_inner = inch_to_mm(0.3)
+        clip_loop = (
+            cq.Workplane("YZ")
+            .transformed(offset=clip_transform)
+            .transformed(
+                offset=(
+                    0,
+                    self.headstock_hole_diameter / 2
+                    + self.lever_retention_clip
+                    + clip_loop_radius_inner
+                    + self.print_margin,
+                    0,
+                )
+            )
+            .circle(radius=clip_loop_radius_outer)
+            .circle(radius=clip_loop_radius_inner)
+            .extrude(-clip_thickness)
+        )
+
+        clip = clip_exterior + clip_loop - clip_interior_circle - clip_interior_rect
+
+        return clip
 
 
 sbt = sb_belt_tensioner()
 
 show_object(sbt.front_lever(), options={"color": "blue", "alpha": 0.25})
+show_object(
+    sbt.front_lever_pin_placeholder(), options={"color": "green", "alpha": 0.25}
+)
+
+show_object(sbt.front_lever_pin_clip(), options={"color": "red", "alpha": 0.25})
