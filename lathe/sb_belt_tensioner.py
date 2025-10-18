@@ -83,65 +83,80 @@ class sb_belt_tensioner:
         self.stand_hole_diameter = inch_to_mm(3 / 8)
         self.stand_hole_length = inch_to_mm(0.5)  # 1/2" but undersized?
 
-        # Relative positioning
+        # Relative positioning between headstock and motor stand
         self.distance_fb = inch_to_mm(8.5)
-        self.distance_lr = inch_to_mm(0.1)
+        self.distance_lr = inch_to_mm(0.075)
 
         # Lever
         self.lever_offset_lr = inch_to_mm(0.25)  # Clear back gear shaft
         self.lever_offset_taper = inch_to_mm(0.05)  # Conform to casting surface
         self.lever_width = inch_to_mm(1)
-        self.lever_thickness = inch_to_mm(0.25)
+        self.lever_thickness = inch_to_mm(0.5)
         self.lever_length = inch_to_mm(4)
         self.lever_retention_clip = inch_to_mm(0.075)
 
         # Pivot pin
         self.pivot_range_degrees = 60
         self.pivot_over_angle_degrees = 5
-        self.pivot_diameter = inch_to_mm(0.5)
-        self.pivot_length = (
-            self.lever_offset_lr + self.lever_thickness - self.distance_lr
-        ) * 2
+        self.pivot_diameter = inch_to_mm(3 / 8)
+        self.pivot_length = inch_to_mm(1)
         self.pivot_rod_diameter = inch_to_mm(0.25)
-        self.pivot_nut_width = inch_to_mm(0.43)
-        self.pivot_nut_thickness = inch_to_mm(0.215)
 
-        self.pivot_pin_surround_radius = self.pivot_diameter * 1.25
+        self.pivot_pin_surround_radius = self.pivot_diameter * 1.5
 
-    def pivot_pin_half(self):
+    def pivot_pin(self):
         pin_body = (
             cq.Workplane("YZ")
             .circle(radius=self.pivot_diameter / 2)
-            .extrude(self.pivot_length / 2, both=True)
+            .extrude(-self.pivot_length)
+            .translate(
+                (
+                    self.lever_offset_lr + self.lever_thickness - self.distance_lr,
+                    0,
+                    0,
+                )
+            )
             .edges()
             .chamfer(0.5)
         )
         pivot_rod = (
             cq.Workplane("XZ")
-            .circle(radius=self.pivot_rod_diameter / 2)
+            .circle(radius=self.pivot_rod_diameter / 2 - self.print_margin)
             .extrude(self.pivot_diameter, both=True)
         )
+        return pin_body - pivot_rod
 
-        nut = (
+    def pivot_pin_slice(self):
+        slice_intersect = (
             cq.Workplane("XZ")
-            .polygon(
-                6,
-                diameter=self.pivot_nut_width + self.print_margin,
-                circumscribed=True,
-            )
-            .extrude(self.pivot_nut_thickness / 2 + self.print_margin, both=True)
-            .edges()
-            .chamfer(0.25)
+            .transformed(offset=(0, 0, -inch_to_mm(0.1)))
+            .rect(self.lever_length, self.lever_length)
+            .extrude(self.pivot_diameter)
         )
 
+        pin_slice = (
+            self.pivot_pin()
+            .intersect(slice_intersect)
+            .translate(
+                (
+                    self.distance_lr,
+                    self.lever_length,
+                    0,
+                )
+            )
+        )
+
+        return pin_slice
+
+    def pivot_pin_half(self):
         half_intersect = (
             cq.Workplane("XY")
-            .rect(self.pivot_length, self.pivot_length)
+            .rect(self.lever_length, self.lever_length)
             .extrude(self.pivot_diameter)
         )
 
         pin_half = (
-            (pin_body - pivot_rod - nut)
+            self.pivot_pin()
             .intersect(half_intersect)
             .translate(
                 (
@@ -190,8 +205,8 @@ class sb_belt_tensioner:
             cq.Workplane("YZ")
             .circle(radius=self.pivot_pin_surround_radius)
             .extrude(
-                -self.pivot_length * 0.65
-            )  # Should be .extrude(-self.pivot_length) but skipping print support while figuring out dimensions
+                -self.pivot_length  #  * 0.65 for test print without support requirement
+            )
             .translate(
                 (self.lever_offset_lr + self.lever_thickness, self.lever_length, 0)
             )
@@ -371,4 +386,4 @@ show_object(
 )
 
 show_object(sbt.front_lever_pin_clip(), options={"color": "red", "alpha": 0.25})
-show_object(sbt.pivot_pin_half(), options={"color": "yellow", "alpha": 0.25})
+show_object(sbt.pivot_pin_slice(), options={"color": "yellow", "alpha": 0.25})
