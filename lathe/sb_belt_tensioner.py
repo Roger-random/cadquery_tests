@@ -85,7 +85,7 @@ class sb_belt_tensioner:
 
         # Relative positioning
         self.distance_fb = inch_to_mm(8.5)
-        self.distance_lr = inch_to_mm(0)  # TBD
+        self.distance_lr = inch_to_mm(0.1)
 
         # Lever
         self.lever_offset_lr = inch_to_mm(0.25)  # Clear back gear shaft
@@ -95,12 +95,71 @@ class sb_belt_tensioner:
         self.lever_length = inch_to_mm(4)
         self.lever_retention_clip = inch_to_mm(0.075)
 
+        # Pivot pin
+        self.pivot_range_degrees = 60
+        self.pivot_over_angle_degrees = 5
+        self.pivot_diameter = inch_to_mm(0.5)
+        self.pivot_length = (
+            self.lever_offset_lr + self.lever_thickness - self.distance_lr
+        ) * 2
+        self.pivot_rod_diameter = inch_to_mm(0.25)
+        self.pivot_nut_width = inch_to_mm(0.43)
+        self.pivot_nut_thickness = inch_to_mm(0.215)
+
+        self.pivot_pin_surround_radius = self.pivot_diameter * 1.25
+
+    def pivot_pin_half(self):
+        pin_body = (
+            cq.Workplane("YZ")
+            .circle(radius=self.pivot_diameter / 2)
+            .extrude(self.pivot_length / 2, both=True)
+            .edges()
+            .chamfer(0.5)
+        )
+        pivot_rod = (
+            cq.Workplane("XZ")
+            .circle(radius=self.pivot_rod_diameter / 2)
+            .extrude(self.pivot_diameter, both=True)
+        )
+
+        nut = (
+            cq.Workplane("XZ")
+            .polygon(
+                6,
+                diameter=self.pivot_nut_width + self.print_margin,
+                circumscribed=True,
+            )
+            .extrude(self.pivot_nut_thickness / 2 + self.print_margin, both=True)
+            .edges()
+            .chamfer(0.25)
+        )
+
+        half_intersect = (
+            cq.Workplane("XY")
+            .rect(self.pivot_length, self.pivot_length)
+            .extrude(self.pivot_diameter)
+        )
+
+        pin_half = (
+            (pin_body - pivot_rod - nut)
+            .intersect(half_intersect)
+            .translate(
+                (
+                    self.distance_lr,
+                    self.lever_length,
+                    0,
+                )
+            )
+        )
+
+        return pin_half
+
     def front_lever(self):
         offset_cylinder = (
             cq.Workplane("YZ")
             .transformed(offset=(0, 0, self.lever_offset_lr))
             .circle(radius=self.lever_width / 2)
-            .extrude(-self.lever_offset_lr - self.lever_offset_taper)
+            .extrude(-self.lever_offset_lr + self.lever_offset_taper)
             .faces("<X")
             .workplane()
             .circle(radius=self.lever_width / 2)
@@ -121,17 +180,74 @@ class sb_belt_tensioner:
             .extrude(self.lever_thickness)
         )
 
-        lever_rod_hole_subtract = (
+        lever_pin_subtract = (
             cq.Workplane("YZ")
             .circle(radius=self.headstock_hole_diameter / 2 + self.print_margin)
             .extrude(self.lever_length, both=True)
         )
 
+        pivot_pin_surround = (
+            cq.Workplane("YZ")
+            .circle(radius=self.pivot_pin_surround_radius)
+            .extrude(
+                -self.pivot_length * 0.65
+            )  # Should be .extrude(-self.pivot_length) but skipping print support while figuring out dimensions
+            .translate(
+                (self.lever_offset_lr + self.lever_thickness, self.lever_length, 0)
+            )
+        )
+
+        pivot_pin_subtract = (
+            cq.Workplane("YZ")
+            .circle(radius=self.pivot_diameter / 2 + self.print_margin)
+            .extrude(self.pivot_length, both=True)
+            .translate((0, self.lever_length, 0))
+        )
+
+        # The most complicated part: remove volume required for pivot rod
+        # range of motion
+        pivot_rod_subtract = (
+            cq.Workplane("XZ")
+            .circle(radius=self.pivot_rod_diameter / 2)
+            .extrude(self.pivot_pin_surround_radius, both=True)
+        )
+
+        pivot_range_subtract = (
+            cq.Workplane("YZ")
+            .lineTo(-self.pivot_pin_surround_radius, 0)
+            .radiusArc(
+                (
+                    -self.pivot_pin_surround_radius
+                    * math.cos(math.radians(self.pivot_range_degrees)),
+                    self.pivot_pin_surround_radius
+                    * math.sin(math.radians(self.pivot_range_degrees)),
+                ),
+                radius=self.pivot_pin_surround_radius,
+            )
+            .close()
+            .extrude(self.pivot_rod_diameter / 2, both=True)
+        )
+
+        pivot_range_subtract = (
+            (
+                pivot_range_subtract
+                + pivot_range_subtract.mirror("XZ").mirror("XY")
+                + pivot_rod_subtract
+                + pivot_rod_subtract.rotate(
+                    (0, 0, 0), (1, 0, 0), -self.pivot_range_degrees
+                )
+            )
+            .rotate((0, 0, 0), (1, 0, 0), self.pivot_over_angle_degrees)
+            .translate((self.distance_lr, self.lever_length, 0))
+        )
+
         lever = (
             offset_cylinder
             + lever_rod
-            - lever_rod_hole_subtract
-            - lever_rod_hole_subtract.translate((0, self.lever_length, 0))
+            + pivot_pin_surround
+            - lever_pin_subtract
+            - pivot_pin_subtract
+            - pivot_range_subtract
         )
 
         return lever
@@ -159,9 +275,7 @@ class sb_belt_tensioner:
             .faces("<X")
             .workplane()
             .circle(
-                radius=(self.headstock_hole_diameter / 2)
-                - self.lever_retention_clip
-                - self.print_margin
+                radius=(self.headstock_hole_diameter / 2) - self.lever_retention_clip
             )
             .extrude(self.lever_retention_clip)
             # Hold retention clip
@@ -200,9 +314,7 @@ class sb_belt_tensioner:
             cq.Workplane("YZ")
             .transformed(offset=clip_transform)
             .circle(
-                radius=(self.headstock_hole_diameter / 2)
-                - self.lever_retention_clip
-                + self.print_margin
+                radius=(self.headstock_hole_diameter / 2) - self.lever_retention_clip
             )
             .extrude(-clip_thickness)
         )
@@ -213,7 +325,7 @@ class sb_belt_tensioner:
             .line(
                 (self.headstock_hole_diameter / 2)
                 - self.lever_retention_clip
-                - self.print_margin,
+                - self.print_margin * 2,
                 0,
             )
             .line(0, -self.lever_width)
@@ -259,3 +371,4 @@ show_object(
 )
 
 show_object(sbt.front_lever_pin_clip(), options={"color": "red", "alpha": 0.25})
+show_object(sbt.pivot_pin_half(), options={"color": "yellow", "alpha": 0.25})
