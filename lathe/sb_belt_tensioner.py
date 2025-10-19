@@ -95,10 +95,14 @@ class sb_belt_tensioner:
         self.lever_length = inch_to_mm(4)
         self.lever_retention_clip = inch_to_mm(0.075)
 
+        self.lever_handle_length = self.lever_length
+        self.lever_handle_radius = inch_to_mm(0.5)
+        self.lever_handle_angle_degreees = 60
+
         # Pivot pin
         self.pivot_range_degrees = 60
         self.pivot_over_angle_degrees = 5
-        self.pivot_diameter = inch_to_mm(0.378)
+        self.pivot_diameter = inch_to_mm(3 / 8)
         self.pivot_length = inch_to_mm(1)
         self.pivot_rod_diameter = inch_to_mm(0.25)
 
@@ -293,10 +297,37 @@ class sb_belt_tensioner:
             .translate((self.distance_lr, self.lever_length, 0))
         )
 
+        handle_intersect = (
+            cq.Workplane("YZ")
+            .rect(self.lever_handle_length * 2, self.lever_handle_length * 2)
+            .extrude(-self.lever_handle_radius * 2)
+        )
+
+        handle = (
+            cq.Workplane("XZ")
+            .transformed(
+                offset=(-self.lever_handle_radius * math.cos(math.radians(60)), 0, 0)
+            )
+            .circle(radius=self.lever_handle_radius)
+            .workplane(offset=-self.lever_handle_length * 0.3)
+            .circle(radius=self.lever_handle_radius * 0.6)
+            .workplane(offset=-self.lever_handle_length * 0.4)
+            .circle(radius=self.lever_handle_radius)
+            .workplane(offset=-self.lever_handle_length * 0.3)
+            .circle(radius=self.lever_handle_radius * 0.1)
+            .loft()
+            .intersect(handle_intersect)
+            .rotate((0, 0, 0), (1, 0, 0), self.lever_handle_angle_degreees)
+            .translate(
+                (self.lever_offset_lr + self.lever_thickness, self.lever_length, 0)
+            )
+        )
+
         lever = (
             offset_cone
             + lever_rod
             + pivot_pin_surround
+            + handle
             - lever_pin_subtract
             - pivot_pin_subtract
             - pivot_range_subtract
