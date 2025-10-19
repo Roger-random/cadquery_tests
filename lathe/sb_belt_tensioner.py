@@ -220,24 +220,25 @@ class sb_belt_tensioner:
         )
 
         # The most complicated part: remove volume required for pivot rod
-        # range of motion
+        # range of
+        pivot_subtract_radius = self.pivot_pin_surround_radius * 2
         pivot_rod_subtract = (
             cq.Workplane("XZ")
             .circle(radius=self.pivot_rod_diameter / 2)
-            .extrude(self.pivot_pin_surround_radius, both=True)
+            .extrude(pivot_subtract_radius, both=True)
         )
 
         pivot_range_subtract = (
             cq.Workplane("YZ")
-            .lineTo(-self.pivot_pin_surround_radius, 0)
+            .lineTo(-pivot_subtract_radius, 0)
             .radiusArc(
                 (
-                    -self.pivot_pin_surround_radius
+                    -pivot_subtract_radius
                     * math.cos(math.radians(self.pivot_range_degrees)),
-                    self.pivot_pin_surround_radius
+                    pivot_subtract_radius
                     * math.sin(math.radians(self.pivot_range_degrees)),
                 ),
-                radius=self.pivot_pin_surround_radius,
+                radius=pivot_subtract_radius,
             )
             .close()
             .extrude(self.pivot_rod_diameter / 2, both=True)
