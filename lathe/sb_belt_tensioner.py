@@ -98,13 +98,16 @@ class sb_belt_tensioner:
         # Pivot pin
         self.pivot_range_degrees = 60
         self.pivot_over_angle_degrees = 5
-        self.pivot_diameter = inch_to_mm(3 / 8)
+        self.pivot_diameter = inch_to_mm(0.378)
         self.pivot_length = inch_to_mm(1)
         self.pivot_rod_diameter = inch_to_mm(0.25)
 
-        self.pivot_pin_surround_radius = self.pivot_diameter * 1.5
+        self.pivot_pin_surround_radius = self.lever_width / 2
 
     def pivot_pin(self):
+        """
+        3D-printed placeholder for metal pins
+        """
         pin_body = (
             cq.Workplane("YZ")
             .circle(radius=self.pivot_diameter / 2)
@@ -127,6 +130,9 @@ class sb_belt_tensioner:
         return pin_body - pivot_rod
 
     def pivot_pin_slice(self):
+        """
+        3D-printed placeholder for metal pins
+        """
         slice_intersect = (
             cq.Workplane("XZ")
             .transformed(offset=(0, 0, -inch_to_mm(0.1)))
@@ -149,6 +155,9 @@ class sb_belt_tensioner:
         return pin_slice
 
     def pivot_pin_half(self):
+        """
+        3D-printed placeholder for metal pins
+        """
         half_intersect = (
             cq.Workplane("XY")
             .rect(self.lever_length, self.lever_length)
@@ -170,6 +179,9 @@ class sb_belt_tensioner:
         return pin_half
 
     def front_lever(self):
+        """
+        3D-printed half of the tension mechanism
+        """
         offset_cone_intersect = (
             cq.Workplane("YZ")
             .line(0, self.lever_width / 2)
@@ -213,12 +225,24 @@ class sb_belt_tensioner:
             .extrude(self.lever_length, both=True)
         )
 
+        pivot_pin_surround_intersect = (
+            cq.Workplane("YZ")
+            .line(0, self.pivot_pin_surround_radius)
+            .line(-self.lever_length, 0)
+            .line(0, -self.pivot_pin_surround_radius * 2)
+            .line(self.lever_length, 0)
+            .tangentArcPoint((0, self.pivot_pin_surround_radius * 2))
+            .close()
+            .extrude(-self.pivot_length)
+        )
+
         pivot_pin_surround = (
             cq.Workplane("YZ")
+            .circle(radius=self.pivot_pin_surround_radius + self.pivot_length)
+            .workplane(offset=-self.pivot_length)
             .circle(radius=self.pivot_pin_surround_radius)
-            .extrude(
-                -self.pivot_length  #  * 0.65 for test print without support requirement
-            )
+            .loft()
+            .intersect(pivot_pin_surround_intersect)
             .translate(
                 (self.lever_offset_lr + self.lever_thickness, self.lever_length, 0)
             )
