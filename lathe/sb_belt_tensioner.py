@@ -170,17 +170,29 @@ class sb_belt_tensioner:
         return pin_half
 
     def front_lever(self):
-        offset_cylinder = (
+        offset_cone_intersect = (
             cq.Workplane("YZ")
-            .transformed(offset=(0, 0, self.lever_offset_lr))
+            .line(0, self.lever_width / 2)
+            .line(self.lever_length, 0)
+            .line(0, -self.lever_width)
+            .line(-self.lever_length, 0)
+            .tangentArcPoint((0, self.lever_width))
+            .close()
+            .extrude(self.lever_offset_lr)
+        )
+        offset_cone = (
+            cq.Workplane("YZ")
+            .circle(radius=(self.headstock_hole_diameter / 2) + self.print_margin)
+            .workplane(offset=self.lever_offset_taper)
             .circle(radius=self.lever_width / 2)
-            .extrude(-self.lever_offset_lr + self.lever_offset_taper)
-            .faces("<X")
+            .loft()
+            .faces(">X")
             .workplane()
             .circle(radius=self.lever_width / 2)
-            .workplane(offset=self.lever_offset_taper)
-            .circle(radius=(self.headstock_hole_diameter / 2) + self.print_margin * 2)
+            .workplane(offset=self.lever_offset_lr - self.lever_offset_taper)
+            .circle(radius=self.lever_width / 2 + self.lever_offset_lr)
             .loft()
+            .intersect(offset_cone_intersect)
         )
 
         lever_rod = (
@@ -258,7 +270,7 @@ class sb_belt_tensioner:
         )
 
         lever = (
-            offset_cylinder
+            offset_cone
             + lever_rod
             + pivot_pin_surround
             - lever_pin_subtract
