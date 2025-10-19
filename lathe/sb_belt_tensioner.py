@@ -377,6 +377,42 @@ class sb_belt_tensioner:
 
         return clip
 
+    def vise_block(self):
+        """
+        3D printed blocks to help hold ~380" diameter aluminum pins in a vise
+        so I can drill and tap 1/4"-20 threads in them.
+        """
+        # Small gap between pieces to give vise room to squeeze and deform
+        # for custom fit
+        clamp_gap = 2
+
+        pin_diameter = inch_to_mm(0.380)
+
+        block_size = inch_to_mm(0.75)
+
+        block = cq.Workplane("XY").box(block_size, block_size, block_size)
+
+        pin = (
+            cq.Workplane("YZ")
+            .circle(radius=pin_diameter / 2)
+            .extrude(block_size, both=True)
+        )
+
+        rod = (
+            cq.Workplane("XZ")
+            .circle(radius=inch_to_mm(1 / 8))
+            .extrude(block_size, both=True)
+        )
+
+        block_intersect = (
+            cq.Workplane("XY")
+            .transformed(offset=(0, 0, -clamp_gap))
+            .rect(block_size, block_size)
+            .extrude(-block_size)
+        )
+
+        return (block - pin - rod).intersect(block_intersect).edges("|Z").fillet(3)
+
 
 sbt = sb_belt_tensioner()
 
@@ -387,3 +423,8 @@ show_object(
 
 show_object(sbt.front_lever_pin_clip(), options={"color": "red", "alpha": 0.25})
 show_object(sbt.pivot_pin_slice(), options={"color": "yellow", "alpha": 0.25})
+
+show_object(
+    sbt.vise_block().translate((0, -inch_to_mm(2), 0)),
+    options={"color": "purple", "alpha": 0.25},
+)
