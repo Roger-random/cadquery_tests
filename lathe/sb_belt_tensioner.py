@@ -385,31 +385,33 @@ class sb_belt_tensioner:
         """
         # Small gap between pieces to give vise room to squeeze and deform
         # for custom fit
-        clamp_gap = 2
+        clamp_gap = 1
 
         pin_diameter = inch_to_mm(0.380)
 
-        block_size = inch_to_mm(0.75)
+        block_height = inch_to_mm(0.5)
+        block_length = inch_to_mm(1.5)
+        block_width = inch_to_mm(0.5)
 
-        block = cq.Workplane("XY").box(block_size, block_size, block_size)
+        block = cq.Workplane("XY").box(block_length, block_height, block_width)
 
         pin = (
             cq.Workplane("YZ")
             .circle(radius=pin_diameter / 2)
-            .extrude(block_size, both=True)
+            .extrude(block_length, both=True)
         )
 
         rod = (
             cq.Workplane("XZ")
             .circle(radius=inch_to_mm(1 / 8))
-            .extrude(block_size, both=True)
+            .extrude(block_height, both=True)
         )
 
         block_intersect = (
             cq.Workplane("XY")
             .transformed(offset=(0, 0, -clamp_gap))
-            .rect(block_size, block_size)
-            .extrude(-block_size)
+            .rect(block_length, block_height)
+            .extrude(-block_width)
         )
 
         return (block - pin - rod).intersect(block_intersect).edges("|Z").fillet(3)
