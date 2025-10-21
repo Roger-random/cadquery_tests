@@ -82,6 +82,7 @@ class sb_switch_box:
         """
         Placeholder object representing the table this box will be mounted
         under.
+        Not precise because the table is built of warped wood pieces.
         """
         return (
             cq.Workplane("YZ")
@@ -99,6 +100,22 @@ class sb_switch_box:
             .extrude(self.switch_width, both=True)
         )
 
+    def table_fit_test_template(self):
+        """
+        Thin printed piece to hold up against actual table to verify table
+        placeholder dimensions are good enough.
+        Not precise because the table is built of warped wood pieces.
+        """
+        return (
+            cq.Workplane("YZ")
+            .line(-self.table_depth_front, 0)
+            .line(0, -self.table_beam_height * 1.5)
+            .line(self.table_depth_front * 2, 0)
+            .line(0, self.table_beam_height * 1.5)
+            .close()
+            .extrude(5)
+        ) - self.table_placeholder()
+
     def box(self):
         pass
 
@@ -106,3 +123,5 @@ class sb_switch_box:
 ssb = sb_switch_box()
 
 show_object(ssb.table_placeholder(), options={"color": "gray", "alpha": 0.25})
+
+show_object(ssb.table_fit_test_template(), options={"color": "white", "alpha": 0.5})
