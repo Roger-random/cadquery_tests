@@ -63,7 +63,7 @@ class sb_switch_box:
         # corner where bottom of the table and outer surface of the support
         # beam meet.
         self.table_depth_front = inch_to_mm(2 + 3 / 8)
-        self.table_beam_height = inch_to_mm(1 + 5 / 8)
+        self.table_beam_height = inch_to_mm(1 + 3 / 4)
         self.table_beam_depth = inch_to_mm(1 + 1 / 16)
         self.table_inner_height = inch_to_mm(7 / 8)
         self.table_thickness = inch_to_mm(0.5)
