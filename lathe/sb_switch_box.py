@@ -76,7 +76,12 @@ class sb_switch_box:
         self.switch_fastener_hole_diameter = 3.0  # M3 as self-tapping screw
         self.switch_opening_height = inch_to_mm(3)
         self.switch_opening_width = inch_to_mm(2.5)
-        pass
+        self.switch_rear_clearance = inch_to_mm(4)
+
+        # Paddle switch placement distance of upper inner edge relative to
+        # table bottom beam corner.
+        self.switch_offset_depth = self.table_depth_front - self.switch_panel_depth
+        self.switch_offset_height = inch_to_mm(0.25)
 
     def table_placeholder(self):
         """
@@ -116,6 +121,46 @@ class sb_switch_box:
             .extrude(5)
         ) - self.table_placeholder()
 
+    def paddle_switch_placeholder(self):
+        """
+        Placeholder object representing the paddle switch that will be mounted
+        to table.
+        """
+        panel = cq.Workplane("XZ").box(
+            length=self.switch_width,
+            width=self.switch_height,
+            height=self.switch_panel_depth,
+            centered=(True, True, False),
+        )
+
+        switch = (
+            cq.Workplane("XZ")
+            .box(
+                length=self.switch_opening_width,
+                width=self.switch_opening_height,
+                height=self.switch_rear_clearance,
+                centered=(True, True, False),
+            )
+            .mirror("XZ")
+        )
+
+        fastener = (
+            cq.Workplane("XZ")
+            .transformed(offset=(0, self.switch_fastener_distance / 2, 0))
+            .circle(radius=self.switch_fastener_hole_diameter / 2)
+            .extrude(-self.switch_rear_clearance)
+        )
+
+        placeholder = (panel + switch + fastener + fastener.mirror("XY")).translate(
+            (
+                0,
+                -self.switch_offset_depth,
+                -self.switch_height / 2 - self.switch_offset_height,
+            )
+        )
+
+        return placeholder
+
     def box(self):
         pass
 
@@ -124,4 +169,4 @@ ssb = sb_switch_box()
 
 show_object(ssb.table_placeholder(), options={"color": "gray", "alpha": 0.25})
 
-show_object(ssb.table_fit_test_template(), options={"color": "white", "alpha": 0.5})
+show_object(ssb.paddle_switch_placeholder(), options={"color": "white", "alpha": 0.5})
