@@ -56,12 +56,53 @@ class sb_switch_box:
     """
 
     def __init__(self):
+        # Extra margin for 3D printed parts to fit.
+        self.print_margin = 0.2
+
+        # Relevant table dimensions.  The coordinate zero point is the inner
+        # corner where bottom of the table and outer surface of the support
+        # beam meet.
+        self.table_depth_front = inch_to_mm(2 + 3 / 8)
+        self.table_beam_height = inch_to_mm(1 + 5 / 8)
+        self.table_beam_depth = inch_to_mm(1 + 1 / 16)
+        self.table_inner_height = inch_to_mm(7 / 8)
+        self.table_thickness = inch_to_mm(0.5)
+
+        # Relevant paddle switch dimensions.
+        self.switch_height = inch_to_mm(4.4)
+        self.switch_width = inch_to_mm(2.650)
+        self.switch_panel_depth = inch_to_mm(1.6)  # Includes paddle
+        self.switch_fastener_distance = inch_to_mm(3.29)
+        self.switch_fastener_hole_diameter = 3.0  # M3 as self-tapping screw
+        self.switch_opening_height = inch_to_mm(3)
+        self.switch_opening_width = inch_to_mm(2.5)
         pass
 
+    def table_placeholder(self):
+        """
+        Placeholder object representing the table this box will be mounted
+        under.
+        """
+        return (
+            cq.Workplane("YZ")
+            .line(0, -self.table_beam_height)
+            .line(self.table_beam_depth, 0)
+            .line(0, self.table_inner_height)
+            .line(self.table_depth_front, 0)
+            .line(
+                0,
+                self.table_thickness + self.table_beam_height - self.table_inner_height,
+            )
+            .lineTo(-self.table_depth_front, self.table_thickness)
+            .line(0, -self.table_thickness)
+            .close()
+            .extrude(self.switch_width, both=True)
+        )
+
     def box(self):
-        return cq.Workplane("XY").box(10, 20, 30)
+        pass
 
 
 ssb = sb_switch_box()
 
-show_object(ssb.box(), options={"color": "blue", "alpha": 0.25})
+show_object(ssb.table_placeholder(), options={"color": "gray", "alpha": 0.25})
