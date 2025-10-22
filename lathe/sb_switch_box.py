@@ -68,6 +68,12 @@ class sb_switch_box:
         self.table_inner_height = inch_to_mm(7 / 8)
         self.table_thickness = inch_to_mm(0.5)
 
+        # Wood screw to fasten to table
+        self.table_screw_diameter = inch_to_mm(0.175) + self.print_margin * 2
+        self.table_screw_length = inch_to_mm(1) + self.print_margin
+        self.table_screw_head_diameter = inch_to_mm(0.3) + self.print_margin * 2
+        self.table_screw_head_height = inch_to_mm(0.1)
+
         # Relevant paddle switch dimensions.
         self.switch_height = inch_to_mm(4.4)
         self.switch_width = inch_to_mm(2.650)
@@ -75,13 +81,16 @@ class sb_switch_box:
         self.switch_fastener_distance = inch_to_mm(3.29)
         self.switch_fastener_hole_diameter = 3.0  # M3 as self-tapping screw
         self.switch_opening_height = inch_to_mm(3)
-        self.switch_opening_width = inch_to_mm(2.5)
+        self.switch_opening_width = inch_to_mm(2)
         self.switch_rear_clearance = inch_to_mm(4)
 
         # Paddle switch placement distance of upper inner edge relative to
         # table bottom beam corner.
         self.switch_offset_depth = self.table_depth_front - self.switch_panel_depth
         self.switch_offset_height = inch_to_mm(0.25)
+
+        self.box_fillet = 5
+        self.box_bottom_thickness = 5
 
     def table_placeholder(self):
         """
@@ -142,6 +151,8 @@ class sb_switch_box:
                 centered=(True, True, False),
             )
             .mirror("XZ")
+            .edges("|Y")
+            .fillet(self.box_fillet)
         )
 
         fastener = (
@@ -161,12 +172,102 @@ class sb_switch_box:
 
         return placeholder
 
+    def wood_screw_clearance(self):
+        return (
+            cq.Workplane("XY")
+            # Screw head
+            .circle(radius=self.table_screw_head_diameter / 2)
+            .workplane(offset=self.table_screw_head_height)
+            .circle(radius=self.table_screw_diameter / 2)
+            .loft()
+            # Screw shaft
+            .faces(">Z")
+            .workplane()
+            .circle(radius=self.table_screw_diameter / 2)
+            .extrude(self.table_screw_length)
+            # Screwdriver reach
+            .faces("<Z")
+            .workplane()
+            .circle(radius=self.table_screw_head_diameter * 0.75)
+            .workplane(offset=self.table_screw_length)
+            .circle(radius=self.table_screw_head_diameter * 0.75)
+            .loft()
+        )
+
     def box(self):
-        pass
+        rear_slope_distance = (
+            self.switch_height + self.switch_offset_height - self.table_beam_height
+        )
+        profile = (
+            cq.Workplane("YZ")
+            .line(-self.print_margin, -self.print_margin, forConstruction=True)
+            .lineTo(-self.switch_offset_depth, -self.print_margin)
+            .lineTo(
+                -self.switch_offset_depth,
+                -self.switch_offset_height - self.switch_height + self.print_margin,
+            )
+            .lineTo(
+                -self.switch_offset_depth + self.box_bottom_thickness,
+                -self.switch_offset_height - self.switch_height + self.print_margin,
+            )
+            .line(rear_slope_distance, rear_slope_distance)
+            .line(0, self.table_inner_height - self.print_margin * 2)
+            .lineTo(
+                self.table_beam_depth + self.print_margin,
+                -self.table_beam_height + self.table_inner_height - self.print_margin,
+            )
+            .line(0, -self.table_inner_height)
+            .line(-self.table_beam_depth - self.print_margin * 2, 0)
+            .close()
+            .extrude(self.switch_width / 2, both=True)
+        )
+
+        # Round things off to help with printing
+
+        # Bottom
+        profile = profile.faces("<Z").edges("|Y").fillet(self.box_fillet)
+
+        # Top
+        profile = profile.faces(">Z").edges("|Y").fillet(self.box_fillet)
+
+        # Back
+        profile = profile.faces(">Y").edges("|Z").fillet(self.box_fillet)
+
+        # Cut holes to clear other components
+        box = (
+            profile
+            - self.paddle_switch_placeholder()
+            - self.wood_screw_clearance().translate(
+                (
+                    0,
+                    self.table_beam_depth + inch_to_mm(0.5),
+                    -self.table_beam_height
+                    + self.table_inner_height
+                    - self.table_screw_head_height,
+                )
+            )
+            - self.wood_screw_clearance()
+            .rotate((0, 0, 0), (1, 0, 0), -90)
+            .translate(
+                (
+                    0,
+                    -inch_to_mm(0.2),
+                    -(
+                        self.switch_offset_height
+                        + (self.switch_height - self.switch_opening_height) / 2
+                    )
+                    / 2,
+                )
+            )
+        )
+
+        return box
 
 
 ssb = sb_switch_box()
 
 show_object(ssb.table_placeholder(), options={"color": "gray", "alpha": 0.25})
 
-show_object(ssb.paddle_switch_placeholder(), options={"color": "white", "alpha": 0.5})
+show_object(ssb.paddle_switch_placeholder(), options={"color": "gray", "alpha": 0.25})
+
+show_object(ssb.box(), options={"color": "green", "alpha": 0.5})
