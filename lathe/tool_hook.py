@@ -533,5 +533,25 @@ def jacobs_chuck_key(th: tool_hook):
     )
 
 
+def machinist_hammer(th: tool_hook):
+    tool_holder = th.circular_opening(
+        opening_diameter=26,
+        opening_height=1,
+        taper_height=10,
+        shaft_diameter=20,
+        side_wall=4,
+        depth_wall=3,
+        additional_height=30,
+    )
+
+    transform_for_display(
+        tool_holder,
+        x_offset=th.hook_inner_x + 20,
+        y_offset=0,
+        sides_on_bed=True,
+        show_object_options={"color": "green", "alpha": 0.5},
+    )
+
+
 th = tool_hook(hook_thickness=10)
-jacobs_chuck_key(th)
+machinist_hammer(th)
