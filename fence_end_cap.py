@@ -93,6 +93,32 @@ class fence_end_cap:
             .loft()
         )
 
+    def inside_rect(self):
+        return (
+            cq.Workplane("XZ")
+            .rect(
+                self.internal_side_short - self.internal_setback,
+                self.internal_side_long - self.internal_setback,
+            )
+            .workplane(-self.internal_length)
+            .rect(
+                self.internal_side_short,
+                self.internal_side_long,
+            )
+            .loft()
+            .faces(">Y")
+            .rect(
+                self.internal_side_short,
+                self.internal_side_long,
+            )
+            .workplane(self.internal_bevel)
+            .rect(
+                self.internal_side_short - self.internal_bevel,
+                self.internal_side_long - self.internal_bevel,
+            )
+            .loft()
+        )
+
     def inside_x(self):
         x_half = (
             cq.Workplane("XY")
@@ -105,10 +131,33 @@ class fence_end_cap:
 
         return inside
 
+    def inside_x_rect(self):
+        rect_diag_angle = math.degrees(
+            math.atan(self.internal_side_long / self.internal_side_short)
+        )
+        rect_x_offset = (self.internal_side_long - self.internal_side_short) / 2
+        x_rect_half = (
+            cq.Workplane("XY")
+            .transformed(rotate=(0, rect_diag_angle, 0))
+            .rect(self.internal_x_width, self.internal_x_depth, centered=(True, False))
+            .extrude(self.internal_thickness, both=True)
+        )
+
+        x_rect = (
+            (x_rect_half + x_rect_half.mirror("YZ"))
+            .intersect(self.inside_rect())
+            .translate((rect_x_offset, 0, 0))
+        )
+
+        return x_rect
+
     def cap_square(self):
         return self.outside_cap() + self.inside_x()
+
+    def cap_rect(self):
+        return self.outside_cap() + self.inside_x_rect()
 
 
 fec = fence_end_cap()
 
-show_object(fec.cap_square(), options={"color": "green", "alpha": 0.5})
+show_object(fec.cap_rect(), options={"color": "green", "alpha": 0.5})
