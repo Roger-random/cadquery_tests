@@ -49,7 +49,7 @@ class fence_end_cap:
         self.end_box_fillet = 1
         self.end_box_inner_chamfer = 0.5
         self.internal_side_long = 14.4
-        self.internal_side_short = 7
+        self.internal_side_short = 7.4
         self.internal_setback = 0.5
         self.internal_length = 7
         self.internal_bevel = 2
